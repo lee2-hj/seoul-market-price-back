@@ -29,20 +29,37 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security-oauth2-client'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+
     implementation "com.querydsl:querydsl-jpa:${querydslVersion}:jakarta"
     annotationProcessor "com.querydsl:querydsl-apt:${querydslVersion}:jakarta"
     annotationProcessor 'jakarta.annotation:jakarta.annotation-api'
     annotationProcessor 'jakarta.persistence:jakarta.persistence-api'
+
+    // =========================
+    // JWT (JSON Web Token)
+    // =========================
+
+    // JWT 생성 및 검증 기능에서 사용하는 API
+    implementation 'io.jsonwebtoken:jjwt-api:0.13.0'
+
+    // JWT 생성, 서명(Sign), 검증(Verify)을 실제 수행하는 구현체
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.13.0'
+
+    // JWT Claim(JSON 데이터)을 Jackson으로 직렬화/역직렬화하는 라이브러리
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.13.0'
+
     compileOnly 'org.projectlombok:lombok'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     runtimeOnly 'com.mysql:mysql-connector-j'
     annotationProcessor 'org.projectlombok:lombok'
+
     testImplementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-security-oauth2-client-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+
     testCompileOnly 'org.projectlombok:lombok'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testAnnotationProcessor 'org.projectlombok:lombok'

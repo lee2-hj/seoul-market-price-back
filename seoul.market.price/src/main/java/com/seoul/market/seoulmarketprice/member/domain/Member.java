@@ -1,0 +1,123 @@
+package com.seoul.market.seoulmarketprice.member.domain;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+/**
+ * 회원 엔티티.
+ *
+ * 팀 공통 테이블 정의서의 tb_user 테이블과 매핑된다.
+ *
+ * Controller의 요청과 응답에는 직접 사용하지 않고,
+ * 외부 데이터 전달에는 record DTO를 사용한다.
+ *
+ * Setter는 제공하지 않는다.
+ */
+@Entity
+@Getter
+@Table(name = "tb_user")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class Member {
+
+    /**
+     * 회원 고유 인덱스.
+     *
+     * DB에서 AUTO_INCREMENT 방식으로 생성된다.
+     */
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    /**
+     * 로그인에 사용하는 사용자 아이디.
+     */
+    @Column(name = "user_id", nullable = false)
+    private String userId;
+
+    /**
+     * 암호화된 비밀번호.
+     *
+     * 일반 로그인 사용자는 BCrypt 암호화 값을 저장한다.
+     * 소셜 로그인 사용자는 null일 수 있다.
+     */
+    @Column(name = "password")
+    private String password;
+
+    /**
+     * 사용자 실명 또는 닉네임.
+     */
+    @Column(name = "name", nullable = false)
+    private String name;
+
+    /**
+     * 배송지 우편번호.
+     */
+    @Column(name = "zipcode")
+    private String zipcode;
+
+    /**
+     * 기본 주소.
+     */
+    @Column(name = "address")
+    private String address;
+
+    /**
+     * 상세 주소.
+     */
+    @Column(name = "address_detail")
+    private String addressDetail;
+
+    /**
+     * 휴대전화 번호.
+     *
+     * 팀 공통 정의서 기준 필수값이다.
+     */
+    @Column(name = "phone", nullable = false)
+    private String phone;
+
+    /**
+     * 이메일 주소.
+     */
+    @Column(name = "email")
+    private String email;
+
+    /**
+     * 사용자 로그인 유형.
+     *
+     * DB에는 TINYINT 값으로 저장된다.
+     *
+     * 0: 일반 사용자
+     * 1: 소셜 로그인 사용자
+     */
+    @Convert(converter = UserTypeConverter.class)
+    @Column(name = "user_type", nullable = false)
+    private UserType userType;
+
+    /**
+     * 일반 로그인 사용자인지 확인한다.
+     *
+     * @return 일반 로그인 사용자이면 true
+     */
+    public boolean isLocalUser() {
+        return userType == UserType.LOCAL;
+    }
+
+    /**
+     * 로그인에 사용할 비밀번호가 존재하는지 확인한다.
+     *
+     * 소셜 로그인 사용자는 비밀번호가 null일 수 있다.
+     *
+     * @return 비밀번호가 존재하면 true
+     */
+    public boolean hasPassword() {
+        return password != null && !password.isBlank();
+    }
+}
