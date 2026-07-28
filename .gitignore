@@ -1,1 +1,51 @@
-/.idea
+# 보안 민감 정보 (API Key, DB 비밀번호 등)
+*.yml
+*.yaml
+*.properties
+.env
+!.env.example
+!application-example.yml
+
+# 🛠️ OS 및 기타 시스템 임시 파일
+.DS_Store
+Thumbs.db
+*.log
+
+# 기본 생성된 설정 (아래는 기존 내용 그대로)
+HELP.md
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
