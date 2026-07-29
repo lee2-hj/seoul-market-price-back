@@ -53,7 +53,12 @@ public class SecurityConfig {
                                 "/api/auth/reissue",
                                 "/api/auth/logout",
                                 "/oauth2/**",
-                                "/login/oauth2/**"
+                                "/login/oauth2/**",
+
+                                // Swagger UI 및 OpenAPI 명세 조회는 인증 없이 접근 허용
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

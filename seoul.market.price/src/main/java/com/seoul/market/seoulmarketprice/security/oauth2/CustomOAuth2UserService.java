@@ -1,7 +1,7 @@
 package com.seoul.market.seoulmarketprice.security.oauth2;
 
-import com.seoul.market.seoulmarketprice.member.domain.Member;
-import com.seoul.market.seoulmarketprice.member.repository.MemberRepository;
+import com.seoul.market.seoulmarketprice.auth.entity.Member;
+import com.seoul.market.seoulmarketprice.auth.repository.MemberRepository;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;

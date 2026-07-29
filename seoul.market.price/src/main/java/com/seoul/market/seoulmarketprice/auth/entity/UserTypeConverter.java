@@ -1,4 +1,4 @@
-package com.seoul.market.seoulmarketprice.member.domain;
+package com.seoul.market.seoulmarketprice.auth.entity;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;

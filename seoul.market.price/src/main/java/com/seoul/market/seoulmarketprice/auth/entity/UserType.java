@@ -1,4 +1,4 @@
-package com.seoul.market.seoulmarketprice.member.domain;
+package com.seoul.market.seoulmarketprice.auth.entity;
 
 /**
  * 사용자의 로그인 유형을 나타내는 열거형이다.

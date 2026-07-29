@@ -1,7 +1,7 @@
 package com.seoul.market.seoulmarketprice.security.oauth2;
 
-import com.seoul.market.seoulmarketprice.member.domain.Member;
-import com.seoul.market.seoulmarketprice.member.repository.MemberRepository;
+import com.seoul.market.seoulmarketprice.auth.entity.Member;
+import com.seoul.market.seoulmarketprice.auth.repository.MemberRepository;
 import com.seoul.market.seoulmarketprice.security.jwt.JwtTokenProvider;
 import com.seoul.market.seoulmarketprice.security.jwt.RefreshTokenCookieManager;
 import com.seoul.market.seoulmarketprice.token.service.RefreshTokenService;

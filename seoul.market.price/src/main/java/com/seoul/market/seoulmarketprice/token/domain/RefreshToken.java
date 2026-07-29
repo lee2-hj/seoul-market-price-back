@@ -1,6 +1,6 @@
 package com.seoul.market.seoulmarketprice.token.domain;
 
-import com.seoul.market.seoulmarketprice.member.domain.Member;
+import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

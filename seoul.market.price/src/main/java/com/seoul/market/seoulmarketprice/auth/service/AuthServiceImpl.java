@@ -2,8 +2,8 @@ package com.seoul.market.seoulmarketprice.auth.service;
 
 import com.seoul.market.seoulmarketprice.auth.dto.request.LoginRequest;
 import com.seoul.market.seoulmarketprice.auth.dto.response.LoginResponse;
-import com.seoul.market.seoulmarketprice.member.domain.Member;
-import com.seoul.market.seoulmarketprice.member.repository.MemberRepository;
+import com.seoul.market.seoulmarketprice.auth.entity.Member;
+import com.seoul.market.seoulmarketprice.auth.repository.MemberRepository;
 import com.seoul.market.seoulmarketprice.security.jwt.JwtTokenProvider;
 import com.seoul.market.seoulmarketprice.token.domain.RefreshToken;
 import com.seoul.market.seoulmarketprice.token.service.RefreshTokenService;

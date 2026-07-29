@@ -1,6 +1,6 @@
 package com.seoul.market.seoulmarketprice.token.service;
 
-import com.seoul.market.seoulmarketprice.member.domain.Member;
+import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import com.seoul.market.seoulmarketprice.security.jwt.JwtProperties;
 import com.seoul.market.seoulmarketprice.token.domain.RefreshToken;
 import com.seoul.market.seoulmarketprice.token.repository.RefreshTokenRepository;

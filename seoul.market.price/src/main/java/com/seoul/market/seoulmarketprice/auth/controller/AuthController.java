@@ -9,7 +9,10 @@ import com.seoul.market.seoulmarketprice.auth.service.LoginResult;
 import com.seoul.market.seoulmarketprice.auth.service.TokenReissueResult;
 import com.seoul.market.seoulmarketprice.security.jwt.RefreshTokenCookieManager;
 import com.seoul.market.seoulmarketprice.security.principal.CustomUserPrincipal;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -24,8 +27,10 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 인증 관련 요청을 처리하는 Controller.
  */
+@Tag(name = "로그인 및 인증", description = "로그인 및 인증에 관한 API")
 @RestController
 @RequestMapping("/api/auth")
+@RequiredArgsConstructor
 public class AuthController {
 
     /**
@@ -38,17 +43,18 @@ public class AuthController {
      */
     private final RefreshTokenCookieManager refreshTokenCookieManager;
 
-    public AuthController(
-            AuthService authService,
-            RefreshTokenCookieManager refreshTokenCookieManager
-    ) {
-        this.authService = authService;
-        this.refreshTokenCookieManager = refreshTokenCookieManager;
-    }
+//    public AuthController(
+//            AuthService authService,
+//            RefreshTokenCookieManager refreshTokenCookieManager
+//    ) {
+//        this.authService = authService;
+//        this.refreshTokenCookieManager = refreshTokenCookieManager;
+//    }
 
     /**
      * 일반 로그인.
      */
+    @Operation(summary = "일반 로그인", description = "아이디와 비밀번호를 사용하여 로그인한다.")
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(
             @Valid @RequestBody LoginRequest request
@@ -75,6 +81,7 @@ public class AuthController {
     /**
      * 현재 로그인한 회원 조회.
      */
+    @Operation(summary = "현재 로그인한 회원 조회", description = "현재 로그인한 회원의 정보를 조회한다.")
     @GetMapping("/me")
     public ResponseEntity<LoginUserResponse> me(
             @AuthenticationPrincipal
@@ -93,6 +100,7 @@ public class AuthController {
     /**
      * Access Token 재발급.
      */
+    @Operation(summary = "Access Token 재발급", description = "Refresh Token을 사용하여 Access Token을 재발급한다.")
     @PostMapping("/reissue")
     public ResponseEntity<TokenResponse> reissue(
 

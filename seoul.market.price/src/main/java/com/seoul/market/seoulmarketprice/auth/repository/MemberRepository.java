@@ -1,6 +1,6 @@
-package com.seoul.market.seoulmarketprice.member.repository;
+package com.seoul.market.seoulmarketprice.auth.repository;
 
-import com.seoul.market.seoulmarketprice.member.domain.Member;
+import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
