@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
 /**
- * Spring Boot 애플리케이션 실행 클래스.
+ * Spring Boot 애플리케이션 실행 클래스이다.
  */
 @ConfigurationPropertiesScan
 @SpringBootApplication

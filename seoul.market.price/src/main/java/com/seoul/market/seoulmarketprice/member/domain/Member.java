@@ -28,6 +28,28 @@ import lombok.NoArgsConstructor;
 public class Member {
 
     /**
+     * 카카오 로그인 회원을 생성한다.
+     */
+    public static Member createKakaoMember(
+            String socialId,
+            String userId,
+            String name,
+            String email
+    ) {
+        Member member = new Member();
+
+        member.socialId = socialId;
+        member.userId = userId;
+        member.password = null;
+        member.name = name;
+        member.email = email;
+        member.phone = null;
+        member.userType = UserType.SOCIAL;
+
+        return member;
+    }
+
+    /**
      * 회원 고유 인덱스.
      *
      * DB에서 AUTO_INCREMENT 방식으로 생성된다.
@@ -78,9 +100,10 @@ public class Member {
     /**
      * 휴대전화 번호.
      *
-     * 팀 공통 정의서 기준 필수값이다.
+     * 일반 회원은 필수이며,
+     * 소셜 회원은 추가 정보 입력 전까지 null일 수 있다.
      */
-    @Column(name = "phone", nullable = false)
+    @Column(name = "phone")
     private String phone;
 
     /**
@@ -97,6 +120,15 @@ public class Member {
      * 0: 일반 사용자
      * 1: 소셜 로그인 사용자
      */
+    /**
+     * 소셜 로그인 제공자가 발급한 사용자 고유 ID.
+     *
+     * 일반 로그인 회원은 null일 수 있다.
+     */
+    @Column(name = "social_id", unique = true, length = 100)
+    private String socialId;
+
+
     @Convert(converter = UserTypeConverter.class)
     @Column(name = "user_type", nullable = false)
     private UserType userType;
@@ -117,6 +149,8 @@ public class Member {
      *
      * @return 비밀번호가 존재하면 true
      */
+
+
     public boolean hasPassword() {
         return password != null && !password.isBlank();
     }
