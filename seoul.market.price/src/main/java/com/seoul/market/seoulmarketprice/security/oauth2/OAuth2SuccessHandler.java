@@ -1,6 +1,7 @@
 package com.seoul.market.seoulmarketprice.security.oauth2;
 
 import com.seoul.market.seoulmarketprice.auth.entity.Member;
+import com.seoul.market.seoulmarketprice.auth.entity.Role;
 import com.seoul.market.seoulmarketprice.auth.repository.MemberRepository;
 import com.seoul.market.seoulmarketprice.security.jwt.JwtTokenProvider;
 import com.seoul.market.seoulmarketprice.security.jwt.RefreshTokenCookieManager;
@@ -62,7 +63,8 @@ public class OAuth2SuccessHandler
         String accessToken =
                 jwtTokenProvider.createAccessToken(
                         member.getId(),
-                        member.getUserId()
+                        member.getUserId(),
+                        Role.USER
                 );
 
         // Refresh Token 생성
