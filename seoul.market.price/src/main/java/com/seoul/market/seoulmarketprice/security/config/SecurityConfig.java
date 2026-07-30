@@ -3,8 +3,10 @@ package com.seoul.market.seoulmarketprice.security.config;
 import com.seoul.market.seoulmarketprice.security.jwt.JwtAuthenticationFilter;
 import com.seoul.market.seoulmarketprice.security.oauth2.CustomOAuth2UserService;
 import com.seoul.market.seoulmarketprice.security.oauth2.OAuth2SuccessHandler;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -23,7 +25,9 @@ public class SecurityConfig {
             UrlBasedCorsConfigurationSource corsConfigurationSource,
             JwtAuthenticationFilter jwtAuthenticationFilter,
             CustomOAuth2UserService customOAuth2UserService,
-            OAuth2SuccessHandler oauth2SuccessHandler
+            OAuth2SuccessHandler oauth2SuccessHandler,
+            @Value("${app.admin.creation-public:false}")
+            boolean adminCreationPublic
     ) throws Exception {
 
         http
@@ -47,8 +51,8 @@ public class SecurityConfig {
                 .httpBasic(basic -> basic.disable())
 
                 // 요청별 접근 권한을 설정한다.
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
+                .authorizeHttpRequests(auth -> {
+                    auth.requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/reissue",
                                 "/api/auth/logout",
@@ -62,13 +66,30 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**"
-                        ).permitAll()
-                        // 관리자 전용 API는 ADMIN 권한만 접근할 수 있다.
-                        .requestMatchers("/api/admin/**")
-                        .hasRole("ADMIN")
-                        // 그 외 요청은 로그인한 사용자만 접근할 수 있다.
-                        .anyRequest().authenticated()
-                )
+                        ).permitAll();
+
+                    /*
+                     * 개발 환경에서는 최초 관리자 생성을 위해 임시 공개한다.
+                     * 운영 환경에서 app.admin.creation-public=false로 설정하면
+                     * 아래 permitAll 규칙이 등록되지 않는다.
+                     */
+                    if (adminCreationPublic) {
+                        auth.requestMatchers(
+                                HttpMethod.POST,
+                                "/api/admins"
+                        ).permitAll();
+                    }
+
+                    // 운영 환경의 관리자 생성 및 관리자 전용 API는 ADMIN 권한이 필요하다.
+                    auth.requestMatchers(
+                                    "/api/admin/**",
+                                    "/api/admins",
+                                    "/api/admins/**"
+                            )
+                            .hasRole("ADMIN")
+                            // 그 외 요청은 로그인한 사용자만 접근할 수 있다.
+                            .anyRequest().authenticated();
+                })
 
                 // 카카오 OAuth2 로그인을 설정한다.
                 .oauth2Login(oauth2 -> oauth2

@@ -2,6 +2,7 @@ package com.seoul.market.seoulmarketprice.common.exception;
 
 import com.seoul.market.seoulmarketprice.common.dto.ErrorResponse;
 import com.seoul.market.seoulmarketprice.member.exception.DuplicateMemberException;
+import com.seoul.market.seoulmarketprice.member.exception.DuplicateAdminException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -13,6 +14,21 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    /**
+     * 관리자 아이디 중복 오류를 처리한다.
+     */
+    @ExceptionHandler(DuplicateAdminException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateAdmin(
+            DuplicateAdminException exception
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(
+                        "ADMIN-001",
+                        exception.getMessage()
+                ));
+    }
 
     @ExceptionHandler(DuplicateMemberException.class)
     public ResponseEntity<ErrorResponse> handleDuplicateMember(

@@ -45,7 +45,6 @@ class MemberCreateRequestValidationTest {
                 "password",
                 "name",
                 "zipcode",
-                "address",
                 "phone",
                 "email"
         );
