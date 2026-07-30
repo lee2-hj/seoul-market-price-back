@@ -1,14 +1,15 @@
 package com.seoul.market.seoulmarketprice.auth.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 /**
  * 관리자 정보를 저장하는 엔티티이다.
@@ -32,6 +33,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @Table(name = "tb_admin")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EntityListeners(AuditingEntityListener.class)
 public class Admin {
 
     /**
@@ -100,6 +102,26 @@ public class Admin {
      */
     @Column(name = "email", length = 100, comment = "이메일")
     private String email;
+
+    @Column(updatable = false)
+    private LocalDateTime created_at;
+
+    private LocalDateTime  updated_at;
+
+    private LocalDateTime  deleted_at;
+
+    @PrePersist
+    private void prePersist() {
+        this.created_at = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+    }
+
+    /**
+     * 수정 시 변경 시각을 초 단위까지만 기록한다.
+     */
+    @PreUpdate
+    private void preUpdate() {
+        this.updated_at = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+    }
 
     public boolean hasPassword() {
         return password != null && !password.isBlank();

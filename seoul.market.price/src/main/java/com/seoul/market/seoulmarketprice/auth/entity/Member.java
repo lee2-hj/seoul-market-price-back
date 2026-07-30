@@ -1,15 +1,12 @@
 package com.seoul.market.seoulmarketprice.auth.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 /**
  * 회원 엔티티.
@@ -162,6 +159,31 @@ public class Member {
     @Convert(converter = UserTypeConverter.class)
     @Column(name = "user_type", nullable = false, comment = "유저 가입 유형 0: 일반 사용자, 1: 소셜 로그인 사용자")
     private UserType userType;
+
+    @Column(updatable = false)
+    private LocalDateTime created_at;
+
+    private LocalDateTime  updated_at;
+
+    private LocalDateTime  deleted_at;
+
+    /**
+     * 저장 전 생성 시각을 초 단위까지만 기록한다.
+     *
+     * 생성 시점에는 updated_at을 채우지 않는다.
+     */
+    @PrePersist
+    private void prePersist() {
+        this.created_at = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+    }
+
+    /**
+     * 수정 시 변경 시각을 초 단위까지만 기록한다.
+     */
+    @PreUpdate
+    private void preUpdate() {
+        this.updated_at = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+    }
 
     /**
      * 일반 로그인 사용자인지 확인한다.
