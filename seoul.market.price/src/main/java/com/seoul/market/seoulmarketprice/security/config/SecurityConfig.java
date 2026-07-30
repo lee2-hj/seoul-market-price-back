@@ -42,7 +42,7 @@ public class SecurityConfig {
                 // 서버에 인증 세션을 저장하지 않는다.
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
-                                SessionCreationPolicy.STATELESS
+                                SessionCreationPolicy.IF_REQUIRED
                         )
                 )
 
