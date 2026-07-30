@@ -1,0 +1,10 @@
+[33m3ab6c04[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Revert "🔧 port 번호 3000번 호용하도록 수정"
+[33m9dbd5d8[m ✈️ 회원가입 api 완료
+[33m14212e0[m 🔧 port 번호 3000번 호용하도록 수정
+[33m2d285ff[m 👼 회원가입 signup 기본 폴더 및 파일
+[33m8dfbd71[m 🔧 sweager 설정 완료
+[33mcd94495[m 로그인 기능은 완료
+[33mdaf01ec[m 🔧 로그인 구현하는중
+[33mc54c244[m 🔧 git ignore 업데이트
+[33m9ed1456[m 🔧 쿼리 dsl 추가
+[33m8148343[m Create .gitignore
