@@ -1,6 +1,7 @@
 package com.seoul.market.seoulmarketprice.common.exception;
 
 import com.seoul.market.seoulmarketprice.common.dto.ErrorResponse;
+import com.seoul.market.seoulmarketprice.member.exception.DuplicateMemberException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -12,6 +13,18 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(DuplicateMemberException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateMember(
+            DuplicateMemberException exception
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(
+                        "MEMBER-001",
+                        exception.getMessage()
+                ));
+    }
 
     /**
      * 잘못된 요청 처리.

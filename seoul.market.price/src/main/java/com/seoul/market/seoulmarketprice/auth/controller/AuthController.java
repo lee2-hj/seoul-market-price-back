@@ -2,13 +2,11 @@ package com.seoul.market.seoulmarketprice.auth.controller;
 
 import com.seoul.market.seoulmarketprice.auth.dto.request.LoginRequest;
 import com.seoul.market.seoulmarketprice.auth.dto.response.LoginResponse;
-import com.seoul.market.seoulmarketprice.auth.dto.response.LoginUserResponse;
 import com.seoul.market.seoulmarketprice.auth.dto.response.TokenResponse;
 import com.seoul.market.seoulmarketprice.auth.service.AuthService;
 import com.seoul.market.seoulmarketprice.auth.service.LoginResult;
 import com.seoul.market.seoulmarketprice.auth.service.TokenReissueResult;
 import com.seoul.market.seoulmarketprice.security.jwt.RefreshTokenCookieManager;
-import com.seoul.market.seoulmarketprice.security.principal.CustomUserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -16,9 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -76,25 +72,6 @@ public class AuthController {
                         cookie.toString()
                 )
                 .body(result.response());
-    }
-
-    /**
-     * 현재 로그인한 회원 조회.
-     */
-    @Operation(summary = "현재 로그인한 회원 조회", description = "현재 로그인한 회원의 정보를 조회한다.")
-    @GetMapping("/me")
-    public ResponseEntity<LoginUserResponse> me(
-            @AuthenticationPrincipal
-            CustomUserPrincipal principal
-    ) {
-
-        LoginUserResponse response =
-                new LoginUserResponse(
-                        principal.memberId(),
-                        principal.userId()
-                );
-
-        return ResponseEntity.ok(response);
     }
 
     /**

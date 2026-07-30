@@ -52,6 +52,8 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/api/auth/reissue",
                                 "/api/auth/logout",
+                                "/api/members",
+                                "/api/members/check-user-id",
                                 "/oauth2/**",
                                 "/login/oauth2/**",
 

@@ -28,6 +28,35 @@ import lombok.NoArgsConstructor;
 public class Member {
 
     /**
+     * 아이디와 비밀번호로 로그인하는 일반 회원을 생성한다.
+     */
+    public static Member createLocalMember(
+            String userId,
+            String encodedPassword,
+            String name,
+            String zipcode,
+            String address,
+            String addressDetail,
+            String phone,
+            String email
+    ) {
+        Member member = new Member();
+
+        member.socialId = null;
+        member.userId = userId;
+        member.password = encodedPassword;
+        member.name = name;
+        member.zipcode = zipcode;
+        member.address = address;
+        member.addressDetail = addressDetail;
+        member.phone = phone;
+        member.email = email;
+        member.userType = UserType.LOCAL;
+
+        return member;
+    }
+
+    /**
      * 카카오 로그인 회원을 생성한다.
      */
     public static Member createKakaoMember(
@@ -61,7 +90,7 @@ public class Member {
     /**
      * 로그인에 사용하는 사용자 아이디.
      */
-    @Column(name = "user_id", nullable = false)
+    @Column(name = "user_id", nullable = false, unique = true, length = 20)
     private String userId;
 
     /**
