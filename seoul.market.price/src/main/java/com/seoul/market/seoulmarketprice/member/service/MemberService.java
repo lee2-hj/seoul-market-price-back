@@ -1,32 +1,73 @@
 package com.seoul.market.seoulmarketprice.member.service;
 
+import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import com.seoul.market.seoulmarketprice.member.dto.request.MemberCreateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.response.MemberCreateResponse;
-import com.seoul.market.seoulmarketprice.member.dto.response.UserIdCheckResponse;
+import com.seoul.market.seoulmarketprice.member.repository.MemberManagementRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 회원 관리 기능이 제공해야 하는 비즈니스 로직을 정의한다.
+ * 회원 관리 비즈니스 로직을 실제로 구현하는 서비스.
  *
  * <p>
- * Controller는 구현 클래스에 직접 의존하지 않고
- * 이 인터페이스를 통해 아이디 확인과 회원가입을 요청한다.
+ * 아이디 중복 확인, 비밀번호 암호화, 일반 회원 저장을 처리한다.
+ * 조회 메서드는 읽기 전용 트랜잭션을 사용하고,
+ * 회원 생성 메서드에서만 쓰기 트랜잭션을 사용한다.
  * </p>
  */
-public interface MemberService {
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class MemberService {
 
     /**
-     * 사용자 아이디의 사용 가능 여부를 확인한다.
+     * 회원 중복 확인과 저장을 담당하는 Repository.
      *
-     * @param userId 확인할 사용자 아이디
-     * @return 아이디와 사용 가능 여부
+     * <p>
+     * 인증 패키지의 MemberRepository와 Bean 이름이 충돌하지 않도록
+     * 회원 관리 전용 이름을 사용한다.
+     * </p>
      */
-    UserIdCheckResponse checkUserId(String userId);
+    private final MemberManagementRepository memberManagementRepository;
 
     /**
-     * 일반 회원을 생성한다.
+     * 회원 비밀번호를 BCrypt 해시로 변환한다.
+     */
+    private final PasswordEncoder passwordEncoder;
+
+    /**
+     * 아이디와 비밀번호를 사용하는 일반 회원을 생성한다.
+     *
+     * <ol>
+     *     <li>사용자 아이디의 중복 여부를 확인한다.</li>
+     *     <li>평문 비밀번호를 BCrypt 방식으로 암호화한다.</li>
+     *     <li>LOCAL 유형의 Member 엔티티를 생성한다.</li>
+     *     <li>회원 정보를 DB에 저장한다.</li>
+     *     <li>결과 메시지를 반환한다.</li>
+     * </ol>
      *
      * @param request 회원가입 요청 정보
-     * @return 생성된 회원의 기본 정보
+     * @return 처리 결과 상태 메시지를 담은 회원가입 응답
      */
-    MemberCreateResponse createMember(MemberCreateRequest request);
+    @Transactional
+    public MemberCreateResponse createMember(MemberCreateRequest request) {
+
+        try {
+            // 유저 아이디 중복 체크
+            if (memberManagementRepository.existsByUserId(request.userId()).isPresent()) {
+                return new MemberCreateResponse("이미 사용 중인 아이디입니다.");
+            }
+
+            Member member = request.toEntity(passwordEncoder.encode(request.password()));
+            memberManagementRepository.save(member);
+
+            String msg = "회원가입이 완료되었습니다.";
+            return new MemberCreateResponse(msg);
+        } catch (Exception e) {
+            return new MemberCreateResponse("예기치 못한 오류가 발생했습니다.");
+        }
+    }
 }

@@ -1,5 +1,7 @@
 package com.seoul.market.seoulmarketprice.member.dto.response;
 
+import com.seoul.market.seoulmarketprice.auth.entity.Member;
+
 /**
  * 일반 회원가입 성공 응답 DTO.
  *
@@ -9,13 +11,9 @@ package com.seoul.market.seoulmarketprice.member.dto.response;
  * 비밀번호와 주소, 연락처는 응답에 포함하지 않는다.
  * </p>
  *
- * @param memberId 생성된 회원의 고유번호
- * @param userId   로그인 아이디
- * @param name     사용자 이름
+ * @param msg     사용자 이름
  */
 public record MemberCreateResponse(
-        Long memberId,
-        String userId,
-        String name
+        String msg
 ) {
 }

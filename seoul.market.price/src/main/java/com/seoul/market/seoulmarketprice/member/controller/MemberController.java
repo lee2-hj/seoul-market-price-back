@@ -1,10 +1,8 @@
 package com.seoul.market.seoulmarketprice.member.controller;
 
 import com.seoul.market.seoulmarketprice.member.dto.request.MemberCreateRequest;
-import com.seoul.market.seoulmarketprice.member.dto.request.UserIdCheckRequest;
 import com.seoul.market.seoulmarketprice.member.dto.response.MemberCreateResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.MemberResponse;
-import com.seoul.market.seoulmarketprice.member.dto.response.UserIdCheckResponse;
 import com.seoul.market.seoulmarketprice.member.service.MemberService;
 import com.seoul.market.seoulmarketprice.security.principal.CustomUserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 회원 가입과 회원 정보 조회 요청을 처리하는 Controller.
  *
  * <p>
- * 일반 회원가입과 아이디 중복 확인은 인증 없이 사용할 수 있으며,
+ * 일반 회원가입은 별도의 인증 없이 처리되며,
  * 현재 로그인한 회원 조회는 Access Token 인증이 필요하다.
  * </p>
  */
@@ -38,22 +36,6 @@ public class MemberController {
      * 회원 관련 비즈니스 로직을 처리하는 서비스.
      */
     private final MemberService memberService;
-
-    /**
-     * 회원가입에 사용할 아이디의 중복 여부를 확인한다.
-     *
-     * @param request 확인할 사용자 아이디
-     * @return 아이디와 사용 가능 여부
-     */
-    @Operation(summary = "아이디 중복 확인")
-    @PostMapping("/check-user-id")
-    public ResponseEntity<UserIdCheckResponse> checkUserId(
-            @Valid @RequestBody UserIdCheckRequest request
-    ) {
-        return ResponseEntity.ok(
-                memberService.checkUserId(request.userId())
-        );
-    }
 
     /**
      * 아이디와 비밀번호를 사용하는 일반 회원을 생성한다.
@@ -71,9 +53,10 @@ public class MemberController {
     public ResponseEntity<MemberCreateResponse> createMember(
             @Valid @RequestBody MemberCreateRequest request
     ) {
+        MemberCreateResponse response = memberService.createMember(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(memberService.createMember(request));
+                .body(response);
     }
 
     /**

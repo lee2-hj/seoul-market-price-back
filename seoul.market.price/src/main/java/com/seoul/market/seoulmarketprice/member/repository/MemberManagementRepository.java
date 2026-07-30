@@ -3,6 +3,8 @@ package com.seoul.market.seoulmarketprice.member.repository;
 import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Optional;
+
 /**
  * 회원가입과 회원 관리에서 사용하는 JPA Repository.
  *
@@ -25,5 +27,5 @@ public interface MemberManagementRepository extends JpaRepository<Member, Long> 
      * @param userId 확인할 사용자 아이디
      * @return 동일한 아이디가 존재하면 true
      */
-    boolean existsByUserId(String userId);
+    Optional<Member> existsByUserId(String userId);
 }

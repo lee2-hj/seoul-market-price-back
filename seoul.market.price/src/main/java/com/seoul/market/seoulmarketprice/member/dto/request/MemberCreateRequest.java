@@ -1,5 +1,6 @@
 package com.seoul.market.seoulmarketprice.member.dto.request;
 
+import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -53,7 +54,7 @@ public record MemberCreateRequest(
         /**
          * 우편번호는 선택
          */
-        @Pattern(regexp = "^\\d{5}$", message = "우편번호는 숫자 5자리여야 합니다.")
+        @Pattern(regexp = "^(\\d{5})?$", message = "우편번호는 숫자 5자리여야 합니다.")
         String zipcode,
 
         /**
@@ -86,4 +87,17 @@ public record MemberCreateRequest(
         @Size(max = 255, message = "이메일은 255자 이하여야 합니다.")
         String email
 ) {
+        // 요청받은 데이터를 기반으로 엔티티 생성
+        public Member toEntity(String encodedPassword) {
+                return Member.createLocalMember(
+                        this.userId,
+                        encodedPassword,
+                        this.name,
+                        this.zipcode,
+                        this.address,
+                        this.addressDetail,
+                        this.phone,
+                        this.email
+                );
+        }
 }
