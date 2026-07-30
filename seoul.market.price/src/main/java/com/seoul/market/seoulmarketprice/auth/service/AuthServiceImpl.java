@@ -10,7 +10,7 @@ import com.seoul.market.seoulmarketprice.token.service.RefreshTokenService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.seoul.market.seoulmarketprice.auth.entity.Role;
 /**
  * 인증 관련 비즈니스 로직을 실제로 구현하는 서비스이다.
  *
@@ -125,7 +125,8 @@ public class AuthServiceImpl implements AuthService {
          */
         String accessToken = jwtTokenProvider.createAccessToken(
                 member.getId(),
-                member.getUserId()
+                member.getUserId(),
+                Role.USER
         );
 
         /*
@@ -233,7 +234,8 @@ public class AuthServiceImpl implements AuthService {
         String newAccessToken =
                 jwtTokenProvider.createAccessToken(
                         member.getId(),
-                        member.getUserId()
+                        member.getUserId(),
+                        Role.USER
                 );
 
         /*

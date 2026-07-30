@@ -52,6 +52,7 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/api/auth/reissue",
                                 "/api/auth/logout",
+                                "/api/admin/auth/login",
                                 "/api/members",
                                 "/api/members/check-user-id",
                                 "/oauth2/**",
@@ -62,6 +63,10 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**"
                         ).permitAll()
+                        // 관리자 전용 API는 ADMIN 권한만 접근할 수 있다.
+                        .requestMatchers("/api/admin/**")
+                        .hasRole("ADMIN")
+                        // 그 외 요청은 로그인한 사용자만 접근할 수 있다.
                         .anyRequest().authenticated()
                 )
 
