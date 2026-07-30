@@ -83,6 +83,23 @@ public class Admin {
      *
      * @return 비밀번호가 존재하면 true
      */
+
+    /**
+     * 관리자 연락처.
+     *
+     * 관리자 계정의 전화번호를 저장한다.
+     */
+    @Column(name = "phone", length = 20)
+    private String phone;
+
+    /**
+     * 관리자 이메일 주소.
+     *
+     * 관리자 계정의 이메일을 저장한다.
+     */
+    @Column(name = "email", length = 100)
+    private String email;
+
     public boolean hasPassword() {
         return password != null && !password.isBlank();
     }
