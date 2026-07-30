@@ -38,8 +38,8 @@ public record MemberCreateRequest(
         /**
          * 로그인 비밀번호.
          * Service에서 BCrypt 방식으로 암호화한 후 저장한다.
+         * 소셜 로그인때문에 password는 필수가 아님
          */
-        @NotBlank(message = "비밀번호는 필수입니다.")
         @Size(min = 8, max = 64, message = "비밀번호는 8자 이상 64자 이하여야 합니다.")
         String password,
 
@@ -51,16 +51,14 @@ public record MemberCreateRequest(
         String name,
 
         /**
-         * 숫자 5자리 형식의 배송지 우편번호.
+         * 우편번호는 선택
          */
-        @NotBlank(message = "우편번호는 필수입니다.")
         @Pattern(regexp = "^\\d{5}$", message = "우편번호는 숫자 5자리여야 합니다.")
         String zipcode,
 
         /**
          * 배송지 기본 주소.
          */
-        @NotBlank(message = "주소는 필수입니다.")
         @Size(max = 255, message = "주소는 255자 이하여야 합니다.")
         String address,
 
@@ -84,7 +82,6 @@ public record MemberCreateRequest(
         /**
          * 이메일 형식의 사용자 연락처.
          */
-        @NotBlank(message = "이메일은 필수입니다.")
         @Email(message = "이메일 형식이 올바르지 않습니다.")
         @Size(max = 255, message = "이메일은 255자 이하여야 합니다.")
         String email
