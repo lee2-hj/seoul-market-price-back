@@ -85,12 +85,13 @@ public class Member {
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(comment = "유저 고유 인덱스")
     private Long id;
 
     /**
      * 로그인에 사용하는 사용자 아이디.
      */
-    @Column(name = "user_id", nullable = false, unique = true, length = 20)
+    @Column(name = "user_id", nullable = false, unique = true, length = 20, comment = "로그인에 사용하는 유저 아이디")
     private String userId;
 
     /**
@@ -99,31 +100,31 @@ public class Member {
      * 일반 로그인 사용자는 BCrypt 암호화 값을 저장한다.
      * 소셜 로그인 사용자는 null일 수 있다.
      */
-    @Column(name = "password")
+    @Column(name = "password", comment = "비밀번호")
     private String password;
 
     /**
      * 사용자 실명 또는 닉네임.
      */
-    @Column(name = "name", nullable = false)
+    @Column(name = "name", nullable = false, comment = "유저명")
     private String name;
 
     /**
      * 배송지 우편번호.
      */
-    @Column(name = "zipcode")
+    @Column(name = "zipcode", comment = "우편번호")
     private String zipcode;
 
     /**
      * 기본 주소.
      */
-    @Column(name = "address")
+    @Column(name = "address", comment = "주소")
     private String address;
 
     /**
      * 상세 주소.
      */
-    @Column(name = "address_detail")
+    @Column(name = "address_detail", comment = "상세주소")
     private String addressDetail;
 
     /**
@@ -132,13 +133,13 @@ public class Member {
      * 일반 회원은 필수이며,
      * 소셜 회원은 추가 정보 입력 전까지 null일 수 있다.
      */
-    @Column(name = "phone")
+    @Column(name = "phone", comment = "휴대전화 번호")
     private String phone;
 
     /**
      * 이메일 주소.
      */
-    @Column(name = "email")
+    @Column(name = "email", comment = "이메일")
     private String email;
 
     /**
@@ -154,12 +155,12 @@ public class Member {
      *
      * 일반 로그인 회원은 null일 수 있다.
      */
-    @Column(name = "social_id", unique = true, length = 100)
+    @Column(name = "social_id", unique = true, length = 100, comment = "소셜 로그인 제공자가 발급한 유저 고유 ID")
     private String socialId;
 
 
     @Convert(converter = UserTypeConverter.class)
-    @Column(name = "user_type", nullable = false)
+    @Column(name = "user_type", nullable = false, comment = "유저 가입 유형 0: 일반 사용자, 1: 소셜 로그인 사용자")
     private UserType userType;
 
     /**

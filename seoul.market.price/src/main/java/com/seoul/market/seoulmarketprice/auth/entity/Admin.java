@@ -44,6 +44,7 @@ public class Admin {
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(comment = "관리자 고유 인덱스")
     private Long id;
 
     /**
@@ -54,7 +55,7 @@ public class Admin {
      * 중복될 수 없다.
      * </p>
      */
-    @Column(name = "admin_id", nullable = false, unique = true, length = 30)
+    @Column(name = "admin_id", nullable = false, unique = true, length = 30, comment = "관리자 로그인 아이디")
     private String adminId;
 
     /**
@@ -65,7 +66,7 @@ public class Admin {
      * 로그인 시 PasswordEncoder를 이용하여 비교한다.
      * </p>
      */
-    @Column(name = "password", nullable = false)
+    @Column(name = "password", nullable = false, comment = "비밀번호")
     private String password;
 
     /**
@@ -75,7 +76,7 @@ public class Admin {
      * 관리자 화면에서 표시되는 이름이다.
      * </p>
      */
-    @Column(name = "name", nullable = false)
+    @Column(name = "name", nullable = false, comment = "관리자명")
     private String name;
 
     /**
@@ -89,7 +90,7 @@ public class Admin {
      *
      * 관리자 계정의 전화번호를 저장한다.
      */
-    @Column(name = "phone", length = 20)
+    @Column(name = "phone", length = 20, comment = "휴대폰 번호")
     private String phone;
 
     /**
@@ -97,7 +98,7 @@ public class Admin {
      *
      * 관리자 계정의 이메일을 저장한다.
      */
-    @Column(name = "email", length = 100)
+    @Column(name = "email", length = 100, comment = "이메일")
     private String email;
 
     public boolean hasPassword() {

@@ -3,6 +3,7 @@ package com.seoul.market.seoulmarketprice.member.service;
 import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import com.seoul.market.seoulmarketprice.member.dto.request.MemberCreateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.response.MemberCreateResponse;
+import com.seoul.market.seoulmarketprice.member.exception.DuplicateMemberException;
 import com.seoul.market.seoulmarketprice.member.repository.MemberManagementRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -55,19 +56,15 @@ public class MemberService {
     @Transactional
     public MemberCreateResponse createMember(MemberCreateRequest request) {
 
-        try {
-            // 유저 아이디 중복 체크
-            if (memberManagementRepository.existsByUserId(request.userId()).isPresent()) {
-                return new MemberCreateResponse("이미 사용 중인 아이디입니다.");
-            }
-
-            Member member = request.toEntity(passwordEncoder.encode(request.password()));
-            memberManagementRepository.save(member);
-
-            String msg = "회원가입이 완료되었습니다.";
-            return new MemberCreateResponse(msg);
-        } catch (Exception e) {
-            return new MemberCreateResponse("예기치 못한 오류가 발생했습니다.");
+        // 유저 아이디 중복 체크
+        if (memberManagementRepository.existsByUserId(request.userId())) {
+            throw new DuplicateMemberException();
         }
+
+        Member member = request.toEntity(passwordEncoder.encode(request.password()));
+        memberManagementRepository.save(member);
+
+        String msg = "회원가입이 완료되었습니다.";
+        return new MemberCreateResponse(msg);
     }
 }
