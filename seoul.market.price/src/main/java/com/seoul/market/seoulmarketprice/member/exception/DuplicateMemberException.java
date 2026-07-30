@@ -18,4 +18,8 @@ public class DuplicateMemberException extends RuntimeException {
     public DuplicateMemberException() {
         super("이미 사용 중인 아이디입니다.");
     }
+
+    public DuplicateMemberException(String message){
+        super(message);
+    }
 }

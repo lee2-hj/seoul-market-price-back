@@ -37,7 +37,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
                 .body(new ErrorResponse(
-                        "MEMBER-001",
+                        String.valueOf(HttpStatus.CONFLICT.value()),
                         exception.getMessage()
                 ));
     }
@@ -113,8 +113,8 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(
                         new ErrorResponse(
-                                "SERVER-001",
-                                "서버 오류가 발생했습니다."
+                                String.valueOf(HttpStatus.INTERNAL_SERVER_ERROR.value()),
+                                "예기치 못한 오류가 발생하였습니다."
                         )
                 );
     }

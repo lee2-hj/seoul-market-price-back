@@ -61,6 +61,11 @@ public class MemberService {
             throw new DuplicateMemberException();
         }
 
+        //전화번호 중복체크
+        if(memberManagementRepository.existsByPhone(request.phone())){
+            throw new DuplicateMemberException("이미 사용 중인 전화번호입니다.");
+        }
+
         Member member = request.toEntity(passwordEncoder.encode(request.password()));
         memberManagementRepository.save(member);
 

@@ -34,4 +34,6 @@ public interface MemberManagementRepository extends JpaRepository<Member, Long> 
      * @return 동일한 아이디가 존재하면 true
      */
     boolean existsByUserId(String userId);
+
+    boolean existsByPhone(String phoneNumber);
 }
