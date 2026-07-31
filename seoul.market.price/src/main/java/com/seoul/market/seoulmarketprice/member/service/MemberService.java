@@ -3,6 +3,7 @@ package com.seoul.market.seoulmarketprice.member.service;
 import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import com.seoul.market.seoulmarketprice.member.dto.request.MemberCreateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.response.MemberCreateResponse;
+import com.seoul.market.seoulmarketprice.member.dto.response.MemberResponse;
 import com.seoul.market.seoulmarketprice.member.exception.DuplicateMemberException;
 import com.seoul.market.seoulmarketprice.member.repository.MemberManagementRepository;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,13 @@ public class MemberService {
      * 회원 비밀번호를 BCrypt 해시로 변환한다.
      */
     private final PasswordEncoder passwordEncoder;
+
+    public MemberResponse getMember(Long memberId) {
+        Member member = memberManagementRepository.findById(memberId)
+                .orElseThrow(() -> new IllegalArgumentException("회원을 찾을 수 없습니다."));
+
+        return MemberResponse.from(member);
+    }
 
     /**
      * 아이디와 비밀번호를 사용하는 일반 회원을 생성한다.

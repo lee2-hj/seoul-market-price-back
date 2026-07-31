@@ -76,11 +76,6 @@ public class MemberController {
             @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
         // Entity를 직접 노출하지 않고 화면에 필요한 값만 응답한다.
-        return ResponseEntity.ok(
-                new MemberResponse(
-                        principal.memberId(),
-                        principal.userId()
-                )
-        );
+        return ResponseEntity.ok(memberService.getMember(principal.memberId()));
     }
 }

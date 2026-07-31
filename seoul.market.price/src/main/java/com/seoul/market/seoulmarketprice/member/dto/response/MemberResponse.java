@@ -1,5 +1,10 @@
 package com.seoul.market.seoulmarketprice.member.dto.response;
 
+import com.seoul.market.seoulmarketprice.auth.entity.Member;
+import com.seoul.market.seoulmarketprice.auth.entity.UserType;
+
+import java.time.LocalDateTime;
+
 /**
  * 현재 로그인한 회원 정보를 반환하는 응답 DTO.
  *
@@ -18,6 +23,34 @@ package com.seoul.market.seoulmarketprice.member.dto.response;
  */
 public record MemberResponse(
         Long memberId,
-        String userId
+        String userId,
+        String name,
+        String zipcode,
+        String address,
+        String addressDetail,
+        String phone,
+        String email,
+        String socialId,
+        UserType userType,
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt,
+        LocalDateTime deletedAt
 ) {
+    public static MemberResponse from(Member member) {
+        return new MemberResponse(
+                member.getId(),
+                member.getUserId(),
+                member.getName(),
+                member.getZipcode(),
+                member.getAddress(),
+                member.getAddressDetail(),
+                member.getPhone(),
+                member.getEmail(),
+                member.getSocialId(),
+                member.getUserType(),
+                member.getCreated_at(),
+                member.getUpdated_at(),
+                member.getDeleted_at()
+        );
+    }
 }
