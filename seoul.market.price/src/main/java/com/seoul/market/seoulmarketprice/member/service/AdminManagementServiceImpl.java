@@ -3,6 +3,7 @@ package com.seoul.market.seoulmarketprice.member.service;
 import com.seoul.market.seoulmarketprice.member.dto.request.admin.AdminCreateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminCreateResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminListResponse;
+import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminPageResponse;
 import com.seoul.market.seoulmarketprice.member.exception.DuplicateAdminException;
 import com.seoul.market.seoulmarketprice.member.repository.AdminCreationRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,8 +31,29 @@ public class AdminManagementServiceImpl implements AdminManagementService {
     private final PasswordEncoder passwordEncoder;
 
     @Override
-    public List<AdminListResponse> getAdmins() {
-        return adminCreationRepository.findAll();
+    public AdminPageResponse getAdmins(int page, int size) {
+        if (page < 0) {
+            throw new IllegalArgumentException("페이지 번호는 0 이상이어야 합니다.");
+        }
+        if (size < 1 || size > 100) {
+            throw new IllegalArgumentException("페이지 크기는 1 이상 100 이하여야 합니다.");
+        }
+
+        long offset = (long) page * size;
+        long totalElements = adminCreationRepository.countAll();
+        List<AdminListResponse> content =
+                adminCreationRepository.findAll(size, offset);
+        int totalPages = (int) Math.ceil((double) totalElements / size);
+
+        return new AdminPageResponse(
+                content,
+                page,
+                size,
+                totalElements,
+                totalPages,
+                page == 0,
+                totalPages == 0 || page >= totalPages - 1
+        );
     }
 
     /**

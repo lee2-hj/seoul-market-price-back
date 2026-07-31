@@ -31,12 +31,13 @@ public class AdminCreationRepository {
         return count != null && count > 0;
     }
 
-    public List<AdminListResponse> findAll() {
+    public List<AdminListResponse> findAll(int size, long offset) {
         return jdbcTemplate.query(
                 """
                 SELECT admin_id, name, phone, email, created_at, updated_at
                 FROM tb_admin
                 ORDER BY created_at DESC
+                LIMIT ? OFFSET ?
                 """,
                 (resultSet, rowNum) -> new AdminListResponse(
                         resultSet.getString("admin_id"),
@@ -49,8 +50,18 @@ public class AdminCreationRepository {
                         resultSet.getTimestamp("updated_at") == null
                                 ? null
                                 : resultSet.getTimestamp("updated_at").toLocalDateTime()
-                )
+                ),
+                size,
+                offset
         );
+    }
+
+    public long countAll() {
+        Long count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM tb_admin",
+                Long.class
+        );
+        return count == null ? 0L : count;
     }
 
     public Long save(String adminId, String password, String name) {

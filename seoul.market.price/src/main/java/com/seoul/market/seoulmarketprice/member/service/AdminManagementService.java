@@ -2,16 +2,14 @@ package com.seoul.market.seoulmarketprice.member.service;
 
 import com.seoul.market.seoulmarketprice.member.dto.request.admin.AdminCreateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminCreateResponse;
-import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminListResponse;
-
-import java.util.List;
+import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminPageResponse;
 
 /**
  * 관리자 계정 관리 기능을 정의한다.
  */
 public interface AdminManagementService {
 
-    List<AdminListResponse> getAdmins();
+    AdminPageResponse getAdmins(int page, int size);
 
     /**
      * 관리자 계정을 생성한다.

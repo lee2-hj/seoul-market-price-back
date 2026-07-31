@@ -2,7 +2,7 @@ package com.seoul.market.seoulmarketprice.member.controller;
 
 import com.seoul.market.seoulmarketprice.member.dto.request.admin.AdminCreateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminCreateResponse;
-import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminListResponse;
+import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminPageResponse;
 import com.seoul.market.seoulmarketprice.member.service.AdminManagementService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -14,9 +14,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 /**
  * 관리자 계정 생성 요청을 처리하는 Controller.
@@ -36,8 +35,11 @@ public class AdminManagementController {
 
     @Operation(summary = "관리자 목록 조회")
     @GetMapping
-    public ResponseEntity<List<AdminListResponse>> getAdmins() {
-        return ResponseEntity.ok(adminManagementService.getAdmins());
+    public ResponseEntity<AdminPageResponse> getAdmins(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return ResponseEntity.ok(adminManagementService.getAdmins(page, size));
     }
 
     /**
