@@ -55,6 +55,10 @@ public class Member {
 
     /**
      * 카카오 로그인 회원을 생성한다.
+     *
+     * DB의 phone 컬럼은 현재 NOT NULL 제약이 남아 있어(카카오 profile_nickname
+     * 스코프로는 전화번호를 받을 수 없음) null 대신 빈 문자열로 저장한다.
+     * 추가 정보 입력 화면에서 실제 번호로 갱신하기 전까지의 임시값이다.
      */
     public static Member createKakaoMember(
             String socialId,
@@ -69,7 +73,7 @@ public class Member {
         member.password = null;
         member.name = name;
         member.email = email;
-        member.phone = null;
+        member.phone = "";
         member.userType = UserType.SOCIAL;
 
         return member;
@@ -97,7 +101,7 @@ public class Member {
      * 일반 로그인 사용자는 BCrypt 암호화 값을 저장한다.
      * 소셜 로그인 사용자는 null일 수 있다.
      */
-    @Column(name = "password", comment = "비밀번호")
+    @Column(name = "password", nullable = true, comment = "비밀번호")
     private String password;
 
     /**
@@ -130,7 +134,7 @@ public class Member {
      * 일반 회원은 필수이며,
      * 소셜 회원은 추가 정보 입력 전까지 null일 수 있다.
      */
-    @Column(name = "phone", comment = "휴대전화 번호")
+    @Column(name = "phone", nullable = true, comment = "휴대전화 번호")
     private String phone;
 
     /**

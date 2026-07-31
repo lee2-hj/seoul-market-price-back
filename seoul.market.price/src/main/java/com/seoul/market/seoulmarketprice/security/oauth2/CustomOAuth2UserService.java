@@ -2,6 +2,8 @@ package com.seoul.market.seoulmarketprice.security.oauth2;
 
 import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import com.seoul.market.seoulmarketprice.auth.repository.MemberRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
@@ -18,6 +20,8 @@ import java.util.Map;
 @Service
 @Transactional(readOnly = true)
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
+
+    private static final Logger log = LoggerFactory.getLogger(CustomOAuth2UserService.class);
 
     private final MemberRepository memberRepository;
 
@@ -41,6 +45,9 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         Map<String, Object> attributes =
                 new HashMap<>(oauth2User.getAttributes());
+
+        // 카카오가 응답한 원본 속성을 확인하기 위한 로그
+        log.info("카카오 사용자 정보 응답: {}", attributes);
 
         // 카카오 회원 고유 ID
         String socialId = String.valueOf(

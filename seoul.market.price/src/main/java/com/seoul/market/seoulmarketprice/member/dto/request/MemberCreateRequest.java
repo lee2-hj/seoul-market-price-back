@@ -39,8 +39,10 @@ public record MemberCreateRequest(
         /**
          * 로그인 비밀번호.
          * Service에서 BCrypt 방식으로 암호화한 후 저장한다.
-         * 소셜 로그인때문에 password는 필수가 아님
+         * 이 DTO는 일반 회원가입 전용이며(카카오 로그인은 별도 경로를 사용),
+         * 일반 회원가입 시 비밀번호는 필수 입력이다.
          */
+        @NotBlank(message = "비밀번호는 필수입니다.")
         @Size(min = 8, max = 64, message = "비밀번호는 8자 이상 64자 이하여야 합니다.")
         String password,
 

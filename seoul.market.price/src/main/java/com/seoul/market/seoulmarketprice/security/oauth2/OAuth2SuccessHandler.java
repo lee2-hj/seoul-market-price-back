@@ -3,6 +3,7 @@ package com.seoul.market.seoulmarketprice.security.oauth2;
 import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import com.seoul.market.seoulmarketprice.auth.entity.Role;
 import com.seoul.market.seoulmarketprice.auth.repository.MemberRepository;
+import com.seoul.market.seoulmarketprice.security.jwt.JwtProperties;
 import com.seoul.market.seoulmarketprice.security.jwt.JwtTokenProvider;
 import com.seoul.market.seoulmarketprice.security.jwt.RefreshTokenCookieManager;
 import com.seoul.market.seoulmarketprice.token.service.RefreshTokenService;
@@ -16,6 +17,7 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationSu
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.time.Duration;
 
 /**
  * OAuth2 로그인 성공 후 JWT를 발급한다.
@@ -28,17 +30,20 @@ public class OAuth2SuccessHandler
     private final RefreshTokenService refreshTokenService;
     private final RefreshTokenCookieManager refreshTokenCookieManager;
     private final MemberRepository memberRepository;
+    private final JwtProperties jwtProperties;
 
     public OAuth2SuccessHandler(
             JwtTokenProvider jwtTokenProvider,
             RefreshTokenService refreshTokenService,
             RefreshTokenCookieManager refreshTokenCookieManager,
-            MemberRepository memberRepository
+            MemberRepository memberRepository,
+            JwtProperties jwtProperties
     ) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.refreshTokenService = refreshTokenService;
         this.refreshTokenCookieManager = refreshTokenCookieManager;
         this.memberRepository = memberRepository;
+        this.jwtProperties = jwtProperties;
     }
 
     @Override
@@ -80,23 +85,43 @@ public class OAuth2SuccessHandler
         );
 
         // Refresh Token 쿠키 생성
-        ResponseCookie cookie =
+        ResponseCookie refreshCookie =
                 refreshTokenCookieManager.createRefreshTokenCookie(
                         refreshToken
                 );
 
-        // Refresh Token을 쿠키로 전달
+        // Access Token 쿠키 생성 (일반 로그인과 동일한 설정)
+        ResponseCookie accessCookie = createAccessTokenCookie(accessToken);
+
+        // Access Token, Refresh Token 모두 쿠키로 전달
         response.addHeader(
                 HttpHeaders.SET_COOKIE,
-                cookie.toString()
+                refreshCookie.toString()
+        );
+        response.addHeader(
+                HttpHeaders.SET_COOKIE,
+                accessCookie.toString()
         );
 
-        // 카카오 로그인 완료 후 React로 이동
+        // 카카오 로그인 완료 후 React 루트 페이지로 이동
         getRedirectStrategy().sendRedirect(
                 request,
                 response,
-                "http://localhost:5173/oauth2/success?accessToken="
-                        + accessToken
+                "http://localhost:3000"
         );
+    }
+
+    /**
+     * 일반 로그인(AuthController)과 동일한 설정으로 Access Token 쿠키를 만든다.
+     */
+    private ResponseCookie createAccessTokenCookie(String accessToken) {
+        return ResponseCookie
+                .from("accessToken", accessToken)
+                .httpOnly(false)
+                .secure(jwtProperties.cookieSecure())
+                .path("/")
+                .maxAge(Duration.ofMillis(jwtProperties.accessTokenExpiry()))
+                .sameSite(jwtProperties.cookieSameSite())
+                .build();
     }
 }
