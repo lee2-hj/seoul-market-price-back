@@ -2,6 +2,7 @@ package com.seoul.market.seoulmarketprice.member.service;
 
 import com.seoul.market.seoulmarketprice.member.dto.request.AdminCreateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.response.AdminCreateResponse;
+import com.seoul.market.seoulmarketprice.member.dto.response.AdminListResponse;
 import com.seoul.market.seoulmarketprice.member.exception.DuplicateAdminException;
 import com.seoul.market.seoulmarketprice.member.repository.AdminCreationRepository;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +10,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 /**
  * 관리자 계정 생성 로직을 구현하는 서비스.
@@ -25,6 +28,11 @@ public class AdminManagementServiceImpl implements AdminManagementService {
 
     private final AdminCreationRepository adminCreationRepository;
     private final PasswordEncoder passwordEncoder;
+
+    @Override
+    public List<AdminListResponse> getAdmins() {
+        return adminCreationRepository.findAll();
+    }
 
     /**
      * 중복 아이디를 확인하고 새 관리자 계정을 저장한다.
