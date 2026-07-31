@@ -20,11 +20,16 @@ import java.io.IOException;
 import java.time.Duration;
 
 /**
- * OAuth2 로그인 성공 후 JWT를 발급한다.
+ * OAuth2 로그인 성공 후 JWT를 발급하고 프론트엔드로 리다이렉트한다.
+ *
+ * 신규 회원이면 카카오 회원가입으로 처리하며 토큰 없이 프론트로 리다이렉트하고,
+ * 기존 회원이면 카카오 로그인으로 처리하며 쿠키에 토큰을 심은 뒤 프론트로 리다이렉트한다.
  */
 @Component
 public class OAuth2SuccessHandler
         extends SimpleUrlAuthenticationSuccessHandler {
+
+    private static final String FRONTEND_REDIRECT_URL = "http://localhost:3000";
 
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenService refreshTokenService;
@@ -63,6 +68,17 @@ public class OAuth2SuccessHandler
         Member member = memberRepository
                 .findById(oauthUser.getMemberId())
                 .orElseThrow();
+
+        if (oauthUser.isNewMember()) {
+            // 카카오 회원가입: 토큰은 발급하지 않고 쿠키도 심지 않은 채 프론트로 리다이렉트한다.
+            // 로그인은 별도로 다시 시도해야 한다.
+            getRedirectStrategy().sendRedirect(
+                    request,
+                    response,
+                    FRONTEND_REDIRECT_URL
+            );
+            return;
+        }
 
         // Access Token 생성
         String accessToken =
@@ -103,11 +119,11 @@ public class OAuth2SuccessHandler
                 accessCookie.toString()
         );
 
-        // 카카오 로그인 완료 후 React 루트 페이지로 이동
+        // 카카오 로그인 완료: 쿠키에 토큰을 심은 뒤 프론트로 리다이렉트한다.
         getRedirectStrategy().sendRedirect(
                 request,
                 response,
-                "http://localhost:3000"
+                FRONTEND_REDIRECT_URL
         );
     }
 

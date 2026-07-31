@@ -81,6 +81,17 @@ public class KakaoOAuth2User implements OAuth2User {
         );
     }
 
+    /**
+     * 이번 인증으로 새로 가입된 회원인지 여부를 반환한다.
+     *
+     * true면 카카오 회원가입, false면 카카오 로그인으로 처리한다.
+     */
+    public boolean isNewMember() {
+        return Boolean.TRUE.equals(
+                attributes.get("isNewMember")
+        );
+    }
+
     @Override
     public java.util.Collection<
             ? extends org.springframework.security.core.GrantedAuthority

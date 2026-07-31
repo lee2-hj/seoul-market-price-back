@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * 카카오 사용자 정보를 조회하고 회원을 처리하는 서비스.
@@ -60,23 +61,27 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         // 서비스에서 사용할 로그인 아이디
         String userId = "kakao_" + socialId;
 
-        // 기존 회원 조회 또는 신규 소셜 회원 저장
-        Member member = memberRepository
-                .findBySocialId(socialId)
-                .orElseGet(() ->
-                        memberRepository.save(
-                                Member.createKakaoMember(
-                                        socialId,
-                                        userId,
-                                        nickname,
-                                        email
-                                )
+        // 기존 회원 조회. 없으면 카카오 회원가입(신규 저장)으로 처리한다.
+        Optional<Member> existingMember =
+                memberRepository.findBySocialId(socialId);
+
+        boolean isNewMember = existingMember.isEmpty();
+
+        Member member = existingMember.orElseGet(() ->
+                memberRepository.save(
+                        Member.createKakaoMember(
+                                socialId,
+                                userId,
+                                nickname,
+                                email
                         )
-                );
+                )
+        );
 
         // 성공 핸들러에서 사용할 회원 정보 추가
         attributes.put("memberId", member.getId());
         attributes.put("userId", member.getUserId());
+        attributes.put("isNewMember", isNewMember);
 
         return new KakaoOAuth2User(attributes);
     }
