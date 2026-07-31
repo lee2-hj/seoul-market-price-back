@@ -1,8 +1,10 @@
 package com.seoul.market.seoulmarketprice.member.controller;
 
 import com.seoul.market.seoulmarketprice.member.dto.request.MemberCreateRequest;
+import com.seoul.market.seoulmarketprice.member.dto.request.UserIdCheckRequest;
 import com.seoul.market.seoulmarketprice.member.dto.response.MemberCreateResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.MemberResponse;
+import com.seoul.market.seoulmarketprice.member.dto.response.UserIdCheckResponse;
 import com.seoul.market.seoulmarketprice.member.service.MemberService;
 import com.seoul.market.seoulmarketprice.security.principal.CustomUserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
@@ -59,6 +61,18 @@ public class MemberController {
                 .body(response);
     }
 
+    /**
+     * 사용자 아이디의 중복 여부를 확인한다.
+     */
+    @Operation(summary = "아이디 중복 체크")
+    @GetMapping("/check-id")
+    public ResponseEntity<UserIdCheckResponse> checkMemberId(
+            @RequestBody UserIdCheckRequest request
+    ){
+        UserIdCheckResponse result = memberService.checkMemberId(request);
+        return ResponseEntity
+                .status(HttpStatus.OK).body(result);
+    }
     /**
      * Access Token으로 인증된 현재 회원의 기본 정보를 조회한다.
      *

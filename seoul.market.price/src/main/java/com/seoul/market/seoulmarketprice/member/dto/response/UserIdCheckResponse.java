@@ -9,11 +9,9 @@ package com.seoul.market.seoulmarketprice.member.dto.response;
  * 중복 확인 결과는 안내 용도이며, 회원 저장 시 DB UNIQUE 제약으로 다시 검증한다.
  * </p>
  *
- * @param userId    확인한 사용자 아이디
  * @param available 아이디를 사용할 수 있으면 true
  */
 public record UserIdCheckResponse(
-        String userId,
         boolean available
 ) {
 }

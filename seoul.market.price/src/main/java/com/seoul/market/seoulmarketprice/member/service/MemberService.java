@@ -2,8 +2,10 @@ package com.seoul.market.seoulmarketprice.member.service;
 
 import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import com.seoul.market.seoulmarketprice.member.dto.request.MemberCreateRequest;
+import com.seoul.market.seoulmarketprice.member.dto.request.UserIdCheckRequest;
 import com.seoul.market.seoulmarketprice.member.dto.response.MemberCreateResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.MemberResponse;
+import com.seoul.market.seoulmarketprice.member.dto.response.UserIdCheckResponse;
 import com.seoul.market.seoulmarketprice.member.exception.DuplicateMemberException;
 import com.seoul.market.seoulmarketprice.member.repository.MemberManagementRepository;
 import lombok.RequiredArgsConstructor;
@@ -79,5 +81,15 @@ public class MemberService {
 
         String msg = "회원가입이 완료되었습니다.";
         return new MemberCreateResponse(msg);
+    }
+
+    //회원 아이디 중복 체크(회원가입 시 아이디 중복 체크 용도)
+    public UserIdCheckResponse checkMemberId(UserIdCheckRequest request) {
+        // 유저 아이디 중복 체크
+        boolean isDuplicated = memberManagementRepository.existsByUserId(request.userId());
+
+        boolean isAvailable = !isDuplicated;
+
+        return new UserIdCheckResponse(isAvailable);
     }
 }
