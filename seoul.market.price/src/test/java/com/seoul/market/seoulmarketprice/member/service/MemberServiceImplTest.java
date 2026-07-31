@@ -1,9 +1,9 @@
 package com.seoul.market.seoulmarketprice.member.service;
 
 import com.seoul.market.seoulmarketprice.auth.entity.Member;
-import com.seoul.market.seoulmarketprice.member.dto.request.MemberCreateRequest;
-import com.seoul.market.seoulmarketprice.member.dto.response.MemberCreateResponse;
-import com.seoul.market.seoulmarketprice.member.dto.response.UserIdCheckResponse;
+import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCreateRequest;
+import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberCreateResponse;
+import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberIdCheckResponse;
 import com.seoul.market.seoulmarketprice.member.exception.DuplicateMemberException;
 import com.seoul.market.seoulmarketprice.member.repository.MemberManagementRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -83,9 +83,9 @@ class MemberServiceImplTest {
         when(memberManagementRepository.existsByUserId("used_user"))
                 .thenReturn(true);
 
-        UserIdCheckResponse available =
+        MemberIdCheckResponse available =
                 memberService.checkUserId("new_user");
-        UserIdCheckResponse unavailable =
+        MemberIdCheckResponse unavailable =
                 memberService.checkUserId("used_user");
 
         assertThat(available.available()).isTrue();

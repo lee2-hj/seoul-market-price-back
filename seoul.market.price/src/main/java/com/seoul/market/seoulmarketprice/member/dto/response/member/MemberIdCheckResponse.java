@@ -1,4 +1,4 @@
-package com.seoul.market.seoulmarketprice.member.dto.response;
+package com.seoul.market.seoulmarketprice.member.dto.response.member;
 
 /**
  * 사용자 아이디 중복 확인 응답 DTO.
@@ -11,7 +11,7 @@ package com.seoul.market.seoulmarketprice.member.dto.response;
  *
  * @param available 아이디를 사용할 수 있으면 true
  */
-public record UserIdCheckResponse(
+public record MemberIdCheckResponse(
         boolean available
 ) {
 }

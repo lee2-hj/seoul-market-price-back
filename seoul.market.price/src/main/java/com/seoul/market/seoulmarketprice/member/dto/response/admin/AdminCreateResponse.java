@@ -1,4 +1,4 @@
-package com.seoul.market.seoulmarketprice.member.dto.response;
+package com.seoul.market.seoulmarketprice.member.dto.response.admin;
 
 /**
  * 관리자 계정 생성 성공 응답 DTO.

@@ -1,4 +1,4 @@
-package com.seoul.market.seoulmarketprice.member.dto.request;
+package com.seoul.market.seoulmarketprice.member.dto.request.admin;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;

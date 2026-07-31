@@ -1,4 +1,4 @@
-package com.seoul.market.seoulmarketprice.member.dto.response;
+package com.seoul.market.seoulmarketprice.member.dto.response.admin;
 
 import java.time.LocalDateTime;
 

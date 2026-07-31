@@ -1,4 +1,4 @@
-package com.seoul.market.seoulmarketprice.member.dto.response;
+package com.seoul.market.seoulmarketprice.member.dto.response.member;
 
 import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import com.seoul.market.seoulmarketprice.auth.entity.UserType;

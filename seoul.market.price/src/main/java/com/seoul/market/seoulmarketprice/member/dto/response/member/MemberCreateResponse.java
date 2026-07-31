@@ -1,6 +1,4 @@
-package com.seoul.market.seoulmarketprice.member.dto.response;
-
-import com.seoul.market.seoulmarketprice.auth.entity.Member;
+package com.seoul.market.seoulmarketprice.member.dto.response.member;
 
 /**
  * 일반 회원가입 성공 응답 DTO.

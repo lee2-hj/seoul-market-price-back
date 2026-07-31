@@ -1,8 +1,8 @@
 package com.seoul.market.seoulmarketprice.member.controller;
 
-import com.seoul.market.seoulmarketprice.member.dto.request.AdminCreateRequest;
-import com.seoul.market.seoulmarketprice.member.dto.response.AdminCreateResponse;
-import com.seoul.market.seoulmarketprice.member.dto.response.AdminListResponse;
+import com.seoul.market.seoulmarketprice.member.dto.request.admin.AdminCreateRequest;
+import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminCreateResponse;
+import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminListResponse;
 import com.seoul.market.seoulmarketprice.member.service.AdminManagementService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

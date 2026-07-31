@@ -1,4 +1,4 @@
-package com.seoul.market.seoulmarketprice.member.dto.request;
+package com.seoul.market.seoulmarketprice.member.dto.request.member;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -14,7 +14,7 @@ import jakarta.validation.constraints.Size;
  *
  * @param userId 중복 여부를 확인할 사용자 아이디
  */
-public record UserIdCheckRequest(
+public record MemberIdCheckRequest(
         /**
          * 영문, 숫자, 밑줄로 구성된 4자 이상 20자 이하의 아이디.
          */

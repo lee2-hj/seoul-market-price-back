@@ -1,6 +1,6 @@
 package com.seoul.market.seoulmarketprice.member.dto;
 
-import com.seoul.market.seoulmarketprice.member.dto.request.MemberCreateRequest;
+import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCreateRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;

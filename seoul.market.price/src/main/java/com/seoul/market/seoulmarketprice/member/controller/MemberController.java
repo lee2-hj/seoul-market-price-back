@@ -1,10 +1,10 @@
 package com.seoul.market.seoulmarketprice.member.controller;
 
-import com.seoul.market.seoulmarketprice.member.dto.request.MemberCreateRequest;
-import com.seoul.market.seoulmarketprice.member.dto.request.UserIdCheckRequest;
-import com.seoul.market.seoulmarketprice.member.dto.response.MemberCreateResponse;
-import com.seoul.market.seoulmarketprice.member.dto.response.MemberResponse;
-import com.seoul.market.seoulmarketprice.member.dto.response.UserIdCheckResponse;
+import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCreateRequest;
+import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberIdCheckRequest;
+import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberCreateResponse;
+import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberResponse;
+import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberIdCheckResponse;
 import com.seoul.market.seoulmarketprice.member.service.MemberService;
 import com.seoul.market.seoulmarketprice.security.principal.CustomUserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,11 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 회원 가입과 회원 정보 조회 요청을 처리하는 Controller.
@@ -66,10 +62,10 @@ public class MemberController {
      */
     @Operation(summary = "아이디 중복 체크")
     @GetMapping("/check-id")
-    public ResponseEntity<UserIdCheckResponse> checkMemberId(
-            @RequestBody UserIdCheckRequest request
+    public ResponseEntity<MemberIdCheckResponse> checkMemberId(
+            @RequestBody MemberIdCheckRequest request
     ){
-        UserIdCheckResponse result = memberService.checkMemberId(request);
+        MemberIdCheckResponse result = memberService.checkMemberId(request);
         return ResponseEntity
                 .status(HttpStatus.OK).body(result);
     }
@@ -92,4 +88,8 @@ public class MemberController {
         // Entity를 직접 노출하지 않고 화면에 필요한 값만 응답한다.
         return ResponseEntity.ok(memberService.getMember(principal.memberId()));
     }
+
+//    @Operation(summary = "회원 정보 수정")
+//    @PatchMapping("/me")
+//    public ResponseEntity
 }

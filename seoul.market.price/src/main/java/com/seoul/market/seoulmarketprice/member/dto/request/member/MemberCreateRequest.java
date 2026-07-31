@@ -1,4 +1,4 @@
-package com.seoul.market.seoulmarketprice.member.dto.request;
+package com.seoul.market.seoulmarketprice.member.dto.request.member;
 
 import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import jakarta.validation.constraints.Email;

@@ -1,6 +1,6 @@
 package com.seoul.market.seoulmarketprice.member.repository;
 
-import com.seoul.market.seoulmarketprice.member.dto.response.AdminListResponse;
+import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminListResponse;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
