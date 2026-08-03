@@ -6,6 +6,8 @@ import com.seoul.market.seoulmarketprice.auth.entity.Admin;
 import com.seoul.market.seoulmarketprice.auth.entity.Role;
 import com.seoul.market.seoulmarketprice.auth.repository.AdminRepository;
 import com.seoul.market.seoulmarketprice.security.jwt.JwtTokenProvider;
+import com.seoul.market.seoulmarketprice.token.domain.AdminRefreshToken;
+import com.seoul.market.seoulmarketprice.token.service.AdminRefreshTokenService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,16 +16,23 @@ import org.springframework.transaction.annotation.Transactional;
  * 관리자 인증 기능을 구현하는 서비스이다.
  *
  * <p>
- * 관리자 로그인 요청을 받아 아이디와 비밀번호를 검증하고,
- * 인증에 성공하면 관리자용 Access Token을 발급한다.
+
+ * 관리자 로그인, Refresh Token Rotation,
+ * 로그아웃 기능을 처리한다.
+ * </p>
+ *
+ * <p>
+ * 일반 회원 인증과 완전히 분리된 관리자 전용
+ * Refresh Token 저장소를 사용한다.
  * </p>
  */
 @Service
 @Transactional(readOnly = true)
-public class AdminAuthServiceImpl implements AdminAuthService {
+public class AdminAuthServiceImpl
+        implements AdminAuthService {
 
     /**
-     * 관리자 정보를 조회하는 Repository.
+     * 관리자 정보를 조회한다.
      */
     private final AdminRepository adminRepository;
 
@@ -33,34 +42,60 @@ public class AdminAuthServiceImpl implements AdminAuthService {
     private final PasswordEncoder passwordEncoder;
 
     /**
-     * JWT 생성 및 검증을 담당한다.
+     * JWT 생성, 검증 및 정보 추출을 담당한다.
      */
     private final JwtTokenProvider jwtTokenProvider;
 
     /**
-     * 생성자 주입.
+     * 관리자 Refresh Token의 저장과 폐기를 담당한다.
+     */
+    private final AdminRefreshTokenService
+            adminRefreshTokenService;
+
+    /**
+     * 생성자 주입을 사용한다.
+     *
+     * @param adminRepository         관리자 Repository
+     * @param passwordEncoder         비밀번호 검증 객체
+     * @param jwtTokenProvider        JWT 처리 객체
+     * @param adminRefreshTokenService 관리자 토큰 서비스
      */
     public AdminAuthServiceImpl(
             AdminRepository adminRepository,
             PasswordEncoder passwordEncoder,
-            JwtTokenProvider jwtTokenProvider
+            JwtTokenProvider jwtTokenProvider,
+            AdminRefreshTokenService adminRefreshTokenService
     ) {
         this.adminRepository = adminRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.adminRefreshTokenService =
+                adminRefreshTokenService;
     }
 
     /**
      * 관리자 로그인을 처리한다.
      *
+     * <ol>
+     *     <li>삭제되지 않은 관리자 계정을 조회한다.</li>
+     *     <li>비밀번호를 검증한다.</li>
+     *     <li>관리자 Access Token을 생성한다.</li>
+     *     <li>관리자 Refresh Token을 생성한다.</li>
+     *     <li>Refresh Token의 해시값만 DB에 저장한다.</li>
+     * </ol>
+     *
      * @param request 관리자 로그인 요청
-     * @return Access Token과 관리자 정보
+     * @return 관리자 로그인 응답과 Refresh Token 원문
      */
     @Override
     @Transactional
-    public AdminLoginResponse login(AdminLoginRequest request) {
-
-        // 관리자 아이디로 계정을 조회한다.
+    public AdminLoginResult login(
+            AdminLoginRequest request
+    ) {
+        /*
+         * 삭제되지 않은 관리자만 조회한다.
+         * 존재하지 않거나 삭제된 관리자에게 동일한 오류를 반환한다.
+         */
         Admin admin = adminRepository
                 .findActiveByAdminId(request.adminId())
                 .orElseThrow(() ->
@@ -69,14 +104,14 @@ public class AdminAuthServiceImpl implements AdminAuthService {
                         )
                 );
 
-        // 비밀번호가 존재하는지 확인한다.
+        // 관리자 비밀번호가 존재하는지 확인한다.
         if (!admin.hasPassword()) {
             throw new IllegalStateException(
                     "관리자 비밀번호 정보가 존재하지 않습니다."
             );
         }
 
-        // 입력한 비밀번호와 DB의 BCrypt 비밀번호를 비교한다.
+        // 평문 비밀번호와 BCrypt 암호문을 비교한다.
         boolean passwordMatches =
                 passwordEncoder.matches(
                         request.password(),
@@ -89,7 +124,7 @@ public class AdminAuthServiceImpl implements AdminAuthService {
             );
         }
 
-        // 관리자용 Access Token을 생성한다.
+        // 관리자 API 인증에 사용할 Access Token을 생성한다.
         String accessToken =
                 jwtTokenProvider.createAccessToken(
                         admin.getId(),
@@ -97,11 +132,187 @@ public class AdminAuthServiceImpl implements AdminAuthService {
                         Role.ADMIN
                 );
 
-        // 로그인 결과를 반환한다.
-        return new AdminLoginResponse(
-                accessToken,
-                admin.getAdminId(),
-                admin.getName()
+        // Access Token 재발급에 사용할 Refresh Token을 생성한다.
+        String refreshToken =
+                jwtTokenProvider.createRefreshToken(
+                        admin.getId(),
+                        Role.ADMIN
+                );
+
+        /*
+         * Refresh Token 원문은 저장하지 않고,
+         * SHA-256 해시값만 관리자 토큰 테이블에 저장한다.
+         */
+        adminRefreshTokenService.save(
+                admin,
+                refreshToken
         );
+
+        // 클라이언트 응답에 사용할 관리자 정보를 생성한다.
+        AdminLoginResponse response =
+                new AdminLoginResponse(
+                        accessToken,
+                        admin.getAdminId(),
+                        admin.getName()
+                );
+
+        /*
+         * 응답 Body와 Refresh Token 쿠키를 만들 수 있도록
+         * Controller에 내부 로그인 결과를 전달한다.
+         */
+        return new AdminLoginResult(
+                response,
+                refreshToken
+        );
+    }
+
+    /**
+     * 관리자 Refresh Token Rotation을 처리한다.
+     *
+     * <ol>
+     *     <li>JWT의 서명과 만료 여부를 검증한다.</li>
+     *     <li>Refresh Token인지 확인한다.</li>
+     *     <li>ADMIN 권한의 토큰인지 확인한다.</li>
+     *     <li>DB에서 해시값이 일치하는 토큰을 조회한다.</li>
+     *     <li>JWT의 관리자 PK와 DB의 관리자 PK를 비교한다.</li>
+     *     <li>삭제되지 않은 관리자인지 확인한다.</li>
+     *     <li>기존 Refresh Token을 폐기한다.</li>
+     *     <li>새 Access/Refresh Token을 발급한다.</li>
+     * </ol>
+     *
+     * @param rawRefreshToken 기존 관리자 Refresh Token
+     * @return 새 Access Token과 새 Refresh Token
+     */
+    @Override
+    @Transactional
+    public TokenReissueResult reissue(
+            String rawRefreshToken
+    ) {
+        // JWT의 서명과 만료 여부를 검증한다.
+        if (!jwtTokenProvider.validateToken(rawRefreshToken)) {
+            throw new IllegalArgumentException(
+                    "유효하지 않은 관리자 Refresh Token입니다."
+            );
+        }
+
+        // Access Token을 재발급 API에 사용할 수 없도록 한다.
+        if (!jwtTokenProvider.isRefreshToken(rawRefreshToken)) {
+            throw new IllegalArgumentException(
+                    "관리자 Refresh Token이 아닙니다."
+            );
+        }
+
+        // 일반 회원의 Refresh Token 사용을 차단한다.
+        if (
+                jwtTokenProvider.getRole(rawRefreshToken)
+                        != Role.ADMIN
+        ) {
+            throw new IllegalArgumentException(
+                    "관리자 권한의 Refresh Token이 아닙니다."
+            );
+        }
+
+        /*
+         * 쿠키의 원문 토큰을 해시로 변환하여 DB에서 조회하고,
+         * 폐기 및 만료 여부를 검사한다.
+         */
+        AdminRefreshToken savedRefreshToken =
+                adminRefreshTokenService
+                        .getUsableToken(rawRefreshToken);
+
+        // JWT subject에서 관리자 PK를 가져온다.
+        Long tokenAdminId =
+                jwtTokenProvider
+                        .getMemberId(rawRefreshToken);
+
+        // DB 토큰과 연결된 관리자를 가져온다.
+        Admin admin = savedRefreshToken.getAdmin();
+
+        // JWT와 DB의 관리자 PK가 같은지 확인한다.
+        if (!admin.getId().equals(tokenAdminId)) {
+            throw new IllegalArgumentException(
+                    "Refresh Token의 관리자 정보가 올바르지 않습니다."
+            );
+        }
+
+        /*
+         * 토큰 발급 후 관리자가 삭제되었다면
+         * 기존 Refresh Token이 남아 있어도 재발급을 거부한다.
+         */
+        if (!adminRepository.existsActiveById(admin.getId())) {
+            throw new IllegalStateException(
+                    "사용할 수 없는 관리자 계정입니다."
+            );
+        }
+
+        /*
+         * 기존 Refresh Token을 폐기한다.
+         * 이후 같은 토큰으로 다시 재발급할 수 없다.
+         */
+        savedRefreshToken.revoke();
+
+        // 새로운 관리자 Access Token을 생성한다.
+        String newAccessToken =
+                jwtTokenProvider.createAccessToken(
+                        admin.getId(),
+                        admin.getAdminId(),
+                        Role.ADMIN
+                );
+
+        // 새로운 관리자 Refresh Token을 생성한다.
+        String newRefreshToken =
+                jwtTokenProvider.createRefreshToken(
+                        admin.getId(),
+                        Role.ADMIN
+                );
+
+        // 새 Refresh Token의 SHA-256 해시값을 저장한다.
+        adminRefreshTokenService.save(
+                admin,
+                newRefreshToken
+        );
+
+        return new TokenReissueResult(
+                newAccessToken,
+                newRefreshToken
+        );
+    }
+
+    /**
+     * 현재 기기의 관리자 로그아웃을 처리한다.
+     *
+     * @param rawRefreshToken 관리자 Refresh Token 원문
+     */
+    @Override
+    @Transactional
+    public void logout(String rawRefreshToken) {
+        // 쿠키가 없으면 이미 로그아웃된 것으로 처리한다.
+        if (
+                rawRefreshToken == null
+                        || rawRefreshToken.isBlank()
+        ) {
+            return;
+        }
+
+        // 유효하지 않거나 만료된 JWT도 로그아웃 상태로 처리한다.
+        if (!jwtTokenProvider.validateToken(rawRefreshToken)) {
+            return;
+        }
+
+        // Refresh Token이 아니면 관리자 토큰을 폐기하지 않는다.
+        if (!jwtTokenProvider.isRefreshToken(rawRefreshToken)) {
+            return;
+        }
+
+        // 일반 회원의 Refresh Token이면 처리하지 않는다.
+        if (
+                jwtTokenProvider.getRole(rawRefreshToken)
+                        != Role.ADMIN
+        ) {
+            return;
+        }
+
+        // DB의 관리자 Refresh Token을 폐기한다.
+        adminRefreshTokenService.revoke(rawRefreshToken);
     }
 }

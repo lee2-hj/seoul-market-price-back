@@ -70,6 +70,8 @@ public class SecurityConfig {
                                 "/api/auth/reissue",
                                 "/api/auth/logout",
                                 "/api/admin/auth/login",
+                                "/api/admin/auth/reissue",
+                                "/api/admin/auth/logout",
                                 "/api/members",
                                 "/api/members/check-user-id",
 
