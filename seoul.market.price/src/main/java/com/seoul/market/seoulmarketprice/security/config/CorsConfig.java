@@ -1,5 +1,6 @@
 package com.seoul.market.seoulmarketprice.security.config;
 
+import com.seoul.market.seoulmarketprice.config.FrontendProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -13,7 +14,7 @@ import java.util.List;
  * React와 Spring Boot 사이의 교차 출처 요청을 허용하는 설정 클래스이다.
  *
  * <p>
- * 현재 개발 환경에서는 React가 localhost:5173,
+ * 현재 개발 환경에서는 React가 localhost:5173(Vite 기본 포트),
  * Spring Boot가 localhost:8081에서 실행되므로
  * 브라우저 기준으로 서로 다른 출처에 해당한다.
  * </p>
@@ -25,6 +26,21 @@ import java.util.List;
  */
 @Configuration
 public class CorsConfig {
+
+    /**
+     * .env.local(ROOT_PAGE)에는 스킴이 빠진 host[:port] 형태로
+     * 값을 적어두므로, Origin 값으로 사용할 때 이 스킴을 붙인다.
+     */
+    private static final String FRONTEND_SCHEME = "http://";
+
+    /**
+     * 프론트엔드 주소 설정값을 제공한다.
+     */
+    private final FrontendProperties frontendProperties;
+
+    public CorsConfig(FrontendProperties frontendProperties) {
+        this.frontendProperties = frontendProperties;
+    }
 
     /**
      * Spring Security에서 사용할 CORS 설정을 등록한다.
@@ -41,12 +57,14 @@ public class CorsConfig {
          *
          * 쿠키 전달을 허용하는 경우 "*"를 사용할 수 없으므로
          * React 개발 서버 주소를 정확하게 지정한다.
+         *
+         * .env.local(ROOT_PAGE)에서 가져온 주소와, Vite 기본
+         * 개발 서버 포트(5173)를 함께 허용한다.
          */
         configuration.setAllowedOrigins(
                 List.of(
                         "http://localhost:5173",
-                        "http://localhost:3000"
-
+                        FRONTEND_SCHEME + frontendProperties.rootPage()
                 )
         );
 
