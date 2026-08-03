@@ -54,13 +54,31 @@ public class Member {
     }
 
     /**
-     * 카카오 로그인 회원을 생성한다.
+     * OAuth2 소셜 로그인 회원을 생성한다.
      *
-     * DB의 phone 컬럼은 현재 NOT NULL 제약이 남아 있어(카카오 profile_nickname
-     * 스코프로는 전화번호를 받을 수 없음) null 대신 빈 문자열로 저장한다.
-     * 추가 정보 입력 화면에서 실제 번호로 갱신하기 전까지의 임시값이다.
+     * <p>
+     * 카카오, 구글 등 외부 OAuth2 제공자를 통해
+     * 로그인한 회원을 생성할 때 사용한다.
+     * </p>
+     *
+     * <p>
+     * 소셜 로그인 회원은 서비스 비밀번호를 사용하지 않으므로
+     * password는 null로 저장한다.
+     * </p>
+     *
+     * <p>
+     * 현재 phone 컬럼은 null을 허용하지만,
+     * 기존 카카오 회원 생성 방식과 통일하기 위해
+     * 추가 정보 입력 전까지 빈 문자열을 저장한다.
+     * </p>
+     *
+     * @param socialId OAuth2 제공자와 사용자 고유 ID를 조합한 값
+     * @param userId 서비스에서 사용할 로그인 아이디
+     * @param name 사용자 이름 또는 닉네임
+     * @param email 사용자 이메일
+     * @return 생성된 소셜 로그인 회원
      */
-    public static Member createKakaoMember(
+    public static Member createSocialMember(
             String socialId,
             String userId,
             String name,
@@ -91,8 +109,9 @@ public class Member {
 
     /**
      * 로그인에 사용하는 사용자 아이디.
+     * id 길이가 google+21자 28개여서 length 20->50으로 늘림
      */
-    @Column(name = "user_id", nullable = false, unique = true, length = 20, comment = "로그인에 사용하는 유저 아이디")
+    @Column(name = "user_id", nullable = false, unique = true, length = 50, comment = "로그인에 사용하는 유저 아이디")
     private String userId;
 
     /**
