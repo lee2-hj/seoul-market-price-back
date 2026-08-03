@@ -1,6 +1,7 @@
 package com.seoul.market.seoulmarketprice.security.jwt;
 
 import com.seoul.market.seoulmarketprice.auth.entity.Role;
+import com.seoul.market.seoulmarketprice.auth.repository.AdminRepository;
 import com.seoul.market.seoulmarketprice.security.principal.CustomUserPrincipal;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -38,6 +39,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      * JWT 생성, 검증 및 정보 추출을 담당한다.
      */
     private final JwtTokenProvider jwtTokenProvider;
+    private final AdminRepository adminRepository;
 
     /**
      * 생성자 주입을 사용한다.
@@ -45,9 +47,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      * @param jwtTokenProvider JWT 처리 클래스
      */
     public JwtAuthenticationFilter(
-            JwtTokenProvider jwtTokenProvider
+            JwtTokenProvider jwtTokenProvider,
+            AdminRepository adminRepository
     ) {
         this.jwtTokenProvider = jwtTokenProvider;
+        this.adminRepository = adminRepository;
     }
 
     /**
@@ -97,6 +101,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // JWT에서 USER 또는 ADMIN 권한을 꺼낸다.
             Role role =
                     jwtTokenProvider.getRole(accessToken);
+
+            /* 삭제된 관리자의 기존 Access Token은 즉시 인증에서 제외한다. */
+            if (role == Role.ADMIN
+                    && !adminRepository.existsActiveById(memberId)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
 
             /*
              * Member 엔티티를 직접 저장하지 않고,

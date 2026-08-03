@@ -1,5 +1,7 @@
 package com.seoul.market.seoulmarketprice.security.principal;
 
+import java.security.Principal;
+
 /**
  * Spring Security에서 현재 로그인한 사용자를 표현하는 객체이다.
  *
@@ -22,5 +24,11 @@ package com.seoul.market.seoulmarketprice.security.principal;
 public record CustomUserPrincipal(
         Long memberId,
         String userId
-) {
+) implements Principal {
+
+    /** Spring Security의 인증 이름으로 로그인 아이디를 반환한다. */
+    @Override
+    public String getName() {
+        return userId;
+    }
 }

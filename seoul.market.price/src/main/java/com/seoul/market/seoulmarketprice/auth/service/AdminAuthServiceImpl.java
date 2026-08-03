@@ -62,7 +62,7 @@ public class AdminAuthServiceImpl implements AdminAuthService {
 
         // 관리자 아이디로 계정을 조회한다.
         Admin admin = adminRepository
-                .findByAdminId(request.adminId())
+                .findActiveByAdminId(request.adminId())
                 .orElseThrow(() ->
                         new IllegalArgumentException(
                                 "관리자 아이디 또는 비밀번호가 올바르지 않습니다."

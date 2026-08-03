@@ -3,6 +3,8 @@ package com.seoul.market.seoulmarketprice.common.exception;
 import com.seoul.market.seoulmarketprice.common.dto.ErrorResponse;
 import com.seoul.market.seoulmarketprice.member.exception.DuplicateMemberException;
 import com.seoul.market.seoulmarketprice.member.exception.DuplicateAdminException;
+import com.seoul.market.seoulmarketprice.member.exception.AdminDeletionException;
+import com.seoul.market.seoulmarketprice.member.exception.AdminNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -14,6 +16,24 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    /** 존재하지 않거나 이미 삭제된 관리자 요청을 404로 변환한다. */
+    @ExceptionHandler(AdminNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleAdminNotFound(
+            AdminNotFoundException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("ADMIN-002", exception.getMessage()));
+    }
+
+    /** 안전 정책에 따라 거부된 관리자 삭제 요청을 409로 변환한다. */
+    @ExceptionHandler(AdminDeletionException.class)
+    public ResponseEntity<ErrorResponse> handleAdminDeletion(
+            AdminDeletionException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("ADMIN-003", exception.getMessage()));
+    }
 
     /**
      * 관리자 아이디 중복 오류를 처리한다.
