@@ -141,7 +141,7 @@ public class SecurityConfig {
                          * 운영 로그에서 확인할 수 없었다.
                          */
                         .failureHandler((request, response, exception) -> {
-                            log.error("카카오 로그인 실패: {}", exception.getMessage(), exception);
+                            log.error("소셜 로그인 실패: {}", exception.getMessage(), exception);
                             new SimpleUrlAuthenticationFailureHandler("/login?error")
                                     .onAuthenticationFailure(request, response, exception);
                         })
