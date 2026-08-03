@@ -50,11 +50,13 @@ public class GlobalExceptionHandler {
             IllegalArgumentException exception
     ) {
 
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+
         return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
+                .status(status)
                 .body(
                         new ErrorResponse(
-                                "AUTH-001",
+                                String.valueOf(status.value()),
                                 exception.getMessage()
                         )
                 );
@@ -68,11 +70,13 @@ public class GlobalExceptionHandler {
             IllegalStateException exception
     ) {
 
+        HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
+
         return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .status(status)
                 .body(
                         new ErrorResponse(
-                                "AUTH-002",
+                                String.valueOf(status.value()),
                                 exception.getMessage()
                         )
                 );
