@@ -3,6 +3,7 @@
 *.yaml
 *.properties
 .env
+.env.local
 !.env.example
 !application-example.yml
 

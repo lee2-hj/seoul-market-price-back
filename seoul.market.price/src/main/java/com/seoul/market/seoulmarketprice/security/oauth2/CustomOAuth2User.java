@@ -76,15 +76,29 @@ public class CustomOAuth2User implements OAuth2User {
     }
 
     /**
-     * 이번 인증으로 새로 가입된 회원인지 여부를 반환한다.
+     * socialId로 가입된 기존 회원이 존재하는지 여부를 반환한다.
      *
-     * true : 회원가입
-     * false : 기존 회원 로그인
+     * true : 기존 회원
+     * false : 가입되지 않은 회원
      */
-    public boolean isNewMember() {
+    public boolean memberExists() {
 
         return Boolean.TRUE.equals(
-                attributes.get("isNewMember")
+                attributes.get("memberExists")
+        );
+    }
+
+    /**
+     * 카카오 회원가입(kakao-signup) 흐름으로 들어온 요청인지 여부를
+     * 반환한다.
+     *
+     * true : 회원가입 시도
+     * false : 로그인 시도
+     */
+    public boolean isSignupFlow() {
+
+        return Boolean.TRUE.equals(
+                attributes.get("isSignupFlow")
         );
     }
 
