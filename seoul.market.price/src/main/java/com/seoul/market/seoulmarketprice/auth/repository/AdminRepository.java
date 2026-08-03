@@ -2,6 +2,8 @@ package com.seoul.market.seoulmarketprice.auth.repository;
 
 import com.seoul.market.seoulmarketprice.auth.entity.Admin;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 
@@ -44,4 +46,12 @@ public interface AdminRepository extends JpaRepository<Admin, Long> {
      * @return 조회된 관리자 정보
      */
     Optional<Admin> findByAdminId(String adminId);
+
+    /** 삭제되지 않은 관리자만 로그인 아이디로 조회한다. */
+    @Query("SELECT a FROM Admin a WHERE a.adminId = :adminId AND a.deleted_at IS NULL")
+    Optional<Admin> findActiveByAdminId(@Param("adminId") String adminId);
+
+    /** 삭제되지 않은 관리자만 고유번호로 조회한다. */
+    @Query("SELECT (COUNT(a) > 0) FROM Admin a WHERE a.id = :id AND a.deleted_at IS NULL")
+    boolean existsActiveById(@Param("id") Long id);
 }

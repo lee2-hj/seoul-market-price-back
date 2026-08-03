@@ -1,9 +1,13 @@
 package com.seoul.market.seoulmarketprice.member.service;
 
 import com.seoul.market.seoulmarketprice.member.dto.request.admin.AdminCreateRequest;
+import com.seoul.market.seoulmarketprice.member.dto.request.admin.AdminUpdateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminCreateResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminListResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminPageResponse;
+import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminUpdateResponse;
+import com.seoul.market.seoulmarketprice.member.exception.AdminDeletionException;
+import com.seoul.market.seoulmarketprice.member.exception.AdminNotFoundException;
 import com.seoul.market.seoulmarketprice.member.exception.DuplicateAdminException;
 import com.seoul.market.seoulmarketprice.member.repository.AdminCreationRepository;
 import lombok.RequiredArgsConstructor;
@@ -84,6 +88,62 @@ public class AdminManagementServiceImpl implements AdminManagementService {
         } catch (DataIntegrityViolationException exception) {
             throw new DuplicateAdminException();
         }
+    }
+
+    /**
+     * 요청에 포함된 관리자 정보만 수정한다.
+     * 새 비밀번호는 평문으로 저장하지 않고 BCrypt로 암호화한다.
+     */
+    @Override
+    @Transactional
+    public AdminUpdateResponse updateAdmin(Long id, AdminUpdateRequest request) {
+        validateUpdateRequest(request);
+        String encodedPassword = request.password() == null
+                ? null : passwordEncoder.encode(request.password());
+
+        return adminCreationRepository.update(
+                        id,
+                        encodedPassword,
+                        request.name(),
+                        request.phone(),
+                        request.email()
+                )
+                .orElseThrow(AdminNotFoundException::new);
+    }
+
+    /** 자기 자신 또는 마지막 활성 관리자가 아닌 계정을 소프트 삭제한다. */
+    @Override
+    @Transactional
+    public void deleteAdmin(Long id, Long currentAdminId) {
+        if (!adminCreationRepository.existsActiveById(id)) {
+            throw new AdminNotFoundException();
+        }
+        if (id.equals(currentAdminId)) {
+            throw new AdminDeletionException("현재 로그인한 관리자 계정은 삭제할 수 없습니다.");
+        }
+        if (adminCreationRepository.countAll() <= 1) {
+            throw new AdminDeletionException("마지막 활성 관리자 계정은 삭제할 수 없습니다.");
+        }
+        if (adminCreationRepository.softDelete(id) == 0) {
+            throw new AdminNotFoundException();
+        }
+    }
+
+    /** 빈 수정 요청과 공백 문자열이 저장되는 것을 차단한다. */
+    private void validateUpdateRequest(AdminUpdateRequest request) {
+        if (request.password() == null && request.name() == null
+                && request.phone() == null && request.email() == null) {
+            throw new IllegalArgumentException("수정할 관리자 정보를 하나 이상 입력해야 합니다.");
+        }
+        if (isBlank(request.password()) || isBlank(request.name())
+                || isBlank(request.phone()) || isBlank(request.email())) {
+            throw new IllegalArgumentException("관리자 수정 항목은 공백일 수 없습니다.");
+        }
+    }
+
+    /** 값이 전달된 경우에만 공백 여부를 확인한다. */
+    private boolean isBlank(String value) {
+        return value != null && value.isBlank();
     }
 
 }
