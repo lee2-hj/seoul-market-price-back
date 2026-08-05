@@ -15,7 +15,7 @@ import java.time.temporal.ChronoUnit;
  * 관리자 정보를 저장하는 엔티티이다.
  *
  * <p>
- * DB의 {@code tb_admin} 테이블과 매핑된다.
+ * DB의 {@code tb_member} 테이블과 매핑된다.
  * </p>
  *
  * <p>
@@ -31,7 +31,7 @@ import java.time.temporal.ChronoUnit;
  */
 @Entity
 @Getter
-@Table(name = "tb_admin")
+@Table(name = "tb_member")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
 public class Admin {
@@ -40,7 +40,7 @@ public class Admin {
      * 관리자 고유번호(PK).
      *
      * <p>
-     * tb_admin 테이블의 기본키이며,
+     * tb_member 테이블의 기본키이며,
      * DB에서 AUTO_INCREMENT 방식으로 자동 생성된다.
      * </p>
      */
@@ -57,7 +57,7 @@ public class Admin {
      * 중복될 수 없다.
      * </p>
      */
-    @Column(name = "admin_id", nullable = false, unique = true, length = 30, comment = "관리자 로그인 아이디")
+    @Column(name = "user_id", nullable = false, unique = true, length = 50, comment = "관리자 로그인 아이디")
     private String adminId;
 
     /**

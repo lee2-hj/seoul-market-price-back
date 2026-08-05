@@ -11,7 +11,7 @@ import java.util.Optional;
  * 관리자 정보를 조회하는 Repository이다.
  *
  * <p>
- * {@link Admin} 엔티티와 {@code tb_admin} 테이블을 연결한다.
+ * {@link Admin} 엔티티와 {@code tb_member} 테이블을 연결한다.
  * 관리자 로그인 과정에서 관리자 아이디를 기준으로 계정을 조회할 때 사용한다.
  * </p>
  *
@@ -28,13 +28,13 @@ public interface AdminRepository extends JpaRepository<Admin, Long> {
      *
      * <p>
      * Spring Data JPA가 메서드 이름을 해석하여
-     * {@code tb_admin.admin_id} 컬럼을 기준으로 조회 쿼리를 생성한다.
+     * {@code tb_member.user_id} 컬럼을 기준으로 조회 쿼리를 생성한다.
      * </p>
      *
      * <pre>
      * SELECT *
-     * FROM tb_admin
-     * WHERE admin_id = ?
+     * FROM tb_member
+     * WHERE user_id = ?
      * </pre>
      *
      * <p>

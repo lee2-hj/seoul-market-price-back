@@ -1,6 +1,10 @@
 package com.seoul.market.seoulmarketprice.common.exception;
 
 import com.seoul.market.seoulmarketprice.common.dto.ErrorResponse;
+import com.seoul.market.seoulmarketprice.board.exception.BoardAccessDeniedException;
+import com.seoul.market.seoulmarketprice.board.exception.BoardNotFoundException;
+import com.seoul.market.seoulmarketprice.comment.exception.CommentAccessDeniedException;
+import com.seoul.market.seoulmarketprice.comment.exception.CommentNotFoundException;
 import com.seoul.market.seoulmarketprice.member.exception.DuplicateMemberException;
 import com.seoul.market.seoulmarketprice.member.exception.DuplicateAdminException;
 import com.seoul.market.seoulmarketprice.member.exception.AdminDeletionException;
@@ -16,6 +20,30 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(CommentNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleCommentNotFound(CommentNotFoundException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("COMMENT-001", exception.getMessage()));
+    }
+
+    @ExceptionHandler(CommentAccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleCommentAccessDenied(CommentAccessDeniedException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse("COMMENT-002", exception.getMessage()));
+    }
+
+    @ExceptionHandler(BoardNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleBoardNotFound(BoardNotFoundException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("BOARD-001", exception.getMessage()));
+    }
+
+    @ExceptionHandler(BoardAccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleBoardAccessDenied(BoardAccessDeniedException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse("BOARD-002", exception.getMessage()));
+    }
 
     /** 존재하지 않거나 이미 삭제된 관리자 요청을 404로 변환한다. */
     @ExceptionHandler(AdminNotFoundException.class)
