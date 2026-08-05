@@ -100,6 +100,15 @@ public class SecurityConfig {
                         ).permitAll();
                     }
 
+                    auth.requestMatchers(HttpMethod.GET, "/api/boards", "/api/boards/**")
+                            .permitAll();
+                    auth.requestMatchers(HttpMethod.POST, "/api/boards", "/api/boards/**")
+                            .hasRole("USER");
+                    auth.requestMatchers(HttpMethod.PATCH, "/api/boards/**")
+                            .hasRole("USER");
+                    auth.requestMatchers(HttpMethod.DELETE, "/api/boards/**")
+                            .hasRole("USER");
+
                     // 운영 환경의 관리자 생성 및 관리자 전용 API는 ADMIN 권한이 필요하다.
                     auth.requestMatchers(
                                     "/api/admin/**",

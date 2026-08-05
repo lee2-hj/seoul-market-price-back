@@ -25,7 +25,7 @@ public class AdminCreationRepository {
     /** 관리자 로그인 아이디의 중복 여부를 확인한다. */
     public boolean existsByAdminId(String adminId) {
         Long count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM tb_admin WHERE admin_id = ?",
+                "SELECT COUNT(*) FROM tb_member WHERE user_id = ?",
                 Long.class,
                 adminId
         );
@@ -35,7 +35,7 @@ public class AdminCreationRepository {
     /** 고유번호에 해당하는 활성 관리자가 존재하는지 확인한다. */
     public boolean existsActiveById(Long id) {
         Long count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM tb_admin WHERE id = ? AND deleted_at IS NULL",
+                "SELECT COUNT(*) FROM tb_member WHERE id = ? AND deleted_at IS NULL",
                 Long.class,
                 id
         );
@@ -46,15 +46,15 @@ public class AdminCreationRepository {
     public List<AdminListResponse> findAll(int size, long offset) {
         return jdbcTemplate.query(
                 """
-                SELECT id, admin_id, name, phone, email, created_at, updated_at
-                FROM tb_admin
+                SELECT id, user_id, name, phone, email, created_at, updated_at
+                FROM tb_member
                 WHERE deleted_at IS NULL
                 ORDER BY created_at DESC
                 LIMIT ? OFFSET ?
                 """,
                 (resultSet, rowNum) -> new AdminListResponse(
                         resultSet.getLong("id"),
-                        resultSet.getString("admin_id"),
+                        resultSet.getString("user_id"),
                         resultSet.getString("name"),
                         resultSet.getString("phone"),
                         resultSet.getString("email"),
@@ -71,7 +71,7 @@ public class AdminCreationRepository {
     /** 삭제되지 않은 전체 관리자 수를 조회한다. */
     public long countAll() {
         Long count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM tb_admin WHERE deleted_at IS NULL",
+                "SELECT COUNT(*) FROM tb_member WHERE deleted_at IS NULL",
                 Long.class
         );
         return count == null ? 0L : count;
@@ -82,7 +82,7 @@ public class AdminCreationRepository {
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
             PreparedStatement statement = connection.prepareStatement(
-                    "INSERT INTO tb_admin (admin_id, password, name) VALUES (?, ?, ?)",
+                    "INSERT INTO tb_member (user_id, password, name) VALUES (?, ?, ?)",
                     Statement.RETURN_GENERATED_KEYS
             );
             statement.setString(1, adminId);
@@ -100,7 +100,7 @@ public class AdminCreationRepository {
     ) {
         int updatedRows = jdbcTemplate.update(
                 """
-                UPDATE tb_admin
+                UPDATE tb_member
                 SET password = COALESCE(?, password), name = COALESCE(?, name),
                     phone = COALESCE(?, phone), email = COALESCE(?, email),
                     updated_at = CURRENT_TIMESTAMP
@@ -112,11 +112,11 @@ public class AdminCreationRepository {
             return Optional.empty();
         }
         return jdbcTemplate.query(
-                "SELECT id, admin_id, name, phone, email, updated_at FROM tb_admin WHERE id = ? AND deleted_at IS NULL",
+                "SELECT id, user_id, name, phone, email, updated_at FROM tb_member WHERE id = ? AND deleted_at IS NULL",
                 resultSet -> resultSet.next()
                         ? Optional.of(new AdminUpdateResponse(
                                 resultSet.getLong("id"),
-                                resultSet.getString("admin_id"),
+                                resultSet.getString("user_id"),
                                 resultSet.getString("name"),
                                 resultSet.getString("phone"),
                                 resultSet.getString("email"),
@@ -129,7 +129,7 @@ public class AdminCreationRepository {
     /** 관리자의 삭제 시각을 기록하여 계정을 소프트 삭제한다. */
     public int softDelete(Long id) {
         return jdbcTemplate.update(
-                "UPDATE tb_admin SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL",
+                "UPDATE tb_member SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL",
                 id
         );
     }
