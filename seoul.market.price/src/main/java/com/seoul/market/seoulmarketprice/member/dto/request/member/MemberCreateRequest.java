@@ -3,6 +3,7 @@ package com.seoul.market.seoulmarketprice.member.dto.request.member;
 import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
@@ -43,7 +44,7 @@ public record MemberCreateRequest(
          * 일반 회원가입 시 비밀번호는 필수 입력이다.
          */
         @NotBlank(message = "비밀번호는 필수입니다.")
-        @Size(min = 8, max = 64, message = "비밀번호는 8자 이상 64자 이하여야 합니다.")
+        @Size(min = 8, max = 64, message = "비밀번호는 8자 이상 16자 이하여야 합니다.")
         String password,
 
         /**
@@ -87,7 +88,18 @@ public record MemberCreateRequest(
          */
         @Email(message = "이메일 형식이 올바르지 않습니다.")
         @Size(max = 255, message = "이메일은 255자 이하여야 합니다.")
-        String email
+        String email,
+
+        @NotNull(message = "이용약관유무는 필수입니다.")
+        Byte is_terms_agreed,
+
+        @NotNull(message = "위치기반 서비스 이용약관 동의 여부는 필수입니다.")
+        Byte is_location_agreed,
+
+        @NotNull(message = "개인정보 수집 및 이용동의 여부는 필수입니다.")
+        Byte is_privacy_agreed,
+
+        String myLocation
 ) {
         // 요청받은 데이터를 기반으로 엔티티 생성
         public Member toEntity(String encodedPassword) {
@@ -99,7 +111,11 @@ public record MemberCreateRequest(
                         this.address,
                         this.addressDetail,
                         this.phone,
-                        this.email
+                        this.email,
+                        this.is_terms_agreed,
+                        this.is_location_agreed,
+                        this.is_privacy_agreed,
+                        this.myLocation
                 );
         }
 }

@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 로그인 전(회원가입 화면)에서 호출되므로 인증 없이 접근할 수 있다.
  * </p>
  */
-@Tag(name = "본인인증", description = "회원가입 휴대폰 PASS 본인인증 API (포트원 V2, NHN KCP 채널)")
+@Tag(name = "본인인증", description = "회원가입 휴대폰 PASS 본인인증 API (포트원 V2, KG이니시스 채널)")
 @RestController
 @RequestMapping("/api/members/phone-verification")
 public class PhoneVerificationController {

@@ -1,7 +1,9 @@
 package com.seoul.market.seoulmarketprice.member.controller;
 
+import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCheckRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCreateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberIdCheckRequest;
+import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberCheckResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberCreateResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberIdCheckResponse;
@@ -47,7 +49,7 @@ public class MemberController {
      * @return 생성된 회원의 고유번호, 아이디, 이름
      */
     @Operation(summary = "일반 회원가입")
-    @PostMapping
+    @PostMapping("/signup")
     public ResponseEntity<MemberCreateResponse> createMember(
             @Valid @RequestBody MemberCreateRequest request
     ) {
@@ -57,13 +59,23 @@ public class MemberController {
                 .body(response);
     }
 
+    @Operation(summary = "회원 등록여부 조회")
+    @GetMapping("/check-member")
+    public ResponseEntity<MemberCheckResponse> checkMember(
+            @ModelAttribute MemberCheckRequest request
+    ){
+        MemberCheckResponse response = memberService.checkMember(request);
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
     /**
      * 사용자 아이디의 중복 여부를 확인한다.
      */
     @Operation(summary = "아이디 중복 체크")
     @GetMapping("/check-id")
     public ResponseEntity<MemberIdCheckResponse> checkMemberId(
-            @RequestBody MemberIdCheckRequest request
+            @ModelAttribute MemberIdCheckRequest request
     ){
         MemberIdCheckResponse result = memberService.checkMemberId(request);
         return ResponseEntity
