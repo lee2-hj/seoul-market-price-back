@@ -73,7 +73,10 @@ public class SecurityConfig {
                                 "/api/admin/auth/reissue",
                                 "/api/admin/auth/logout",
                                 "/api/members",
+                                "/api/members/signup",
                                 "/api/members/check-user-id",
+                                "/api/members/check-member",
+                                "/api/members/check-id",
 
                                 // 회원가입 화면(로그인 전)에서 호출하는
                                 // 휴대폰 PASS 본인인증 결과 확인 API

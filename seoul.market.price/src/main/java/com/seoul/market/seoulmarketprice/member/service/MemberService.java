@@ -1,8 +1,10 @@
 package com.seoul.market.seoulmarketprice.member.service;
 
 import com.seoul.market.seoulmarketprice.auth.entity.Member;
+import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCheckRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCreateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberIdCheckRequest;
+import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberCheckResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberCreateResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberIdCheckResponse;
@@ -91,5 +93,15 @@ public class MemberService {
         boolean isAvailable = !isDuplicated;
 
         return new MemberIdCheckResponse(isAvailable);
+    }
+
+    //일반 회원 가입 시 이미 등록 된 회원인지 체크
+    public MemberCheckResponse checkMember(MemberCheckRequest request) {
+
+        boolean check = memberManagementRepository.existsByNameAndPhone(request.name(), request.phone());
+
+        boolean isDuple = check;
+
+        return new MemberCheckResponse(isDuple);
     }
 }

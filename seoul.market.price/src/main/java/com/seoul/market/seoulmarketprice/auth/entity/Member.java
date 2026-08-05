@@ -35,7 +35,11 @@ public class Member {
             String address,
             String addressDetail,
             String phone,
-            String email
+            String email,
+            Byte isTermsAgreed,
+            Byte is_location_agreed,
+            Byte is_privacy_agreed,
+            String myLocation
     ) {
         Member member = new Member();
 
@@ -49,6 +53,10 @@ public class Member {
         member.phone = phone;
         member.email = email;
         member.userType = UserType.LOCAL;
+        member.isTermsAgreed = isTermsAgreed;
+        member.isLocationAgreed = is_location_agreed;
+        member.isPrivacyAgreed = is_privacy_agreed;
+        member.myLocation = myLocation;
 
         return member;
     }
@@ -182,6 +190,18 @@ public class Member {
     @Convert(converter = UserTypeConverter.class)
     @Column(name = "user_type", nullable = false, comment = "유저 가입 유형 0: 일반 사용자, 1: 소셜 로그인 사용자")
     private UserType userType;
+
+    @Column(name = "is_terms_agreed", nullable = true, columnDefinition = "TINYINT(1)", comment = "이용약관 동의 여부 0: 미동의, 1: 동의")
+    private Byte isTermsAgreed;
+
+    @Column(name = "is_location_agreed", nullable = true, columnDefinition = "TINYINT(1)", comment = "위치기반 서비스 이용약관 동의 여부 0: 미동의, 1: 동의")
+    private Byte isLocationAgreed;
+
+    @Column(name = "is_privacy_agreed", nullable = true, columnDefinition = "TINYINT(1)", comment = "개인정보 수집 및 이용동의 0: 미동의, 1: 동의")
+    private Byte isPrivacyAgreed;
+
+    @Column(name ="my_location", nullable = true, comment = "유저 선호 지역")
+    private String myLocation;
 
     @Column(updatable = false)
     private LocalDateTime created_at;

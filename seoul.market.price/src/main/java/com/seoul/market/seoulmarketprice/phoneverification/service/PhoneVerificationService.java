@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
- * 회원가입 시 사용하는 휴대폰 PASS 본인인증(포트원 V2, NHN KCP 채널)
+ * 회원가입 시 사용하는 휴대폰 PASS 본인인증(포트원 V2, KG이니시스 채널)
  * 비즈니스 로직을 처리하는 서비스이다.
  */
 @Service

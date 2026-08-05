@@ -14,7 +14,7 @@ import org.springframework.web.client.RestClientResponseException;
  * 포트원(PortOne) V2 본인인증 API를 호출하는 클라이언트이다.
  *
  * <p>
- * 프론트엔드는 포트원 브라우저 SDK로 PASS 본인인증(NHN KCP 채널)을
+ * 프론트엔드는 포트원 브라우저 SDK로 PASS 본인인증(KG이니시스 채널)을
  * 직접 수행하고 identityVerificationId를 발급받는다. 프론트엔드가
  * 알려준 결과만 그대로 믿으면 위조될 수 있으므로, 백엔드는 이
  * 클라이언트로 포트원 서버에 직접 조회해서 실제 인증 결과를

@@ -36,4 +36,6 @@ public interface MemberManagementRepository extends JpaRepository<Member, Long> 
     boolean existsByUserId(String userId);
 
     boolean existsByPhone(String phoneNumber);
+
+    boolean existsByNameAndPhone(String name, String phone);
 }
