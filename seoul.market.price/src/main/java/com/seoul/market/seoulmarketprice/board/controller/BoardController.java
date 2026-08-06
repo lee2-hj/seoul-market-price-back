@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class BoardController {
 
+    /** 일반 게시판 비즈니스 로직을 처리하는 서비스이다. */
     private final BoardService boardService;
 
     /** 공개 게시글을 공지 우선, 최신순으로 조회한다. */
@@ -63,6 +64,7 @@ public class BoardController {
     ) {
         BoardDetailResponse response = boardService.createBoard(
                 principal.memberId(),
+                principal.userId(),
                 request
         );
 

@@ -105,6 +105,8 @@ public class SecurityConfig {
 
                     auth.requestMatchers(HttpMethod.GET, "/api/boards", "/api/boards/**")
                             .permitAll();
+                    auth.requestMatchers(HttpMethod.GET, "/api/faqs", "/api/faqs/**")
+                            .permitAll();
                     auth.requestMatchers(HttpMethod.POST, "/api/boards", "/api/boards/**")
                             .hasRole("USER");
                     auth.requestMatchers(HttpMethod.PATCH, "/api/boards/**")

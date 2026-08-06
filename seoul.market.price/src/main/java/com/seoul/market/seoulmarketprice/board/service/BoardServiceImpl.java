@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class BoardServiceImpl implements BoardService {
 
+    /** 게시글 저장과 조회를 담당하는 저장소이다. */
     private final BoardRepository boardRepository;
 
     /** 공개 게시글을 공지 고정 우선, 최신순으로 페이징 조회한다. */
@@ -80,6 +81,7 @@ public class BoardServiceImpl implements BoardService {
     @Transactional
     public BoardDetailResponse createBoard(
             Long userId,
+            String loginId,
             BoardCreateRequest request
     ) {
         Board board = Board.createGeneral(
@@ -87,7 +89,7 @@ public class BoardServiceImpl implements BoardService {
                 request.title().trim(),
                 request.content().trim()
         );
-        return toDetailResponse(boardRepository.save(board));
+        return toDetailResponse(boardRepository.save(board), loginId);
     }
 
     /** 작성자 본인의 일반 게시글만 수정한다. */
@@ -212,6 +214,7 @@ public class BoardServiceImpl implements BoardService {
         }
     }
 
+    /** null은 유지하고 값이 있으면 앞뒤 공백을 제거한다. */
     private String trim(String value) {
         return value == null ? null : value.trim();
     }
@@ -222,7 +225,7 @@ public class BoardServiceImpl implements BoardService {
                 board.getId(),
                 board.getPostType(),
                 board.getTitle(),
-                board.getUserId(),
+                board.getWriterUserId(),
                 board.getMemberId(),
                 board.getViewCount(),
                 board.isPinned(),
@@ -232,12 +235,17 @@ public class BoardServiceImpl implements BoardService {
 
     /** 게시글 엔티티를 상세 응답으로 변환한다. */
     private BoardDetailResponse toDetailResponse(Board board) {
+        return toDetailResponse(board, board.getWriterUserId());
+    }
+
+    /** 작성자 로그인 아이디를 지정하여 게시글 상세 응답으로 변환한다. */
+    private BoardDetailResponse toDetailResponse(Board board, String writerUserId) {
         return new BoardDetailResponse(
                 board.getId(),
                 board.getPostType(),
                 board.getTitle(),
                 board.getContent(),
-                board.getUserId(),
+                writerUserId,
                 board.getMemberId(),
                 board.getViewCount(),
                 board.isVisible(),

@@ -5,6 +5,7 @@ import com.seoul.market.seoulmarketprice.board.exception.BoardAccessDeniedExcept
 import com.seoul.market.seoulmarketprice.board.exception.BoardNotFoundException;
 import com.seoul.market.seoulmarketprice.comment.exception.CommentAccessDeniedException;
 import com.seoul.market.seoulmarketprice.comment.exception.CommentNotFoundException;
+import com.seoul.market.seoulmarketprice.faq.exception.FaqNotFoundException;
 import com.seoul.market.seoulmarketprice.member.exception.DuplicateMemberException;
 import com.seoul.market.seoulmarketprice.member.exception.DuplicateAdminException;
 import com.seoul.market.seoulmarketprice.member.exception.AdminDeletionException;
@@ -20,6 +21,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    /** 존재하지 않거나 공개되지 않은 FAQ 요청을 404로 변환한다. */
+    @ExceptionHandler(FaqNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleFaqNotFound(FaqNotFoundException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("FAQ-001", exception.getMessage()));
+    }
 
     @ExceptionHandler(CommentNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleCommentNotFound(CommentNotFoundException exception) {

@@ -45,11 +45,12 @@ class BoardServiceImplTest {
 
         var response = service.createBoard(
                 7L,
+                "user7",
                 new BoardCreateRequest(" 제목 ", " 내용 ")
         );
 
         assertThat(response.postType()).isEqualTo(PostType.GENERAL);
-        assertThat(response.userId()).isEqualTo(7L);
+        assertThat(response.userId()).isEqualTo("user7");
         assertThat(response.title()).isEqualTo("제목");
         assertThat(response.visible()).isTrue();
     }
