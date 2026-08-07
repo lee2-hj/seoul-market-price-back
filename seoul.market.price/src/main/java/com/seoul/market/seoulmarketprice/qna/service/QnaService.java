@@ -162,14 +162,14 @@ public class QnaService {
     private QnaListResponse toListResponse(QnaBoard qna) {
         return new QnaListResponse(qna.getId(), qna.getTitle(), qna.getWriterLoginId(), qna.getWriterName(),
                 qna.getAnswerStatus(), qna.getViewCount(), qna.isPublicQuestion(),
-                qna.getAttachName() != null, qna.getCreatedAt(), qna.getAnsweredAt());
+                qna.getAttachPath() != null, qna.getCreatedAt(), qna.getAnsweredAt());
     }
 
     /** Q&A 엔티티를 질문·답변 상세 응답으로 변환한다. */
     private QnaDetailResponse toDetailResponse(QnaBoard qna) {
         return new QnaDetailResponse(qna.getId(), qna.getWriterLoginId(), qna.getWriterName(), qna.getTitle(),
                 qna.getQuestionContent(), qna.getAnswerContent(), qna.getAnswerAdminName(),
-                qna.getAnswerStatus(), qna.getAttachName(), qna.getViewCount(), qna.isPublicQuestion(),
+                qna.getAnswerStatus(), qna.getAttachPath(), qna.getViewCount(), qna.isPublicQuestion(),
                 qna.getCreatedAt(), qna.getUpdatedAt(), qna.getAnsweredAt());
     }
 

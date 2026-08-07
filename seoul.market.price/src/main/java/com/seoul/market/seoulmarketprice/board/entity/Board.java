@@ -65,8 +65,9 @@ public class Board {
     private String content;
 
     /** 첨부파일의 원본 파일명이다. */
-    @Column(name = "attach_name", length = 255)
-    private String attachName;
+//    경로에서 파일명만 가져오면 되므로 삭제(260807)
+//    @Column(name = "attach_name", length = 255)
+//    private String attachName;
 
     /** 첨부파일이 저장된 서버 또는 스토리지 경로이다. */
     @Column(name = "attach_path", length = 500)
