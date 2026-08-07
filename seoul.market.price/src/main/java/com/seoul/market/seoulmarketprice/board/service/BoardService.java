@@ -1,6 +1,7 @@
 package com.seoul.market.seoulmarketprice.board.service;
 
 import com.seoul.market.seoulmarketprice.board.dto.request.AdminBoardUpdateRequest;
+import com.seoul.market.seoulmarketprice.board.dto.condition.BoardSearchCondition;
 import com.seoul.market.seoulmarketprice.board.dto.request.BoardCreateRequest;
 import com.seoul.market.seoulmarketprice.board.dto.request.BoardUpdateRequest;
 import com.seoul.market.seoulmarketprice.board.dto.request.NoticeCreateRequest;
@@ -11,10 +12,10 @@ import com.seoul.market.seoulmarketprice.board.entity.Board;
 import com.seoul.market.seoulmarketprice.board.exception.BoardAccessDeniedException;
 import com.seoul.market.seoulmarketprice.board.exception.BoardNotFoundException;
 import com.seoul.market.seoulmarketprice.board.repository.BoardRepository;
+import com.seoul.market.seoulmarketprice.board.repository.BoardQueryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,29 +28,22 @@ public class BoardService {
     /** 게시글 저장과 조회를 담당하는 저장소이다. */
     private final BoardRepository boardRepository;
 
+    /** 공개 게시판의 동적 검색과 페이징을 담당하는 QueryDSL 저장소이다. */
+    private final BoardQueryRepository boardQueryRepository;
+
     /** 공개 게시글을 공지 고정 우선, 최신순으로 페이징 조회한다. */
     public BoardPageResponse getBoards(
-            int page,
-            int size,
-            String keyword
+            BoardSearchCondition condition
     ) {
-        validatePage(page, size);
-        String normalizedKeyword = normalizeKeyword(keyword);
+        validatePage(condition.getPage(), condition.getSize());
+        condition.setKeyword(normalizeKeyword(condition.getKeyword()));
 
         PageRequest pageable = PageRequest.of(
-                page,
-                size,
-                Sort.by(
-                        Sort.Order.desc("pinned"),
-                        Sort.Order.desc("createdAt"),
-                        Sort.Order.desc("id")
-                )
+                condition.getPage(),
+                condition.getSize()
         );
 
-        Page<Board> result = boardRepository.findPublicPage(
-                normalizedKeyword,
-                pageable
-        );
+        Page<Board> result = boardQueryRepository.findPublicPage(condition, pageable);
 
         return new BoardPageResponse(
                 result.getContent().stream().map(this::toListResponse).toList(),
@@ -65,11 +59,11 @@ public class BoardService {
     /** 조회수를 원자적으로 증가시킨 뒤 공개 게시글 상세 정보를 반환한다. */
     @Transactional
     public BoardDetailResponse getBoard(Long id) {
-        if (boardRepository.incrementViewCount(id) == 0) {
+        if (boardQueryRepository.incrementViewCount(id) == 0) {
             throw new BoardNotFoundException();
         }
 
-        Board board = boardRepository.findPublicById(id)
+        Board board = boardQueryRepository.findPublicById(id)
                 .orElseThrow(BoardNotFoundException::new);
         return toDetailResponse(board);
     }
@@ -157,7 +151,7 @@ public class BoardService {
 
     /** 삭제되지 않은 게시글을 조회한다. */
     private Board findActive(Long id) {
-        return boardRepository.findActiveById(id)
+        return boardQueryRepository.findActiveById(id)
                 .orElseThrow(BoardNotFoundException::new);
     }
 

@@ -1,5 +1,6 @@
 package com.seoul.market.seoulmarketprice.board.entity;
 
+import com.seoul.market.seoulmarketprice.auth.entity.Admin;
 import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
@@ -44,6 +45,11 @@ public class Board {
     /** 공지사항 작성자의 tb_member 기본키이다. */
     @Column(name = "member_id")
     private Long memberId;
+
+    /** 공지사항 작성 관리자 정보를 조회하기 위한 연관 관계이다. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "member_id", insertable = false, updatable = false)
+    private Admin member;
 
     /** 일반글과 공지사항을 구분하는 게시글 유형이다. */
     @Convert(converter = PostTypeConverter.class)
@@ -173,6 +179,16 @@ public class Board {
     /** 게시글 작성자의 로그인 아이디(tb_user.user_id)를 반환한다. */
     public String getWriterUserId() {
         return user == null ? null : user.getUserId();
+    }
+
+    /** 공지사항 작성 관리자의 로그인 아이디를 반환한다. */
+    public String getWriterAdminId() {
+        return member == null ? null : member.getAdminId();
+    }
+
+    /** 공지사항 작성 관리자의 이름을 반환한다. */
+    public String getWriterAdminName() {
+        return member == null ? null : member.getName();
     }
 
     /** 최초 저장 직전에 생성 시각을 기록한다. */

@@ -4,7 +4,7 @@ import com.seoul.market.seoulmarketprice.auth.entity.Admin;
 import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import com.seoul.market.seoulmarketprice.auth.repository.AdminRepository;
 import com.seoul.market.seoulmarketprice.board.exception.BoardNotFoundException;
-import com.seoul.market.seoulmarketprice.board.repository.BoardRepository;
+import com.seoul.market.seoulmarketprice.board.repository.BoardQueryRepository;
 import com.seoul.market.seoulmarketprice.comment.dto.request.CommentCreateRequest;
 import com.seoul.market.seoulmarketprice.comment.dto.request.CommentUpdateRequest;
 import com.seoul.market.seoulmarketprice.comment.dto.response.CommentResponse;
@@ -37,7 +37,7 @@ public class CommentService {
     private static final String HIDDEN_MESSAGE = "관리자에 의해 숨김 처리된 댓글입니다.";
 
     private final CommentRepository commentRepository;
-    private final BoardRepository boardRepository;
+    private final BoardQueryRepository boardQueryRepository;
     private final MemberManagementRepository memberRepository;
     private final AdminRepository adminRepository;
 
@@ -131,7 +131,7 @@ public class CommentService {
             Long adminId,
             CommentCreateRequest request
     ) {
-        if (boardRepository.findActiveById(boardId).isEmpty()) {
+        if (boardQueryRepository.findActiveById(boardId).isEmpty()) {
             throw new BoardNotFoundException();
         }
 
@@ -173,7 +173,7 @@ public class CommentService {
 
     /** 댓글 작업 대상 게시글이 공개 상태인지 확인한다. */
     private void requirePublicBoard(Long boardId) {
-        if (!boardRepository.existsPublicById(boardId)) {
+        if (!boardQueryRepository.existsPublicById(boardId)) {
             throw new BoardNotFoundException();
         }
     }

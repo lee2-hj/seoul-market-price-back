@@ -7,6 +7,7 @@ import com.seoul.market.seoulmarketprice.faq.dto.response.FaqPublicResponse;
 import com.seoul.market.seoulmarketprice.faq.entity.Faq;
 import com.seoul.market.seoulmarketprice.faq.exception.FaqNotFoundException;
 import com.seoul.market.seoulmarketprice.faq.repository.FaqRepository;
+import com.seoul.market.seoulmarketprice.faq.repository.FaqQueryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,9 +23,12 @@ public class FaqService {
     /** FAQ 저장과 조회를 담당하는 저장소이다. */
     private final FaqRepository faqRepository;
 
+    /** FAQ의 공개·관리자 조회와 조회수 증가를 담당하는 QueryDSL 저장소이다. */
+    private final FaqQueryRepository faqQueryRepository;
+
     /** 공개 FAQ를 카테고리와 노출 순서에 맞춰 반환한다. */
     public List<FaqPublicResponse> getPublicFaqs(String category) {
-        return faqRepository.findPublicList(normalizeCategory(category)).stream()
+        return faqQueryRepository.findPublicList(normalizeCategory(category)).stream()
                 .map(this::toPublicResponse)
                 .toList();
     }
@@ -32,18 +36,18 @@ public class FaqService {
     /** 조회수를 먼저 증가시킨 뒤 공개 FAQ 상세를 반환한다. */
     @Transactional
     public FaqPublicResponse getPublicFaq(Long id) {
-        if (faqRepository.incrementViewCount(id) == 0) {
+        if (faqQueryRepository.incrementViewCount(id) == 0) {
             throw new FaqNotFoundException();
         }
         return toPublicResponse(
-                faqRepository.findPublicById(id)
+                faqQueryRepository.findPublicById(id)
                         .orElseThrow(FaqNotFoundException::new)
         );
     }
 
     /** 노출 여부와 관계없이 활성 FAQ 목록을 반환한다. */
     public List<AdminFaqResponse> getAdminFaqs() {
-        return faqRepository.findAdminList().stream()
+        return faqQueryRepository.findAdminList().stream()
                 .map(this::toAdminResponse)
                 .toList();
     }
@@ -96,7 +100,7 @@ public class FaqService {
 
     /** 삭제되지 않은 FAQ를 조회하거나 404 예외를 발생시킨다. */
     private Faq findActive(Long id) {
-        return faqRepository.findActiveById(id)
+        return faqQueryRepository.findActiveById(id)
                 .orElseThrow(FaqNotFoundException::new);
     }
 

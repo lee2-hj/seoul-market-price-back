@@ -10,6 +10,7 @@ import com.seoul.market.seoulmarketprice.qna.entity.AnswerStatus;
 import com.seoul.market.seoulmarketprice.qna.entity.QnaBoard;
 import com.seoul.market.seoulmarketprice.qna.exception.QnaAccessDeniedException;
 import com.seoul.market.seoulmarketprice.qna.exception.QnaNotFoundException;
+import com.seoul.market.seoulmarketprice.qna.repository.QnaQueryRepository;
 import com.seoul.market.seoulmarketprice.qna.repository.QnaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -25,30 +26,35 @@ import java.time.LocalDate;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class QnaService {
-    /** Q&A 영속성과 화면별 검색을 담당하는 저장소이다. */
-    private final QnaRepository repository;
+    /** Q&A 저장과 기본 CRUD를 담당하는 저장소이다. */
+    private final QnaRepository qnaRepository;
+
+    /** QueryDSL 기반 화면별 조회와 벌크 수정을 담당하는 저장소이다. */
+    private final QnaQueryRepository qnaQueryRepository;
 
     /** 공개 Q&A 목록을 검색 조건과 페이지 정보에 맞춰 조회한다. */
     public QnaPageResponse getPublicQnas(int page, int size, String keyword, AnswerStatus status) {
         validatePage(page, size);
-        Page<QnaBoard> result = repository.findPublicPage(normalize(keyword), status, pageable(page, size));
+        Page<QnaBoard> result = qnaQueryRepository.findPublicPage(
+                normalize(keyword), status, pageable(page, size));
         return toPageResponse(result);
     }
 
     /** 로그인 사용자가 작성한 공개·비공개 Q&A 목록을 조회한다. */
     public QnaPageResponse getMyQnas(Long userId, int page, int size, String keyword, AnswerStatus status) {
         validatePage(page, size);
-        Page<QnaBoard> result = repository.findMyPage(userId, normalize(keyword), status, pageable(page, size));
+        Page<QnaBoard> result = qnaQueryRepository.findMyPage(
+                userId, normalize(keyword), status, pageable(page, size));
         return toPageResponse(result);
     }
 
     /** 접근 가능한 Q&A의 조회수를 증가시키고 상세 정보를 반환한다. */
     @Transactional
     public QnaDetailResponse getQna(Long id, Long userId) {
-        if (repository.incrementViewCount(id, userId) == 0) {
+        if (qnaQueryRepository.incrementViewCount(id, userId) == 0) {
             throw new QnaNotFoundException();
         }
-        return toDetailResponse(repository.findAccessibleById(id, userId)
+        return toDetailResponse(qnaQueryRepository.findAccessibleById(id, userId)
                 .orElseThrow(QnaNotFoundException::new));
     }
 
@@ -59,7 +65,7 @@ public class QnaService {
         if (from != null && to != null && from.isAfter(to)) {
             throw new IllegalArgumentException("시작일은 종료일보다 늦을 수 없습니다.");
         }
-        Page<QnaBoard> result = repository.findAdminPage(
+        Page<QnaBoard> result = qnaQueryRepository.findAdminPage(
                 normalize(keyword), status, publicQuestion, normalize(writer),
                 from == null ? null : from.atStartOfDay(),
                 to == null ? null : to.plusDays(1).atStartOfDay(),
@@ -75,7 +81,7 @@ public class QnaService {
     /** 로그인 사용자 식별자를 작성자로 사용해 신규 질문을 등록한다. */
     @Transactional
     public QnaDetailResponse createQna(Long userId, QnaCreateRequest request) {
-        QnaBoard saved = repository.save(QnaBoard.create(
+        QnaBoard saved = qnaRepository.save(QnaBoard.create(
                 userId, required(request.title(), "제목"), required(request.questionContent(), "질문 내용"),
                 request.publicQuestion() == null || request.publicQuestion(),
                 normalize(request.attachName()), normalize(request.attachPath())));
@@ -137,7 +143,7 @@ public class QnaService {
 
     /** 삭제되지 않은 Q&A를 조회하고 없으면 공통 예외를 발생시킨다. */
     private QnaBoard findActive(Long id) {
-        return repository.findActiveById(id).orElseThrow(QnaNotFoundException::new);
+        return qnaQueryRepository.findActiveById(id).orElseThrow(QnaNotFoundException::new);
     }
 
     /** 최신 등록순 정렬을 적용한 페이지 요청 객체를 생성한다. */

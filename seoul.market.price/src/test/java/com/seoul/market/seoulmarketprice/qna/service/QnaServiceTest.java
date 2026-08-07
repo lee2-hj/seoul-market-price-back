@@ -7,6 +7,7 @@ import com.seoul.market.seoulmarketprice.qna.entity.AnswerStatus;
 import com.seoul.market.seoulmarketprice.qna.entity.QnaBoard;
 import com.seoul.market.seoulmarketprice.qna.exception.QnaAccessDeniedException;
 import com.seoul.market.seoulmarketprice.qna.exception.QnaNotFoundException;
+import com.seoul.market.seoulmarketprice.qna.repository.QnaQueryRepository;
 import com.seoul.market.seoulmarketprice.qna.repository.QnaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,11 +29,14 @@ class QnaServiceTest {
     @Mock
     private QnaRepository repository;
 
+    @Mock
+    private QnaQueryRepository queryRepository;
+
     private QnaService service;
 
     @BeforeEach
     void setUp() {
-        service = new QnaService(repository);
+        service = new QnaService(repository, queryRepository);
     }
 
     @Test
@@ -50,17 +54,17 @@ class QnaServiceTest {
 
     @Test
     void getQnaRejectsInaccessiblePost() {
-        when(repository.incrementViewCount(1L, 9L)).thenReturn(0);
+        when(queryRepository.incrementViewCount(1L, 9L)).thenReturn(0L);
 
         assertThatThrownBy(() -> service.getQna(1L, 9L))
                 .isInstanceOf(QnaNotFoundException.class);
-        verify(repository, never()).findAccessibleById(1L, 9L);
+        verify(queryRepository, never()).findAccessibleById(1L, 9L);
     }
 
     @Test
     void updateQnaRejectsDifferentWriter() {
         QnaBoard qna = QnaBoard.create(3L, "질문", "내용", false, null, null);
-        when(repository.findActiveById(1L)).thenReturn(Optional.of(qna));
+        when(queryRepository.findActiveById(1L)).thenReturn(Optional.of(qna));
 
         assertThatThrownBy(() -> service.updateQna(1L, 4L,
                 new QnaUpdateRequest("변경", null, null, null, null, false)))
@@ -70,7 +74,7 @@ class QnaServiceTest {
     @Test
     void saveAnswerChangesStatusAndAdmin() {
         QnaBoard qna = QnaBoard.create(3L, "질문", "내용", true, null, null);
-        when(repository.findActiveById(1L)).thenReturn(Optional.of(qna));
+        when(queryRepository.findActiveById(1L)).thenReturn(Optional.of(qna));
 
         var response = service.saveAnswer(1L, 8L, new QnaAnswerRequest(" 답변 "));
 
@@ -84,7 +88,7 @@ class QnaServiceTest {
     void deleteAnswerReturnsPostToWaiting() {
         QnaBoard qna = QnaBoard.create(3L, "질문", "내용", true, null, null);
         qna.answer(8L, "답변");
-        when(repository.findActiveById(1L)).thenReturn(Optional.of(qna));
+        when(queryRepository.findActiveById(1L)).thenReturn(Optional.of(qna));
 
         service.deleteAnswer(1L);
 
@@ -97,7 +101,7 @@ class QnaServiceTest {
     @Test
     void deleteByAdminSoftDeletesPost() {
         QnaBoard qna = QnaBoard.create(3L, "질문", "내용", true, null, null);
-        when(repository.findActiveById(1L)).thenReturn(Optional.of(qna));
+        when(queryRepository.findActiveById(1L)).thenReturn(Optional.of(qna));
 
         service.deleteByAdmin(1L);
 

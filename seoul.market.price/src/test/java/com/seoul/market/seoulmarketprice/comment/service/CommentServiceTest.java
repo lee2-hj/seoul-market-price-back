@@ -3,7 +3,7 @@ package com.seoul.market.seoulmarketprice.comment.service;
 import com.seoul.market.seoulmarketprice.auth.repository.AdminRepository;
 import com.seoul.market.seoulmarketprice.board.entity.Board;
 import com.seoul.market.seoulmarketprice.board.exception.BoardNotFoundException;
-import com.seoul.market.seoulmarketprice.board.repository.BoardRepository;
+import com.seoul.market.seoulmarketprice.board.repository.BoardQueryRepository;
 import com.seoul.market.seoulmarketprice.comment.dto.request.CommentCreateRequest;
 import com.seoul.market.seoulmarketprice.comment.dto.request.CommentUpdateRequest;
 import com.seoul.market.seoulmarketprice.comment.entity.BoardComment;
@@ -34,7 +34,7 @@ class CommentServiceTest {
     @Mock
     private CommentRepository commentRepository;
     @Mock
-    private BoardRepository boardRepository;
+    private BoardQueryRepository boardQueryRepository;
     @Mock
     private MemberManagementRepository memberRepository;
     @Mock
@@ -46,7 +46,7 @@ class CommentServiceTest {
     void setUp() {
         service = new CommentService(
                 commentRepository,
-                boardRepository,
+                boardQueryRepository,
                 memberRepository,
                 adminRepository
         );
@@ -55,7 +55,7 @@ class CommentServiceTest {
     /** 공개 게시글에는 로그인 사용자의 댓글을 생성할 수 있다. */
     @Test
     void userCreatesCommentOnPublicBoard() {
-        when(boardRepository.existsPublicById(1L)).thenReturn(true);
+        when(boardQueryRepository.existsPublicById(1L)).thenReturn(true);
         when(commentRepository.save(any(BoardComment.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -73,7 +73,7 @@ class CommentServiceTest {
     /** 없거나 숨겨진 게시글에는 댓글을 생성할 수 없다. */
     @Test
     void creationRejectsHiddenBoard() {
-        when(boardRepository.existsPublicById(1L)).thenReturn(false);
+        when(boardQueryRepository.existsPublicById(1L)).thenReturn(false);
 
         assertThatThrownBy(() -> service.createUserComment(
                 1L,
@@ -102,7 +102,7 @@ class CommentServiceTest {
                 root,
                 "답글"
         );
-        when(boardRepository.existsPublicById(1L)).thenReturn(true);
+        when(boardQueryRepository.existsPublicById(1L)).thenReturn(true);
         when(commentRepository.findByIdAndPost(2L, BoardType.GENERAL, 1L))
                 .thenReturn(Optional.of(reply));
 
@@ -125,7 +125,7 @@ class CommentServiceTest {
                 null,
                 "댓글"
         );
-        when(boardRepository.existsPublicById(1L)).thenReturn(true);
+        when(boardQueryRepository.existsPublicById(1L)).thenReturn(true);
         when(commentRepository.findByIdAndPost(2L, BoardType.GENERAL, 1L))
                 .thenReturn(Optional.of(comment));
 
@@ -141,7 +141,7 @@ class CommentServiceTest {
     @Test
     void adminCanCommentOnActiveBoard() {
         Board board = Board.createGeneral(7L, "제목", "내용");
-        when(boardRepository.findActiveById(1L)).thenReturn(Optional.of(board));
+        when(boardQueryRepository.findActiveById(1L)).thenReturn(Optional.of(board));
         when(commentRepository.save(any(BoardComment.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 

@@ -15,6 +15,7 @@ import com.seoul.market.seoulmarketprice.qna.exception.QnaNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -23,6 +24,16 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    /** ModelAttribute 쿼리 파라미터 바인딩과 검증 실패를 400 응답으로 변환한다. */
+    @ExceptionHandler(BindException.class)
+    public ResponseEntity<ErrorResponse> handleBindException(BindException exception) {
+        String message = exception.getBindingResult().getFieldError() == null
+                ? "요청 파라미터가 올바르지 않습니다."
+                : exception.getBindingResult().getFieldError().getDefaultMessage();
+        return ResponseEntity.badRequest()
+                .body(new ErrorResponse("VALID-001", message));
+    }
 
     @ExceptionHandler(QnaNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleQnaNotFound(QnaNotFoundException exception) {
