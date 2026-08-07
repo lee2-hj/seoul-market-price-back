@@ -129,6 +129,7 @@ public class AdminAuthServiceImpl
                 jwtTokenProvider.createAccessToken(
                         admin.getId(),
                         admin.getAdminId(),
+                        admin.getName(),
                         Role.ADMIN
                 );
 
@@ -256,6 +257,7 @@ public class AdminAuthServiceImpl
                 jwtTokenProvider.createAccessToken(
                         admin.getId(),
                         admin.getAdminId(),
+                        admin.getName(),
                         Role.ADMIN
                 );
 
