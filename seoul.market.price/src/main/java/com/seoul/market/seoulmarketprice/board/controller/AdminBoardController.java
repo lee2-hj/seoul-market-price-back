@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AdminBoardController {
 
+    /** 관리자 게시판 비즈니스 로직을 처리하는 서비스이다. */
     private final BoardService boardService;
 
     /** 관리자 명의의 공지사항을 새로 등록한다. */

@@ -103,7 +103,19 @@ public class SecurityConfig {
                         ).permitAll();
                     }
 
+                    auth.requestMatchers(HttpMethod.GET, "/api/qnas/me")
+                            .hasRole("USER");
+                    auth.requestMatchers(HttpMethod.GET, "/api/qnas", "/api/qnas/*")
+                            .permitAll();
+                    auth.requestMatchers(HttpMethod.POST, "/api/qnas")
+                            .hasRole("USER");
+                    auth.requestMatchers(HttpMethod.PATCH, "/api/qnas/**")
+                            .hasRole("USER");
+                    auth.requestMatchers(HttpMethod.DELETE, "/api/qnas/**")
+                            .hasRole("USER");
                     auth.requestMatchers(HttpMethod.GET, "/api/boards", "/api/boards/**")
+                            .permitAll();
+                    auth.requestMatchers(HttpMethod.GET, "/api/faqs", "/api/faqs/**")
                             .permitAll();
                     auth.requestMatchers(HttpMethod.POST, "/api/boards", "/api/boards/**")
                             .hasRole("USER");

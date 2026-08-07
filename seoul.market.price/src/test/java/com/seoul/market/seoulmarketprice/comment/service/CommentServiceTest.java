@@ -29,7 +29,7 @@ import static org.mockito.Mockito.when;
 
 /** 댓글 서비스의 게시글 검증, 계층 제한 및 작성자 권한을 검증한다. */
 @ExtendWith(MockitoExtension.class)
-class CommentServiceImplTest {
+class CommentServiceTest {
 
     @Mock
     private CommentRepository commentRepository;
@@ -40,11 +40,11 @@ class CommentServiceImplTest {
     @Mock
     private AdminRepository adminRepository;
 
-    private CommentServiceImpl service;
+    private CommentService service;
 
     @BeforeEach
     void setUp() {
-        service = new CommentServiceImpl(
+        service = new CommentService(
                 commentRepository,
                 boardRepository,
                 memberRepository,

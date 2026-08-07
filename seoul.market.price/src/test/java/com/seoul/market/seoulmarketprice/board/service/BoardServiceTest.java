@@ -25,16 +25,16 @@ import static org.mockito.Mockito.when;
 
 /** 일반 게시판 서비스의 생성, 권한, 삭제 및 조회수 증가 규칙을 검증한다. */
 @ExtendWith(MockitoExtension.class)
-class BoardServiceImplTest {
+class BoardServiceTest {
 
     @Mock
     private BoardRepository repository;
 
-    private BoardServiceImpl service;
+    private BoardService service;
 
     @BeforeEach
     void setUp() {
-        service = new BoardServiceImpl(repository);
+        service = new BoardService(repository);
     }
 
     /** 일반 게시글 생성 시 사용자 작성자와 기본 공개 상태가 설정된다. */
@@ -45,11 +45,12 @@ class BoardServiceImplTest {
 
         var response = service.createBoard(
                 7L,
+                "user7",
                 new BoardCreateRequest(" 제목 ", " 내용 ")
         );
 
         assertThat(response.postType()).isEqualTo(PostType.GENERAL);
-        assertThat(response.userId()).isEqualTo(7L);
+        assertThat(response.userId()).isEqualTo("user7");
         assertThat(response.title()).isEqualTo("제목");
         assertThat(response.visible()).isTrue();
     }

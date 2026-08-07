@@ -23,18 +23,18 @@ import static org.mockito.Mockito.when;
 
 /** 관리자 수정 및 삭제 서비스의 단위 동작을 검증한다. */
 @ExtendWith(MockitoExtension.class)
-class AdminManagementServiceImplTest {
+class AdminManagementServiceTest {
 
     @Mock
     private AdminCreationRepository repository;
     @Mock
     private PasswordEncoder passwordEncoder;
-    private AdminManagementServiceImpl service;
+    private AdminManagementService service;
 
     /** 각 테스트에서 독립적인 서비스 객체를 생성한다. */
     @BeforeEach
     void setUp() {
-        service = new AdminManagementServiceImpl(repository, passwordEncoder);
+        service = new AdminManagementService(repository, passwordEncoder);
     }
 
     /** 비밀번호를 포함한 수정 요청은 암호화된 값으로 저장되는지 검증한다. */

@@ -2,6 +2,7 @@ package com.seoul.market.seoulmarketprice.member.service;
 
 import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCreateRequest;
+import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberIdCheckRequest;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberCreateResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberIdCheckResponse;
 import com.seoul.market.seoulmarketprice.member.exception.DuplicateMemberException;
@@ -22,7 +23,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class MemberServiceImplTest {
+class MemberServiceTest {
 
     @Mock
     private MemberManagementRepository memberManagementRepository;
@@ -30,11 +31,11 @@ class MemberServiceImplTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
-    private MemberServiceImpl memberService;
+    private MemberService memberService;
 
     @BeforeEach
     void setUp() {
-        memberService = new MemberServiceImpl(
+        memberService = new MemberService(
                 memberManagementRepository,
                 passwordEncoder
         );
@@ -47,20 +48,19 @@ class MemberServiceImplTest {
                 .thenReturn(false);
         when(passwordEncoder.encode("password123!"))
                 .thenReturn("encoded-password");
-        when(memberManagementRepository.saveAndFlush(any(Member.class)))
+        when(memberManagementRepository.save(any(Member.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         MemberCreateResponse response = memberService.createMember(request);
 
         ArgumentCaptor<Member> captor = ArgumentCaptor.forClass(Member.class);
-        verify(memberManagementRepository).saveAndFlush(captor.capture());
+        verify(memberManagementRepository).save(captor.capture());
         Member savedMember = captor.getValue();
 
         assertThat(savedMember.getUserId()).isEqualTo("market_user");
         assertThat(savedMember.getPassword()).isEqualTo("encoded-password");
         assertThat(savedMember.isLocalUser()).isTrue();
-        assertThat(response.userId()).isEqualTo("market_user");
-        assertThat(response.name()).isEqualTo("서울장터");
+        assertThat(response.msg()).isNotBlank();
     }
 
     @Test
@@ -73,7 +73,7 @@ class MemberServiceImplTest {
                 .hasMessage("이미 사용 중인 아이디입니다.");
 
         verify(passwordEncoder, never()).encode(any());
-        verify(memberManagementRepository, never()).saveAndFlush(any());
+        verify(memberManagementRepository, never()).save(any());
     }
 
     @Test
@@ -84,9 +84,9 @@ class MemberServiceImplTest {
                 .thenReturn(true);
 
         MemberIdCheckResponse available =
-                memberService.checkUserId("new_user");
+                memberService.checkMemberId(new MemberIdCheckRequest("new_user"));
         MemberIdCheckResponse unavailable =
-                memberService.checkUserId("used_user");
+                memberService.checkMemberId(new MemberIdCheckRequest("used_user"));
 
         assertThat(available.available()).isTrue();
         assertThat(unavailable.available()).isFalse();
@@ -101,7 +101,11 @@ class MemberServiceImplTest {
                 "서울특별시 중구 세종대로 110",
                 "1층",
                 "010-1234-5678",
-                "market@example.com"
+                "market@example.com",
+                (byte) 1,
+                (byte) 1,
+                (byte) 1,
+                "서울"
         );
     }
 }

@@ -8,7 +8,7 @@ public record BoardDetailResponse(
         PostType postType,
         String title,
         String content,
-        Long userId,
+        String userId,
         Long memberId,
         int viewCount,
         boolean visible,
