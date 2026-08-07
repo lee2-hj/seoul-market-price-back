@@ -1,12 +1,13 @@
 package com.seoul.market.seoulmarketprice.qna.service;
 
+import com.seoul.market.seoulmarketprice.qna.dto.condition.AdminQnaSearchCondition;
+import com.seoul.market.seoulmarketprice.qna.dto.condition.QnaSearchCondition;
 import com.seoul.market.seoulmarketprice.qna.dto.request.QnaAnswerRequest;
 import com.seoul.market.seoulmarketprice.qna.dto.request.QnaCreateRequest;
 import com.seoul.market.seoulmarketprice.qna.dto.request.QnaUpdateRequest;
 import com.seoul.market.seoulmarketprice.qna.dto.response.QnaDetailResponse;
 import com.seoul.market.seoulmarketprice.qna.dto.response.QnaListResponse;
 import com.seoul.market.seoulmarketprice.qna.dto.response.QnaPageResponse;
-import com.seoul.market.seoulmarketprice.qna.entity.AnswerStatus;
 import com.seoul.market.seoulmarketprice.qna.entity.QnaBoard;
 import com.seoul.market.seoulmarketprice.qna.exception.QnaAccessDeniedException;
 import com.seoul.market.seoulmarketprice.qna.exception.QnaNotFoundException;
@@ -18,8 +19,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDate;
 
 /** Q&A의 조회, 작성자 권한 검증, 질문 관리와 관리자 답변 업무를 처리한다. */
 @Service
@@ -33,18 +32,20 @@ public class QnaService {
     private final QnaQueryRepository qnaQueryRepository;
 
     /** 공개 Q&A 목록을 검색 조건과 페이지 정보에 맞춰 조회한다. */
-    public QnaPageResponse getPublicQnas(int page, int size, String keyword, AnswerStatus status) {
-        validatePage(page, size);
+    public QnaPageResponse getPublicQnas(QnaSearchCondition condition) {
+        validatePage(condition.getPage(), condition.getSize());
+        condition.setKeyword(normalize(condition.getKeyword()));
         Page<QnaBoard> result = qnaQueryRepository.findPublicPage(
-                normalize(keyword), status, pageable(page, size));
+                condition, pageable(condition.getPage(), condition.getSize()));
         return toPageResponse(result);
     }
 
     /** 로그인 사용자가 작성한 공개·비공개 Q&A 목록을 조회한다. */
-    public QnaPageResponse getMyQnas(Long userId, int page, int size, String keyword, AnswerStatus status) {
-        validatePage(page, size);
+    public QnaPageResponse getMyQnas(Long userId, QnaSearchCondition condition) {
+        validatePage(condition.getPage(), condition.getSize());
+        condition.setKeyword(normalize(condition.getKeyword()));
         Page<QnaBoard> result = qnaQueryRepository.findMyPage(
-                userId, normalize(keyword), status, pageable(page, size));
+                userId, condition, pageable(condition.getPage(), condition.getSize()));
         return toPageResponse(result);
     }
 
@@ -59,17 +60,16 @@ public class QnaService {
     }
 
     /** 백오피스 검색 조건과 작성 기간을 적용해 관리자용 목록을 조회한다. */
-    public QnaPageResponse getAdminQnas(int page, int size, String keyword, AnswerStatus status,
-                                        Boolean publicQuestion, String writer, LocalDate from, LocalDate to) {
-        validatePage(page, size);
-        if (from != null && to != null && from.isAfter(to)) {
+    public QnaPageResponse getAdminQnas(AdminQnaSearchCondition condition) {
+        validatePage(condition.getPage(), condition.getSize());
+        if (condition.getFrom() != null && condition.getTo() != null
+                && condition.getFrom().isAfter(condition.getTo())) {
             throw new IllegalArgumentException("시작일은 종료일보다 늦을 수 없습니다.");
         }
+        condition.setKeyword(normalize(condition.getKeyword()));
+        condition.setWriter(normalize(condition.getWriter()));
         Page<QnaBoard> result = qnaQueryRepository.findAdminPage(
-                normalize(keyword), status, publicQuestion, normalize(writer),
-                from == null ? null : from.atStartOfDay(),
-                to == null ? null : to.plusDays(1).atStartOfDay(),
-                pageable(page, size));
+                condition, pageable(condition.getPage(), condition.getSize()));
         return toPageResponse(result);
     }
 

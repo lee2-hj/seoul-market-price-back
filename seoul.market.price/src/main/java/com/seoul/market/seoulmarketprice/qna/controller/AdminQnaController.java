@@ -1,22 +1,20 @@
 package com.seoul.market.seoulmarketprice.qna.controller;
 
+import com.seoul.market.seoulmarketprice.qna.dto.condition.AdminQnaSearchCondition;
 import com.seoul.market.seoulmarketprice.qna.dto.request.QnaAnswerRequest;
 import com.seoul.market.seoulmarketprice.qna.dto.request.QnaVisibilityRequest;
 import com.seoul.market.seoulmarketprice.qna.dto.response.QnaDetailResponse;
 import com.seoul.market.seoulmarketprice.qna.dto.response.QnaPageResponse;
-import com.seoul.market.seoulmarketprice.qna.entity.AnswerStatus;
 import com.seoul.market.seoulmarketprice.qna.service.QnaService;
 import com.seoul.market.seoulmarketprice.security.principal.CustomUserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springdoc.core.annotations.ParameterObject;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDate;
 
 /** 백오피스 관리자가 Q&A를 조회하고 답변·공개·삭제 상태를 관리하는 API이다. */
 @Tag(name = "관리자 Q&A", description = "백오피스 Q&A 관리 API")
@@ -31,16 +29,9 @@ public class AdminQnaController {
     @Operation(summary = "관리자 Q&A 목록 조회")
     @GetMapping
     public ResponseEntity<QnaPageResponse> getQnas(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) AnswerStatus status,
-            @RequestParam(required = false) Boolean publicQuestion,
-            @RequestParam(required = false) String writer,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-        return ResponseEntity.ok(qnaService.getAdminQnas(page, size, keyword, status,
-                publicQuestion, writer, from, to));
+            @Valid @ParameterObject
+            @ModelAttribute AdminQnaSearchCondition condition) {
+        return ResponseEntity.ok(qnaService.getAdminQnas(condition));
     }
 
     /** 관리자가 선택한 활성 Q&A의 상세를 조회한다. */

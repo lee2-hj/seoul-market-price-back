@@ -1,14 +1,15 @@
 package com.seoul.market.seoulmarketprice.qna.controller;
 
+import com.seoul.market.seoulmarketprice.qna.dto.condition.QnaSearchCondition;
 import com.seoul.market.seoulmarketprice.qna.dto.request.QnaCreateRequest;
 import com.seoul.market.seoulmarketprice.qna.dto.request.QnaUpdateRequest;
 import com.seoul.market.seoulmarketprice.qna.dto.response.QnaDetailResponse;
 import com.seoul.market.seoulmarketprice.qna.dto.response.QnaPageResponse;
-import com.seoul.market.seoulmarketprice.qna.entity.AnswerStatus;
 import com.seoul.market.seoulmarketprice.qna.service.QnaService;
 import com.seoul.market.seoulmarketprice.security.principal.CustomUserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springdoc.core.annotations.ParameterObject;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -29,11 +30,9 @@ public class QnaController {
     @Operation(summary = "공개 Q&A 목록 조회")
     @GetMapping
     public ResponseEntity<QnaPageResponse> getQnas(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) AnswerStatus status) {
-        return ResponseEntity.ok(qnaService.getPublicQnas(page, size, keyword, status));
+            @Valid @ParameterObject
+            @ModelAttribute QnaSearchCondition condition) {
+        return ResponseEntity.ok(qnaService.getPublicQnas(condition));
     }
 
     /** 현재 로그인 사용자가 작성한 질문 목록을 조회한다. */
@@ -41,11 +40,9 @@ public class QnaController {
     @GetMapping("/me")
     public ResponseEntity<QnaPageResponse> getMyQnas(
             @AuthenticationPrincipal CustomUserPrincipal principal,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) AnswerStatus status) {
-        return ResponseEntity.ok(qnaService.getMyQnas(principal.memberId(), page, size, keyword, status));
+            @Valid @ParameterObject
+            @ModelAttribute QnaSearchCondition condition) {
+        return ResponseEntity.ok(qnaService.getMyQnas(principal.memberId(), condition));
     }
 
     /** 공개 질문 또는 본인이 작성한 비공개 질문의 상세를 조회한다. */
