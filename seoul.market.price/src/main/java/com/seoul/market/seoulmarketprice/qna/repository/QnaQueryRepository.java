@@ -2,6 +2,8 @@ package com.seoul.market.seoulmarketprice.qna.repository;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import com.seoul.market.seoulmarketprice.qna.dto.condition.AdminQnaSearchCondition;
+import com.seoul.market.seoulmarketprice.qna.dto.condition.QnaSearchCondition;
 import com.seoul.market.seoulmarketprice.qna.entity.AnswerStatus;
 import com.seoul.market.seoulmarketprice.qna.entity.QnaBoard;
 import com.seoul.market.seoulmarketprice.qna.entity.QQnaBoard;
@@ -32,11 +34,12 @@ public class QnaQueryRepository {
     private final EntityManager entityManager;
 
     /** 공개된 활성 Q&A를 제목 키워드와 답변 상태로 검색한다. */
-    public Page<QnaBoard> findPublicPage(String keyword, AnswerStatus status, Pageable pageable) {
+    public Page<QnaBoard> findPublicPage(QnaSearchCondition condition, Pageable pageable) {
         List<QnaBoard> content = queryFactory
                 .selectFrom(qna)
                 .leftJoin(qna.user).fetchJoin()
-                .where(active(), publicOnly(), titleContains(keyword), answerStatusEq(status))
+                .where(active(), publicOnly(), titleContains(condition.getKeyword()),
+                        answerStatusEq(condition.getStatus()))
                 .orderBy(qna.createdAt.desc(), qna.id.desc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
@@ -45,18 +48,20 @@ public class QnaQueryRepository {
         Long total = queryFactory
                 .select(qna.count())
                 .from(qna)
-                .where(active(), publicOnly(), titleContains(keyword), answerStatusEq(status))
+                .where(active(), publicOnly(), titleContains(condition.getKeyword()),
+                        answerStatusEq(condition.getStatus()))
                 .fetchOne();
 
         return page(content, pageable, total);
     }
 
     /** 로그인 사용자가 작성한 활성 Q&A를 검색한다. */
-    public Page<QnaBoard> findMyPage(Long userId, String keyword, AnswerStatus status, Pageable pageable) {
+    public Page<QnaBoard> findMyPage(Long userId, QnaSearchCondition condition, Pageable pageable) {
         List<QnaBoard> content = queryFactory
                 .selectFrom(qna)
                 .leftJoin(qna.user).fetchJoin()
-                .where(active(), qna.userId.eq(userId), titleContains(keyword), answerStatusEq(status))
+                .where(active(), qna.userId.eq(userId), titleContains(condition.getKeyword()),
+                        answerStatusEq(condition.getStatus()))
                 .orderBy(qna.createdAt.desc(), qna.id.desc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
@@ -65,7 +70,8 @@ public class QnaQueryRepository {
         Long total = queryFactory
                 .select(qna.count())
                 .from(qna)
-                .where(active(), qna.userId.eq(userId), titleContains(keyword), answerStatusEq(status))
+                .where(active(), qna.userId.eq(userId), titleContains(condition.getKeyword()),
+                        answerStatusEq(condition.getStatus()))
                 .fetchOne();
 
         return page(content, pageable, total);
@@ -92,16 +98,19 @@ public class QnaQueryRepository {
     }
 
     /** 백오피스의 복합 검색 조건으로 활성 Q&A 목록을 조회한다. */
-    public Page<QnaBoard> findAdminPage(String keyword, AnswerStatus status,
-                                        Boolean publicQuestion, String writer,
-                                        LocalDateTime from, LocalDateTime to,
-                                        Pageable pageable) {
+    public Page<QnaBoard> findAdminPage(AdminQnaSearchCondition condition, Pageable pageable) {
+        LocalDateTime from = condition.getFrom() == null
+                ? null : condition.getFrom().atStartOfDay();
+        LocalDateTime to = condition.getTo() == null
+                ? null : condition.getTo().plusDays(1).atStartOfDay();
         List<QnaBoard> content = queryFactory
                 .selectFrom(qna)
                 .leftJoin(qna.user).fetchJoin()
                 .leftJoin(qna.answerMember).fetchJoin()
-                .where(active(), keywordContains(keyword), answerStatusEq(status),
-                        publicQuestionEq(publicQuestion), writerContains(writer),
+                .where(active(), keywordContains(condition.getKeyword()),
+                        answerStatusEq(condition.getStatus()),
+                        publicQuestionEq(condition.getPublicQuestion()),
+                        writerContains(condition.getWriter()),
                         createdAtGoe(from), createdAtLt(to))
                 .orderBy(qna.createdAt.desc(), qna.id.desc())
                 .offset(pageable.getOffset())
@@ -112,8 +121,10 @@ public class QnaQueryRepository {
                 .select(qna.count())
                 .from(qna)
                 .leftJoin(qna.user)
-                .where(active(), keywordContains(keyword), answerStatusEq(status),
-                        publicQuestionEq(publicQuestion), writerContains(writer),
+                .where(active(), keywordContains(condition.getKeyword()),
+                        answerStatusEq(condition.getStatus()),
+                        publicQuestionEq(condition.getPublicQuestion()),
+                        writerContains(condition.getWriter()),
                         createdAtGoe(from), createdAtLt(to))
                 .fetchOne();
 
