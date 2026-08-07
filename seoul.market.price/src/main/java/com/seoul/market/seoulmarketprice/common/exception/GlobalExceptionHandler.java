@@ -10,6 +10,8 @@ import com.seoul.market.seoulmarketprice.member.exception.DuplicateMemberExcepti
 import com.seoul.market.seoulmarketprice.member.exception.DuplicateAdminException;
 import com.seoul.market.seoulmarketprice.member.exception.AdminDeletionException;
 import com.seoul.market.seoulmarketprice.member.exception.AdminNotFoundException;
+import com.seoul.market.seoulmarketprice.qna.exception.QnaAccessDeniedException;
+import com.seoul.market.seoulmarketprice.qna.exception.QnaNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -21,6 +23,18 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(QnaNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleQnaNotFound(QnaNotFoundException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("QNA-001", exception.getMessage()));
+    }
+
+    @ExceptionHandler(QnaAccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleQnaAccessDenied(QnaAccessDeniedException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse("QNA-002", exception.getMessage()));
+    }
 
     /** 존재하지 않거나 공개되지 않은 FAQ 요청을 404로 변환한다. */
     @ExceptionHandler(FaqNotFoundException.class)

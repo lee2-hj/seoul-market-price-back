@@ -23,16 +23,16 @@ import static org.mockito.Mockito.when;
 
 /** FAQ 서비스의 공개 조회와 관리자 변경 규칙을 검증한다. */
 @ExtendWith(MockitoExtension.class)
-class FaqServiceImplTest {
+class FaqServiceTest {
 
     @Mock
     private FaqRepository repository;
 
-    private FaqServiceImpl service;
+    private FaqService service;
 
     @BeforeEach
     void setUp() {
-        service = new FaqServiceImpl(repository);
+        service = new FaqService(repository);
     }
 
     /** 공개 목록 조회 시 카테고리를 정규화하고 응답으로 변환한다. */
