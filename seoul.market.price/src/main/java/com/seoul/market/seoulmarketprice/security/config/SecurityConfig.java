@@ -1,14 +1,19 @@
 package com.seoul.market.seoulmarketprice.security.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.seoul.market.seoulmarketprice.common.dto.ErrorResponse;
 import com.seoul.market.seoulmarketprice.security.jwt.JwtAuthenticationFilter;
 import com.seoul.market.seoulmarketprice.security.oauth2.CustomOAuth2UserService;
 import com.seoul.market.seoulmarketprice.security.oauth2.OAuth2SuccessHandler;
+import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.http.converter.FormHttpMessageConverter;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -24,6 +29,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.client.RestClient;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.io.IOException;
+
 /**
  * Spring Security 설정.
  */
@@ -31,6 +38,11 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
     private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
+
+    /**
+     * 인증/인가 실패 응답 본문을 JSON으로 작성할 때 사용한다.
+     */
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Bean
     public SecurityFilterChain securityFilterChain(
@@ -62,6 +74,38 @@ public class SecurityConfig {
                 // Spring 기본 로그인 방식을 사용하지 않는다.
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
+
+                /*
+                 * 인증/인가 실패 응답을 명시적으로 구분한다.
+                 *
+                 * AuthenticationEntryPoint/AccessDeniedHandler를 등록하지
+                 * 않으면 Spring Security는 로그인 여부와 무관하게 모든
+                 * 실패를 기본 Http403ForbiddenEntryPoint로 처리해
+                 * 토큰이 없거나 만료된 경우까지 403으로 응답한다.
+                 * 그러면 프론트엔드가 401 응답에만 반응하는 세션 만료
+                 * 처리(재로그인 유도)가 전혀 동작하지 않는다.
+                 *
+                 * - 인증 자체가 안 된 경우(토큰 없음/무효/만료): 401
+                 * - 인증은 됐지만 권한이 부족한 경우(USER가 ADMIN API 접근 등): 403
+                 */
+                .exceptionHandling(exceptionHandling -> exceptionHandling
+                        .authenticationEntryPoint((request, response, authException) ->
+                                writeErrorResponse(
+                                        response,
+                                        HttpStatus.UNAUTHORIZED,
+                                        "AUTH-001",
+                                        "로그인이 필요합니다."
+                                )
+                        )
+                        .accessDeniedHandler((request, response, accessDeniedException) ->
+                                writeErrorResponse(
+                                        response,
+                                        HttpStatus.FORBIDDEN,
+                                        "AUTH-002",
+                                        "접근 권한이 없습니다."
+                                )
+                        )
+                )
 
                 // 요청별 접근 권한을 설정한다.
                 .authorizeHttpRequests(auth -> {
@@ -185,6 +229,30 @@ public class SecurityConfig {
                 );
 
         return http.build();
+    }
+
+    /**
+     * 인증/인가 실패 응답을 공통 ErrorResponse 형식의 JSON으로 작성한다.
+     *
+     * @param response HTTP 응답
+     * @param status   응답 상태 코드
+     * @param code     에러 코드
+     * @param message  에러 메시지
+     */
+    private void writeErrorResponse(
+            HttpServletResponse response,
+            HttpStatus status,
+            String code,
+            String message
+    ) throws IOException {
+        response.setStatus(status.value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding("UTF-8");
+
+        objectMapper.writeValue(
+                response.getWriter(),
+                new ErrorResponse(code, message)
+        );
     }
 
     /**

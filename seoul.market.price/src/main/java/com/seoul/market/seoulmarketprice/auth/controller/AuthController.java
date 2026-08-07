@@ -167,7 +167,8 @@ public class AuthController {
     /**
      * 현재 기기에서 로그아웃한다.
      */
-    @PostMapping("/logout")
+    @PostMapping("/" +
+            "")
     public ResponseEntity<Void> logout(
             @CookieValue(
                     name = "refreshToken",
