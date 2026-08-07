@@ -242,6 +242,7 @@ public class OAuth2SuccessHandler
                 jwtTokenProvider.createAccessToken(
                         member.getId(),
                         member.getUserId(),
+                        member.getName(),
                         Role.USER
                 );
 
