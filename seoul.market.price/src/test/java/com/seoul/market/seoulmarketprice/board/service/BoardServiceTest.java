@@ -1,5 +1,7 @@
 package com.seoul.market.seoulmarketprice.board.service;
 
+import com.seoul.market.seoulmarketprice.board.dto.condition.BoardSearchCondition;
+import com.seoul.market.seoulmarketprice.board.dto.condition.BoardSearchType;
 import com.seoul.market.seoulmarketprice.board.dto.request.AdminBoardUpdateRequest;
 import com.seoul.market.seoulmarketprice.board.dto.request.BoardCreateRequest;
 import com.seoul.market.seoulmarketprice.board.dto.request.BoardUpdateRequest;
@@ -8,12 +10,16 @@ import com.seoul.market.seoulmarketprice.board.entity.PostType;
 import com.seoul.market.seoulmarketprice.board.exception.BoardAccessDeniedException;
 import com.seoul.market.seoulmarketprice.board.exception.BoardNotFoundException;
 import com.seoul.market.seoulmarketprice.board.repository.BoardRepository;
+import com.seoul.market.seoulmarketprice.board.repository.BoardQueryRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,11 +36,30 @@ class BoardServiceTest {
     @Mock
     private BoardRepository repository;
 
+    @Mock
+    private BoardQueryRepository queryRepository;
+
     private BoardService service;
 
     @BeforeEach
     void setUp() {
-        service = new BoardService(repository);
+        service = new BoardService(repository, queryRepository);
+    }
+
+    /** 검색 타입과 정규화된 검색어를 QueryDSL 저장소에 전달한다. */
+    @Test
+    void getBoardsPassesModelAttributeSearchCondition() {
+        BoardSearchCondition condition = new BoardSearchCondition();
+        condition.setSearchType(BoardSearchType.TITLE_CONTENT);
+        condition.setKeyword(" 시장 ");
+
+        when(queryRepository.findPublicPage(any(BoardSearchCondition.class), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        service.getBoards(condition);
+
+        assertThat(condition.getKeyword()).isEqualTo("시장");
+        verify(queryRepository).findPublicPage(any(BoardSearchCondition.class), any(Pageable.class));
     }
 
     /** 일반 게시글 생성 시 사용자 작성자와 기본 공개 상태가 설정된다. */
@@ -59,7 +84,7 @@ class BoardServiceTest {
     @Test
     void updateBoardRejectsDifferentUser() {
         Board board = Board.createGeneral(7L, "제목", "내용");
-        when(repository.findActiveById(1L)).thenReturn(Optional.of(board));
+        when(queryRepository.findActiveById(1L)).thenReturn(Optional.of(board));
 
         assertThatThrownBy(() -> service.updateBoard(
                 1L,
@@ -72,7 +97,7 @@ class BoardServiceTest {
     @Test
     void deleteBoardSoftDeletesOwnedPost() {
         Board board = Board.createGeneral(7L, "제목", "내용");
-        when(repository.findActiveById(1L)).thenReturn(Optional.of(board));
+        when(queryRepository.findActiveById(1L)).thenReturn(Optional.of(board));
 
         service.deleteBoard(1L, 7L);
 
@@ -83,23 +108,23 @@ class BoardServiceTest {
     @Test
     void getBoardIncrementsViewCountBeforeReading() {
         Board board = Board.createGeneral(7L, "제목", "내용");
-        when(repository.incrementViewCount(1L)).thenReturn(1);
-        when(repository.findPublicById(1L)).thenReturn(Optional.of(board));
+        when(queryRepository.incrementViewCount(1L)).thenReturn(1L);
+        when(queryRepository.findPublicById(1L)).thenReturn(Optional.of(board));
 
         service.getBoard(1L);
 
-        verify(repository).incrementViewCount(1L);
-        verify(repository).findPublicById(1L);
+        verify(queryRepository).incrementViewCount(1L);
+        verify(queryRepository).findPublicById(1L);
     }
 
     /** 공개 상태가 아닌 게시글 상세 조회는 존재하지 않는 것으로 처리한다. */
     @Test
     void getBoardReturnsNotFoundWhenNotPublic() {
-        when(repository.incrementViewCount(1L)).thenReturn(0);
+        when(queryRepository.incrementViewCount(1L)).thenReturn(0L);
 
         assertThatThrownBy(() -> service.getBoard(1L))
                 .isInstanceOf(BoardNotFoundException.class);
-        verify(repository, never()).findPublicById(1L);
+        verify(queryRepository, never()).findPublicById(1L);
     }
 
     /** 변경 항목이 없는 관리자 수정 요청을 거부한다. */

@@ -1,5 +1,6 @@
 package com.seoul.market.seoulmarketprice.board.controller;
 
+import com.seoul.market.seoulmarketprice.board.dto.condition.BoardSearchCondition;
 import com.seoul.market.seoulmarketprice.board.dto.request.BoardCreateRequest;
 import com.seoul.market.seoulmarketprice.board.dto.request.BoardUpdateRequest;
 import com.seoul.market.seoulmarketprice.board.dto.response.BoardDetailResponse;
@@ -8,6 +9,7 @@ import com.seoul.market.seoulmarketprice.board.service.BoardService;
 import com.seoul.market.seoulmarketprice.security.principal.CustomUserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springdoc.core.annotations.ParameterObject;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -15,12 +17,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** 일반 사용자가 게시글을 조회하고 작성·수정·삭제하는 API를 제공한다. */
@@ -37,12 +39,11 @@ public class BoardController {
     @Operation(summary = "게시글 목록 조회")
     @GetMapping
     public ResponseEntity<BoardPageResponse> getBoards(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String keyword
+            @Valid @ParameterObject
+            @ModelAttribute BoardSearchCondition condition
     ) {
         return ResponseEntity.ok(
-                boardService.getBoards(page, size, keyword)
+                boardService.getBoards(condition)
         );
     }
 
