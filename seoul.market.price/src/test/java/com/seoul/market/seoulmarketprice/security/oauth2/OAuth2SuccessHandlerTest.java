@@ -46,6 +46,8 @@ class OAuth2SuccessHandlerTest {
                 1800000L,
                 1209600000L,
                 "refreshToken",
+                "adminAccessToken",
+                "adminRefreshToken",
                 false,
                 "Lax"
         );
@@ -56,7 +58,7 @@ class OAuth2SuccessHandlerTest {
         when(member.getName()).thenReturn("홍길동");
 
         when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
-        when(jwtTokenProvider.createAccessToken(1L, "kakao_123456789", "홍길동", com.seoul.market.seoulmarketprice.auth.entity.Role.USER))
+        when(jwtTokenProvider.createAccessToken(1L, "kakao_123456789", com.seoul.market.seoulmarketprice.auth.entity.Role.USER))
                 .thenReturn("access.token.value");
         when(jwtTokenProvider.createRefreshToken(1L))
                 .thenReturn("refresh.token.value");
@@ -122,6 +124,8 @@ class OAuth2SuccessHandlerTest {
                 1800000L,
                 1209600000L,
                 "refreshToken",
+                "adminAccessToken",
+                "adminRefreshToken",
                 false,
                 "Lax"
         );
@@ -180,6 +184,8 @@ class OAuth2SuccessHandlerTest {
                 1800000L,
                 1209600000L,
                 "refreshToken",
+                "adminAccessToken",
+                "adminRefreshToken",
                 false,
                 "Lax"
         );
@@ -236,6 +242,8 @@ class OAuth2SuccessHandlerTest {
                 1800000L,
                 1209600000L,
                 "refreshToken",
+                "adminAccessToken",
+                "adminRefreshToken",
                 false,
                 "Lax"
         );
