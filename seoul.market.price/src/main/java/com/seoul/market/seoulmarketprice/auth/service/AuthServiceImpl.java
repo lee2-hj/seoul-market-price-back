@@ -126,7 +126,6 @@ public class AuthServiceImpl implements AuthService {
         String accessToken = jwtTokenProvider.createAccessToken(
                 member.getId(),
                 member.getUserId(),
-                member.getName(),
                 Role.USER
         );
 
@@ -236,7 +235,6 @@ public class AuthServiceImpl implements AuthService {
                 jwtTokenProvider.createAccessToken(
                         member.getId(),
                         member.getUserId(),
-                        member.getName(),
                         Role.USER
                 );
 

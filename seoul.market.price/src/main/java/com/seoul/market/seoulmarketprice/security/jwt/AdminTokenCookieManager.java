@@ -38,10 +38,10 @@ public class AdminTokenCookieManager {
      * 관리자 Access Token 쿠키를 생성한다.
      *
      * <p>
-     * 현재 일반 회원 인증 방식과 동일하게,
-     * 관리자 프론트엔드가 Access Token을 읽어서
-     * Authorization 헤더에 넣을 수 있도록
-     * HttpOnly를 적용하지 않는다.
+     * 관리자 Access Token은 응답 본문으로도 함께 전달되므로,
+     * 프론트엔드는 쿠키를 직접 읽지 않고 응답 본문의 값을
+     * Authorization 헤더 구성에 사용한다. 따라서 Refresh Token과
+     * 동일하게 HttpOnly를 적용해 JavaScript로 쿠키를 읽지 못하게 한다.
      * </p>
      *
      * @param accessToken 관리자 Access Token
@@ -55,7 +55,7 @@ public class AdminTokenCookieManager {
                         jwtProperties.adminAccessCookieName(),
                         accessToken
                 )
-                .httpOnly(false)
+                .httpOnly(true)
                 .secure(jwtProperties.cookieSecure())
                 .path("/")
                 .maxAge(
@@ -109,7 +109,7 @@ public class AdminTokenCookieManager {
                         jwtProperties.adminAccessCookieName(),
                         ""
                 )
-                .httpOnly(false)
+                .httpOnly(true)
                 .secure(jwtProperties.cookieSecure())
                 .path("/")
                 .maxAge(0)

@@ -70,20 +70,23 @@ public class JwtTokenProvider {
      * Access Token을 생성한다.
      *
      * <p>
-     * 사용자 또는 관리자 PK, 로그인 아이디, 이름,
+     * 사용자 또는 관리자 PK, 로그인 아이디,
      * 권한과 토큰 종류를 저장한다.
+     * </p>
+     *
+     * <p>
+     * 이름은 로그인 응답 본문으로만 전달하고
+     * Access Token에는 저장하지 않는다.
      * </p>
      *
      * @param principalId 사용자 또는 관리자 PK
      * @param userId      로그인 아이디
-     * @param name        사용자 또는 관리자 이름
      * @param role        USER 또는 ADMIN
      * @return 생성된 Access Token
      */
     public String createAccessToken(
             Long principalId,
             String userId,
-            String name,
             Role role
     ) {
         Instant now = Instant.now();
@@ -107,9 +110,6 @@ public class JwtTokenProvider {
 
                 // 로그인 아이디
                 .claim("userId", userId)
-
-                // 이름
-                .claim("name", name)
 
                 // USER 또는 ADMIN
                 .claim(ROLE_CLAIM, role.name())
@@ -264,18 +264,6 @@ public class JwtTokenProvider {
         return parseToken(token)
                 .getPayload()
                 .get("userId", String.class);
-    }
-
-    /**
-     * JWT에서 이름을 조회한다.
-     *
-     * @param token Access Token
-     * @return 이름
-     */
-    public String getName(String token) {
-        return parseToken(token)
-                .getPayload()
-                .get("name", String.class);
     }
 
     /**

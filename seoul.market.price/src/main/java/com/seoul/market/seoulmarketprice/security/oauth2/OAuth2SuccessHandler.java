@@ -11,11 +11,13 @@ import com.seoul.market.seoulmarketprice.token.service.RefreshTokenService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
@@ -161,6 +163,29 @@ public class OAuth2SuccessHandler
                 (CustomOAuth2User)
                         authentication.getPrincipal();
 
+        /*
+         * OAuth2 인가 코드 교환 과정에만 필요했던 세션을 정리한다.
+         *
+         * SecurityConfig의 sessionCreationPolicy가 IF_REQUIRED이므로,
+         * 정리하지 않으면 Spring Security가 방금 로그인에 성공한
+         * OAuth2AuthenticationToken(principal = CustomOAuth2User)을
+         * HTTP 세션에 저장해버린다. 이후 브라우저가 그 세션 쿠키를
+         * API 요청에 함께 보내면, JwtAuthenticationFilter가 실행되기
+         * 전에 SecurityContext가 이미 채워져 있어 필터가 동작하지
+         * 않고, @AuthenticationPrincipal CustomUserPrincipal이
+         * 타입 불일치로 null이 주입되어 NPE가 발생한다.
+         *
+         * 로그인 이후에는 JWT만으로 인증하므로 세션 기반 인증 정보는
+         * 즉시 제거해도 된다.
+         */
+        SecurityContextHolder.clearContext();
+
+        HttpSession session = request.getSession(false);
+
+        if (session != null) {
+            session.invalidate();
+        }
+
         boolean isSignupFlow = oauthUser.isSignupFlow();
         boolean memberExists = oauthUser.memberExists();
 
@@ -242,7 +267,6 @@ public class OAuth2SuccessHandler
                 jwtTokenProvider.createAccessToken(
                         member.getId(),
                         member.getUserId(),
-                        member.getName(),
                         Role.USER
                 );
 
@@ -275,8 +299,11 @@ public class OAuth2SuccessHandler
         /*
          * Access Token 쿠키를 생성한다.
          *
-         * 현재 일반 로그인 방식과 동일하게
-         * 브라우저에서 접근할 수 있도록 httpOnly(false)를 사용한다.
+         * 이 흐름은 302 리다이렉트로 끝나 응답 본문으로
+         * Access Token을 전달할 수 없다. 따라서 일반/관리자
+         * 로그인과 달리 프론트엔드가 쿠키를 직접 읽어
+         * Authorization 헤더를 구성할 수 있도록
+         * httpOnly(false)를 그대로 유지한다.
          */
         ResponseCookie accessCookie =
                 createAccessTokenCookie(
@@ -350,8 +377,13 @@ public class OAuth2SuccessHandler
     }
 
     /**
-     * 일반 로그인과 동일한 설정으로
+     * OAuth2 로그인 리다이렉트 흐름에서 사용할
      * Access Token 쿠키를 생성한다.
+     *
+     * <p>
+     * 응답 본문을 전달할 수 없는 리다이렉트 흐름이므로
+     * 일반/관리자 로그인과 달리 HttpOnly를 적용하지 않는다.
+     * </p>
      *
      * @param accessToken 쿠키에 저장할 Access Token
      * @return Access Token 쿠키
