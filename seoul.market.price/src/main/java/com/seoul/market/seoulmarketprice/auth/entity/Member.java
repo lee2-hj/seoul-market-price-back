@@ -249,4 +249,19 @@ public class Member {
     public boolean hasPassword() {
         return password != null && !password.isBlank();
     }
+
+    /** 일반 로그인 회원의 비밀번호를 새 BCrypt 값으로 교체한다. */
+    public void changePassword(String encodedPassword) {
+        if (!isLocalUser()) {
+            throw new IllegalStateException(
+                    "일반 로그인 회원만 비밀번호를 변경할 수 있습니다."
+            );
+        }
+        if (encodedPassword == null || encodedPassword.isBlank()) {
+            throw new IllegalArgumentException(
+                    "암호화된 비밀번호는 비어 있을 수 없습니다."
+            );
+        }
+        this.password = encodedPassword;
+    }
 }

@@ -2,6 +2,14 @@ package com.seoul.market.seoulmarketprice.member.repository;
 
 import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.Lock;
+
+import jakarta.persistence.LockModeType;
+
+import java.util.List;
+import java.util.Optional;
 
 /**
  * 회원가입과 회원 관리에서 사용하는 JPA Repository.
@@ -38,4 +46,49 @@ public interface MemberManagementRepository extends JpaRepository<Member, Long> 
     boolean existsByPhone(String phoneNumber);
 
     boolean existsByNameAndPhone(String name, String phone);
+
+    /**
+     * PASS에서 확인한 이름과 전화번호로 탈퇴하지 않은 일반 회원을 조회한다.
+     * 기존 전화번호 데이터에 포함된 하이픈과 공백은 조회 시 제거한다.
+     */
+    @Query(value = """
+            SELECT *
+            FROM tb_user
+            WHERE TRIM(name) = :name
+              AND REPLACE(REPLACE(phone, '-', ''), ' ', '') = :phone
+              AND user_type = 0
+              AND deleted_at IS NULL
+            """, nativeQuery = true)
+    List<Member> findActiveLocalMembersByVerifiedIdentity(
+            @Param("name") String name,
+            @Param("phone") String phone
+    );
+
+    /** 입력 아이디와 PASS 인증자 정보가 일치하는 활성 일반 회원을 조회한다. */
+    @Query(value = """
+            SELECT *
+            FROM tb_user
+            WHERE user_id = :userId
+              AND TRIM(name) = :name
+              AND REPLACE(REPLACE(phone, '-', ''), ' ', '') = :phone
+              AND user_type = 0
+              AND deleted_at IS NULL
+            """, nativeQuery = true)
+    Optional<Member> findActiveLocalMemberForPasswordReset(
+            @Param("userId") String userId,
+            @Param("name") String name,
+            @Param("phone") String phone
+    );
+
+    /** 재설정 완료 시 동시 요청을 직렬화하기 위해 회원 행을 잠가 조회한다. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT m
+            FROM Member m
+            WHERE m.id = :memberId
+              AND m.deleted_at IS NULL
+            """)
+    Optional<Member> findActiveByIdForPasswordReset(
+            @Param("memberId") Long memberId
+    );
 }

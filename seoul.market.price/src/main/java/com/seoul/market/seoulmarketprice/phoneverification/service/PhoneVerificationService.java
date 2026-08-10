@@ -99,7 +99,8 @@ public class PhoneVerificationService {
                 verifiedCustomer.name(),
                 verifiedCustomer.phoneNumber(),
                 verifiedCustomer.birthDate(),
-                verifiedCustomer.gender()
+                verifiedCustomer.gender(),
+                response.verifiedAt()
         );
     }
 }
