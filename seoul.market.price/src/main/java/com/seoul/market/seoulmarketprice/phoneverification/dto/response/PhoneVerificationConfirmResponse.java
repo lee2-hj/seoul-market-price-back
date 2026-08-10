@@ -1,5 +1,7 @@
 package com.seoul.market.seoulmarketprice.phoneverification.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 /**
  * 휴대폰 PASS 본인인증 결과 확인 응답 DTO.
  *
@@ -20,6 +22,16 @@ public record PhoneVerificationConfirmResponse(
         String name,
         String phoneNumber,
         String birthDate,
-        String gender
+        String gender,
+        @JsonIgnore String verifiedAt
 ) {
+    public PhoneVerificationConfirmResponse(
+            boolean verified,
+            String name,
+            String phoneNumber,
+            String birthDate,
+            String gender
+    ) {
+        this(verified, name, phoneNumber, birthDate, gender, null);
+    }
 }

@@ -3,11 +3,19 @@ package com.seoul.market.seoulmarketprice.member.controller;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCheckRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCreateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberIdCheckRequest;
+import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberIdFindRequest;
+import com.seoul.market.seoulmarketprice.member.dto.request.member.PasswordResetCompleteRequest;
+import com.seoul.market.seoulmarketprice.member.dto.request.member.PasswordResetVerifyRequest;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberCheckResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberCreateResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberIdCheckResponse;
+import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberIdFindResponse;
+import com.seoul.market.seoulmarketprice.member.dto.response.member.PasswordResetCompleteResponse;
+import com.seoul.market.seoulmarketprice.member.dto.response.member.PasswordResetVerifyResponse;
 import com.seoul.market.seoulmarketprice.member.service.MemberService;
+import com.seoul.market.seoulmarketprice.member.service.MemberIdFindService;
+import com.seoul.market.seoulmarketprice.member.service.PasswordResetService;
 import com.seoul.market.seoulmarketprice.security.principal.CustomUserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -36,6 +44,10 @@ public class MemberController {
      * 회원 관련 비즈니스 로직을 처리하는 서비스.
      */
     private final MemberService memberService;
+
+    private final MemberIdFindService memberIdFindService;
+
+    private final PasswordResetService passwordResetService;
 
     /**
      * 아이디와 비밀번호를 사용하는 일반 회원을 생성한다.
@@ -80,6 +92,37 @@ public class MemberController {
         MemberIdCheckResponse result = memberService.checkMemberId(request);
         return ResponseEntity
                 .status(HttpStatus.OK).body(result);
+    }
+
+    /** PASS 본인인증 결과를 서버에서 확인하고 일치하는 아이디를 마스킹해 반환한다. */
+    @Operation(
+            summary = "아이디 찾기",
+            description = "PASS 본인인증 식별자로 인증 결과를 확인한 뒤 "
+                    + "일치하는 일반 회원 아이디를 마스킹하여 반환한다."
+    )
+    @PostMapping("/find-id")
+    public ResponseEntity<MemberIdFindResponse> findMemberId(
+            @Valid @RequestBody MemberIdFindRequest request
+    ) {
+        return ResponseEntity.ok(memberIdFindService.find(request));
+    }
+
+    /** PASS 인증자와 아이디의 회원 정보가 일치하면 단기 재설정 토큰을 발급한다. */
+    @Operation(summary = "비밀번호 재설정 본인 확인")
+    @PostMapping("/password-reset/verify")
+    public ResponseEntity<PasswordResetVerifyResponse> verifyPasswordReset(
+            @Valid @RequestBody PasswordResetVerifyRequest request
+    ) {
+        return ResponseEntity.ok(passwordResetService.verify(request));
+    }
+
+    /** 단기 재설정 토큰을 검증한 뒤 새 비밀번호를 적용한다. */
+    @Operation(summary = "비밀번호 재설정 완료")
+    @PostMapping("/password-reset/complete")
+    public ResponseEntity<PasswordResetCompleteResponse> completePasswordReset(
+            @Valid @RequestBody PasswordResetCompleteRequest request
+    ) {
+        return ResponseEntity.ok(passwordResetService.complete(request));
     }
     /**
      * Access Token으로 인증된 현재 회원의 기본 정보를 조회한다.
