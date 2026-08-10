@@ -67,8 +67,9 @@ public class QnaBoard {
     private AnswerStatus answerStatus;
 
     /** 첨부파일의 원본 파일명이다. */
-    @Column(name = "attach_name", length = 255)
-    private String attachName;
+//    경로에서 파일명만 가져오면 되므로 삭제(260807)
+//    @Column(name = "attach_name", length = 255)
+//    private String attachName;
 
     /** 서버 또는 외부 스토리지에 저장된 첨부파일 경로이다. */
     @Column(name = "attach_path", length = 500)
@@ -106,7 +107,6 @@ public class QnaBoard {
         qna.title = title;
         qna.questionContent = questionContent;
         qna.publicQuestion = publicQuestion;
-        qna.attachName = attachName;
         qna.attachPath = attachPath;
         qna.answerStatus = AnswerStatus.WAITING;
         qna.viewCount = 0;
@@ -120,7 +120,6 @@ public class QnaBoard {
         if (questionContent != null) this.questionContent = questionContent;
         if (publicQuestion != null) this.publicQuestion = publicQuestion;
         if (attachmentChanged) {
-            this.attachName = attachName;
             this.attachPath = attachPath;
         }
         this.updatedAt = now();
