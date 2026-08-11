@@ -257,7 +257,7 @@ public class OAuth2SuccessHandler
          * 채워 넣었으므로, 이를 이용해 서비스 회원 정보를 조회한다.
          */
         Member member = memberRepository
-                .findById(oauthUser.getMemberId())
+                .findActiveById(oauthUser.getMemberId())
                 .orElseThrow();
 
         /*

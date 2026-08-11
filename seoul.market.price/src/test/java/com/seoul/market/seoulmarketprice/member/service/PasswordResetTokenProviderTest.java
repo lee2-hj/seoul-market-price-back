@@ -24,7 +24,7 @@ class PasswordResetTokenProviderTest {
         member = Member.createLocalMember(
                 "seouluser01", "encoded-old-password", "홍길동",
                 null, null, null, "010-1234-5678", null,
-                (byte) 1, (byte) 1, (byte) 1, null
+                (byte) 1, (byte) 1, (byte) 1, null, null, null, null
         );
         ReflectionTestUtils.setField(member, "id", 1L);
     }

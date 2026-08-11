@@ -4,27 +4,34 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+/** 일반 회원이 선택적으로 변경할 수 있는 계정·연락처·주소 정보 요청이다. */
 public record MemberUpdateRequest(
+        /** 변경할 새 비밀번호. 전달하지 않으면 기존 값을 유지한다. */
         @Size(min = 8, max = 64, message = "비밀번호는 8자 이상 64자 이하여야 합니다.")
-        String password, //비밀번호
+        String password,
 
+        /** 변경할 휴대전화 번호이며 010-1234-5678 형식만 허용한다. */
         @Pattern(
-                regexp = "^01[016789]-?\\d{3,4}-?\\d{4}$",
-                message = "휴대전화 번호 형식이 올바르지 않습니다."
+                regexp = "^010-\\d{4}-\\d{4}$",
+                message = "휴대전화 번호는 010-1234-5678 형식이어야 합니다."
         )
-        String phone, //휴대폰번호
+        String phone,
 
+        /** 변경할 이메일 주소. */
         @Email(message = "이메일 형식이 올바르지 않습니다.")
         @Size(max = 255, message = "이메일은 255자 이하여야 합니다.")
-        String email, //이메일
+        String email,
 
+        /** 변경할 숫자 5자리 우편번호. */
         @Pattern(regexp = "^(\\d{5})?$", message = "우편번호는 숫자 5자리여야 합니다.")
-        String zipcode, //우편번호
+        String zipcode,
 
+        /** 변경할 기본 주소. */
         @Size(max = 255, message = "주소는 255자 이하여야 합니다.")
-        String address, //주소
+        String address,
 
+        /** 변경할 동·호수 등의 상세 주소. */
         @Size(max = 255, message = "상세 주소는 255자 이하여야 합니다.")
-        String addressDetail //상세주소
+        String addressDetail
 ) {
 }

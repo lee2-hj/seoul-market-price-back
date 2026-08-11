@@ -2,6 +2,7 @@ package com.seoul.market.seoulmarketprice.security.jwt;
 
 import com.seoul.market.seoulmarketprice.auth.entity.Role;
 import com.seoul.market.seoulmarketprice.auth.repository.AdminRepository;
+import com.seoul.market.seoulmarketprice.auth.repository.MemberRepository;
 import com.seoul.market.seoulmarketprice.security.principal.CustomUserPrincipal;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -45,6 +46,9 @@ public class JwtAuthenticationFilter
      */
     private final AdminRepository adminRepository;
 
+    /** 삭제된 일반 회원의 기존 Access Token을 즉시 차단하는 활성 상태 조회 저장소. */
+    private final MemberRepository memberRepository;
+
     /**
      * 생성자 주입을 사용한다.
      *
@@ -53,10 +57,12 @@ public class JwtAuthenticationFilter
      */
     public JwtAuthenticationFilter(
             JwtTokenProvider jwtTokenProvider,
-            AdminRepository adminRepository
+            AdminRepository adminRepository,
+            MemberRepository memberRepository
     ) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.adminRepository = adminRepository;
+        this.memberRepository = memberRepository;
     }
 
     /**
@@ -118,6 +124,13 @@ public class JwtAuthenticationFilter
                     role == Role.ADMIN
                             && !adminRepository.existsActiveById(principalId)
             ) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            // 서명과 만료가 유효해도 탈퇴한 일반 회원의 Access Token은 인증하지 않는다.
+            if (role == Role.USER
+                    && !memberRepository.existsActiveById(principalId)) {
                 filterChain.doFilter(request, response);
                 return;
             }

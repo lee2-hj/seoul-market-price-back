@@ -162,6 +162,22 @@ public class BoardService {
         }
     }
 
+    /** 첨부파일 변경 전에 활성 게시글의 작성자 본인인지 확인한다. */
+    public void requireOwner(Long id, Long userId) {
+        requireOwner(findActive(id), userId);
+    }
+
+    /** 첨부파일 공개 조회 전에 게시글이 공개 상태인지 확인한다. */
+    public void requirePublicAccess(Long id) {
+        boardQueryRepository.findPublicById(id)
+                .orElseThrow(BoardNotFoundException::new);
+    }
+
+    /** 관리자 첨부파일 작업 전에 삭제되지 않은 게시글인지 확인한다. */
+    public void requireActive(Long id) {
+        findActive(id);
+    }
+
     /** 페이지 번호와 크기의 허용 범위를 검증한다. */
     private void validatePage(int page, int size) {
         if (page < 0) {

@@ -4,15 +4,19 @@ import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCheckRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCreateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberIdCheckRequest;
+import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberWithdrawalRequest;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberCheckResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberCreateResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberIdCheckResponse;
+import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberWithdrawalResponse;
 import com.seoul.market.seoulmarketprice.member.exception.DuplicateMemberException;
+import com.seoul.market.seoulmarketprice.member.exception.MemberNotFoundException;
 import com.seoul.market.seoulmarketprice.member.repository.MemberManagementRepository;
 import com.seoul.market.seoulmarketprice.phoneverification.dto.request.PhoneVerificationConfirmRequest;
 import com.seoul.market.seoulmarketprice.phoneverification.dto.response.PhoneVerificationConfirmResponse;
 import com.seoul.market.seoulmarketprice.phoneverification.service.PhoneVerificationService;
+import com.seoul.market.seoulmarketprice.token.service.RefreshTokenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -56,9 +60,13 @@ public class MemberService {
 
     private final PhoneVerificationService phoneVerificationService;
 
+    /** 회원 탈퇴 시 모든 로그인 기기의 Refresh Token을 폐기한다. */
+    private final RefreshTokenService refreshTokenService;
+
+    /** 탈퇴하지 않은 현재 회원의 화면 표시 정보를 조회한다. */
     public MemberResponse getMember(Long memberId) {
-        Member member = memberManagementRepository.findById(memberId)
-                .orElseThrow(() -> new IllegalArgumentException("회원을 찾을 수 없습니다."));
+        Member member = memberManagementRepository.findActiveById(memberId)
+                .orElseThrow(MemberNotFoundException::new);
 
         return MemberResponse.from(member);
     }
@@ -114,6 +122,29 @@ public class MemberService {
 
         String msg = "회원가입이 완료되었습니다.";
         return new MemberCreateResponse(msg);
+    }
+
+    /** 비밀번호를 재확인하고 현재 회원을 소프트 삭제한다. */
+    @Transactional
+    public MemberWithdrawalResponse withdraw(
+            Long memberId,
+            MemberWithdrawalRequest request
+    ) {
+        Member member = memberManagementRepository
+                .findActiveByIdForWithdrawal(memberId)
+                .orElseThrow(MemberNotFoundException::new);
+
+        if (!member.isLocalUser()) {
+            throw new IllegalArgumentException("일반 로그인 회원만 비밀번호로 탈퇴할 수 있습니다.");
+        }
+        if (!member.hasPassword()
+                || !passwordEncoder.matches(request.password(), member.getPassword())) {
+            throw new IllegalArgumentException("현재 비밀번호가 올바르지 않습니다.");
+        }
+
+        member.withdraw();
+        refreshTokenService.deleteAllByMemberId(memberId);
+        return new MemberWithdrawalResponse("회원 탈퇴가 완료되었습니다.");
     }
 
     private void validateRecentVerification(String verifiedAtValue) {

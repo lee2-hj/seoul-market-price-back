@@ -90,4 +90,13 @@ public interface MemberManagementRepository extends JpaRepository<Member, Long> 
     Optional<Member> findActiveByIdForPasswordReset(
             @Param("memberId") Long memberId
     );
+
+    /** 현재 회원 정보 조회에 사용할 활성 회원을 PK로 조회한다. */
+    @Query("SELECT m FROM Member m WHERE m.id = :memberId AND m.deleted_at IS NULL")
+    Optional<Member> findActiveById(@Param("memberId") Long memberId);
+
+    /** 중복 탈퇴 요청을 직렬화하도록 회원 행을 쓰기 잠금으로 조회한다. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT m FROM Member m WHERE m.id = :memberId AND m.deleted_at IS NULL")
+    Optional<Member> findActiveByIdForWithdrawal(@Param("memberId") Long memberId);
 }

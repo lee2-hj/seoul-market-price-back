@@ -84,7 +84,8 @@ public class QnaService {
         QnaBoard saved = qnaRepository.save(QnaBoard.create(
                 userId, required(request.title(), "제목"), required(request.questionContent(), "질문 내용"),
                 request.publicQuestion() == null || request.publicQuestion(),
-                normalize(request.attachName()), normalize(request.attachPath())));
+                // 첨부파일은 별도 tb_attachment와 MinIO 업로드 API에서 관리한다.
+                null, null));
         return toDetailResponse(saved);
     }
 
@@ -98,8 +99,8 @@ public class QnaService {
         }
         qna.updateQuestion(optionalRequired(request.title(), "제목"),
                 optionalRequired(request.questionContent(), "질문 내용"), request.publicQuestion(),
-                normalize(request.attachName()), normalize(request.attachPath()),
-                Boolean.TRUE.equals(request.attachmentChanged()));
+                // 기존 단일 attach_path 컬럼은 더 이상 수정 요청으로 변경하지 않는다.
+                null, null, false);
         return toDetailResponse(qna);
     }
 
@@ -146,6 +147,25 @@ public class QnaService {
         return qnaQueryRepository.findActiveById(id).orElseThrow(QnaNotFoundException::new);
     }
 
+    /** 첨부파일 변경 전에 활성 질문의 작성자 본인인지 확인한다. */
+    public void requireOwner(Long id, Long userId) {
+        QnaBoard qna = findActive(id);
+        if (!qna.isOwnedBy(userId)) {
+            throw new QnaAccessDeniedException();
+        }
+    }
+
+    /** 첨부파일 조회 전에 공개 질문이거나 요청자 본인의 질문인지 확인한다. */
+    public void requireAccessible(Long id, Long userId) {
+        qnaQueryRepository.findAccessibleById(id, userId)
+                .orElseThrow(QnaNotFoundException::new);
+    }
+
+    /** 관리자 첨부파일 작업 전에 삭제되지 않은 질문인지 확인한다. */
+    public void requireActive(Long id) {
+        findActive(id);
+    }
+
     /** 최신 등록순 정렬을 적용한 페이지 요청 객체를 생성한다. */
     private PageRequest pageable(int page, int size) {
         return PageRequest.of(page, size, Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
@@ -181,8 +201,7 @@ public class QnaService {
 
     /** 부분 수정 요청에 실제 변경 항목이 하나 이상 있는지 검증한다. */
     private void validateUpdate(QnaUpdateRequest request) {
-        if (request.title() == null && request.questionContent() == null && request.publicQuestion() == null
-                && !Boolean.TRUE.equals(request.attachmentChanged())) {
+        if (request.title() == null && request.questionContent() == null && request.publicQuestion() == null) {
             throw new IllegalArgumentException("수정할 항목이 없습니다.");
         }
     }
