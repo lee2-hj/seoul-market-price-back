@@ -66,11 +66,12 @@ class PasswordResetServiceTest {
                 new PhoneVerificationConfirmRequest("verification-id")
         )).thenReturn(new PhoneVerificationConfirmResponse(
                 true, "홍길동", "+82 10-1234-5678", null, null,
-                Instant.now().toString()
+                Instant.now().toString(), "ci-value"
         ));
-        when(memberManagementRepository.findActiveLocalMemberForPasswordReset(
-                "seouluser01", "홍길동", "01012345678"
+        when(memberManagementRepository.findActiveLocalByUserIdForCiRegistration(
+                "seouluser01"
         )).thenReturn(Optional.of(member));
+        when(memberManagementRepository.existsByCi("ci-value")).thenReturn(false);
 
         PasswordResetVerifyResponse verified = service.verify(
                 new PasswordResetVerifyRequest(
@@ -93,6 +94,7 @@ class PasswordResetServiceTest {
         ));
 
         assertThat(member.getPassword()).isEqualTo("encoded-new-password");
+        assertThat(member.getCi()).isEqualTo("ci-value");
         verify(refreshTokenService).deleteAllByMemberId(1L);
     }
 }

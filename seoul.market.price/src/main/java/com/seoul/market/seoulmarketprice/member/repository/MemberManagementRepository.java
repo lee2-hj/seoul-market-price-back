@@ -45,6 +45,8 @@ public interface MemberManagementRepository extends JpaRepository<Member, Long> 
 
     boolean existsByPhone(String phoneNumber);
 
+    boolean existsByCi(String ci);
+
     boolean existsByNameAndPhone(String name, String phone);
 
     /**
@@ -64,20 +66,17 @@ public interface MemberManagementRepository extends JpaRepository<Member, Long> 
             @Param("phone") String phone
     );
 
-    /** 입력 아이디와 PASS 인증자 정보가 일치하는 활성 일반 회원을 조회한다. */
-    @Query(value = """
-            SELECT *
-            FROM tb_user
-            WHERE user_id = :userId
-              AND TRIM(name) = :name
-              AND REPLACE(REPLACE(phone, '-', ''), ' ', '') = :phone
-              AND user_type = 0
-              AND deleted_at IS NULL
-            """, nativeQuery = true)
-    Optional<Member> findActiveLocalMemberForPasswordReset(
-            @Param("userId") String userId,
-            @Param("name") String name,
-            @Param("phone") String phone
+    /** CI 확인 및 최초 연결을 원자적으로 처리하기 위해 회원 행을 잠가 조회한다. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT m
+            FROM Member m
+            WHERE m.userId = :userId
+              AND m.userType = com.seoul.market.seoulmarketprice.auth.entity.UserType.LOCAL
+              AND m.deleted_at IS NULL
+            """)
+    Optional<Member> findActiveLocalByUserIdForCiRegistration(
+            @Param("userId") String userId
     );
 
     /** 재설정 완료 시 동시 요청을 직렬화하기 위해 회원 행을 잠가 조회한다. */

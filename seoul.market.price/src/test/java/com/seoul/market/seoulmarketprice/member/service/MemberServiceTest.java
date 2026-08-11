@@ -7,6 +7,9 @@ import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberCreate
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberIdCheckResponse;
 import com.seoul.market.seoulmarketprice.member.exception.DuplicateMemberException;
 import com.seoul.market.seoulmarketprice.member.repository.MemberManagementRepository;
+import com.seoul.market.seoulmarketprice.phoneverification.dto.request.PhoneVerificationConfirmRequest;
+import com.seoul.market.seoulmarketprice.phoneverification.dto.response.PhoneVerificationConfirmResponse;
+import com.seoul.market.seoulmarketprice.phoneverification.service.PhoneVerificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,6 +17,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -31,19 +36,26 @@ class MemberServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private PhoneVerificationService phoneVerificationService;
+
     private MemberService memberService;
 
     @BeforeEach
     void setUp() {
         memberService = new MemberService(
                 memberManagementRepository,
-                passwordEncoder
+                passwordEncoder,
+                phoneVerificationService
         );
     }
 
     @Test
     void createMemberCreatesLocalMemberWithEncodedPassword() {
         MemberCreateRequest request = validRequest();
+        when(phoneVerificationService.confirm(
+                new PhoneVerificationConfirmRequest("verification-id")
+        )).thenReturn(verifiedIdentity());
         when(memberManagementRepository.existsByUserId("market_user"))
                 .thenReturn(false);
         when(passwordEncoder.encode("password123!"))
@@ -60,11 +72,15 @@ class MemberServiceTest {
         assertThat(savedMember.getUserId()).isEqualTo("market_user");
         assertThat(savedMember.getPassword()).isEqualTo("encoded-password");
         assertThat(savedMember.isLocalUser()).isTrue();
+        assertThat(savedMember.getCi()).isEqualTo("ci-value");
         assertThat(response.msg()).isNotBlank();
     }
 
     @Test
     void createMemberRejectsDuplicateUserId() {
+        when(phoneVerificationService.confirm(
+                new PhoneVerificationConfirmRequest("verification-id")
+        )).thenReturn(verifiedIdentity());
         when(memberManagementRepository.existsByUserId("market_user"))
                 .thenReturn(true);
 
@@ -101,11 +117,24 @@ class MemberServiceTest {
                 "서울특별시 중구 세종대로 110",
                 "1층",
                 "010-1234-5678",
+                "verification-id",
                 "market@example.com",
                 (byte) 1,
                 (byte) 1,
                 (byte) 1,
                 "서울"
+        );
+    }
+
+    private PhoneVerificationConfirmResponse verifiedIdentity() {
+        return new PhoneVerificationConfirmResponse(
+                true,
+                "서울장터",
+                "01012345678",
+                null,
+                null,
+                Instant.now().toString(),
+                "ci-value"
         );
     }
 }

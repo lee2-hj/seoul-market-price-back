@@ -10,10 +10,17 @@ import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberRespon
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberIdCheckResponse;
 import com.seoul.market.seoulmarketprice.member.exception.DuplicateMemberException;
 import com.seoul.market.seoulmarketprice.member.repository.MemberManagementRepository;
+import com.seoul.market.seoulmarketprice.phoneverification.dto.request.PhoneVerificationConfirmRequest;
+import com.seoul.market.seoulmarketprice.phoneverification.dto.response.PhoneVerificationConfirmResponse;
+import com.seoul.market.seoulmarketprice.phoneverification.service.PhoneVerificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.DateTimeException;
+import java.time.Duration;
+import java.time.Instant;
 
 /**
  * 회원 관리 비즈니스 로직을 실제로 구현하는 서비스.
@@ -29,6 +36,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class MemberService {
 
+    private static final Duration MAX_VERIFICATION_AGE = Duration.ofMinutes(5);
+    private static final Duration FUTURE_CLOCK_TOLERANCE = Duration.ofMinutes(1);
+
     /**
      * 회원 중복 확인과 저장을 담당하는 Repository.
      *
@@ -43,6 +53,8 @@ public class MemberService {
      * 회원 비밀번호를 BCrypt 해시로 변환한다.
      */
     private final PasswordEncoder passwordEncoder;
+
+    private final PhoneVerificationService phoneVerificationService;
 
     public MemberResponse getMember(Long memberId) {
         Member member = memberManagementRepository.findById(memberId)
@@ -68,6 +80,18 @@ public class MemberService {
     @Transactional
     public MemberCreateResponse createMember(MemberCreateRequest request) {
 
+        PhoneVerificationConfirmResponse verification = phoneVerificationService.confirm(
+                new PhoneVerificationConfirmRequest(request.identityVerificationId())
+        );
+        validateRecentVerification(verification.verifiedAt());
+
+        if (!request.name().trim().equals(verification.name().trim())
+                || !MemberIdFindService.normalizePhone(request.phone()).equals(
+                        MemberIdFindService.normalizePhone(verification.phoneNumber())
+                )) {
+            throw new IllegalArgumentException("회원가입 정보와 본인인증 정보가 일치하지 않습니다.");
+        }
+
         // 유저 아이디 중복 체크
         if (memberManagementRepository.existsByUserId(request.userId())) {
             throw new DuplicateMemberException();
@@ -78,11 +102,31 @@ public class MemberService {
             throw new DuplicateMemberException("이미 사용 중인 전화번호입니다.");
         }
 
-        Member member = request.toEntity(passwordEncoder.encode(request.password()));
+        if (memberManagementRepository.existsByCi(verification.ci())) {
+            throw new DuplicateMemberException("이미 가입된 본인인증 정보입니다.");
+        }
+
+        Member member = request.toEntity(
+                passwordEncoder.encode(request.password()),
+                verification.ci()
+        );
         memberManagementRepository.save(member);
 
         String msg = "회원가입이 완료되었습니다.";
         return new MemberCreateResponse(msg);
+    }
+
+    private void validateRecentVerification(String verifiedAtValue) {
+        try {
+            Instant verifiedAt = Instant.parse(verifiedAtValue);
+            Instant now = Instant.now();
+            if (verifiedAt.isBefore(now.minus(MAX_VERIFICATION_AGE))
+                    || verifiedAt.isAfter(now.plus(FUTURE_CLOCK_TOLERANCE))) {
+                throw new IllegalArgumentException("본인인증 유효시간이 만료되었습니다. 다시 인증해 주세요.");
+            }
+        } catch (NullPointerException | DateTimeException exception) {
+            throw new IllegalArgumentException("본인인증 완료 시각을 확인할 수 없습니다. 다시 인증해 주세요.");
+        }
     }
 
     //회원 아이디 중복 체크(회원가입 시 아이디 중복 체크 용도)
