@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.math.BigDecimal;
 
 /**
  * 회원 엔티티.
@@ -39,7 +40,10 @@ public class Member {
             Byte isTermsAgreed,
             Byte is_location_agreed,
             Byte is_privacy_agreed,
-            String myLocation
+            String myGu,
+            String myDong,
+            BigDecimal latitude,
+            BigDecimal longitude
     ) {
         Member member = new Member();
 
@@ -56,7 +60,10 @@ public class Member {
         member.isTermsAgreed = isTermsAgreed;
         member.isLocationAgreed = is_location_agreed;
         member.isPrivacyAgreed = is_privacy_agreed;
-        member.myLocation = myLocation;
+        member.myGu = myGu;
+        member.myDong = myDong;
+        member.latitude = latitude;
+        member.longitude = longitude;
 
         return member;
     }
@@ -204,8 +211,21 @@ public class Member {
     @Column(name = "is_privacy_agreed", nullable = true, columnDefinition = "TINYINT(1)", comment = "개인정보 수집 및 이용동의 0: 미동의, 1: 동의")
     private Byte isPrivacyAgreed;
 
-    @Column(name ="my_location", nullable = true, comment = "유저 선호 지역")
-    private String myLocation;
+    /** 사용자가 가격 정보를 우선 확인하려는 서울시 자치구. */
+    @Column(name = "my_gu", length = 50, comment = "유저 선호 자치구")
+    private String myGu;
+
+    /** 사용자가 선택한 자치구 안의 선호 행정동. */
+    @Column(name = "my_dong", length = 50, comment = "유저 선호 행정동")
+    private String myDong;
+
+    /** 사용자 선호 위치의 위도이며 소수점 이하 7자리까지 저장한다. */
+    @Column(name = "latitude", precision = 10, scale = 7, comment = "유저 선호 위치 위도")
+    private BigDecimal latitude;
+
+    /** 사용자 선호 위치의 경도이며 소수점 이하 7자리까지 저장한다. */
+    @Column(name = "longitude", precision = 10, scale = 7, comment = "유저 선호 위치 경도")
+    private BigDecimal longitude;
 
     @Column(updatable = false)
     private LocalDateTime created_at;
@@ -256,6 +276,18 @@ public class Member {
 
     public boolean hasCi() {
         return ci != null && !ci.isBlank();
+    }
+
+    /** 회원이 소프트 삭제된 상태인지 확인한다. */
+    public boolean isDeleted() {
+        return deleted_at != null;
+    }
+
+    /** 회원을 소프트 삭제 상태로 전환한다. */
+    public void withdraw() {
+        LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+        this.deleted_at = now;
+        this.updated_at = now;
     }
 
     /** 최초 확인된 CI만 등록하며, 이미 등록된 CI는 다른 값으로 변경할 수 없다. */

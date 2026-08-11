@@ -44,7 +44,7 @@ class QnaServiceTest {
         when(repository.save(any(QnaBoard.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         var response = service.createQna(7L,
-                new QnaCreateRequest(" 질문 ", " 내용 ", null, null, null));
+                new QnaCreateRequest(" 질문 ", " 내용 ", null));
 
         assertThat(response.title()).isEqualTo("질문");
         assertThat(response.questionContent()).isEqualTo("내용");
@@ -67,7 +67,7 @@ class QnaServiceTest {
         when(queryRepository.findActiveById(1L)).thenReturn(Optional.of(qna));
 
         assertThatThrownBy(() -> service.updateQna(1L, 4L,
-                new QnaUpdateRequest("변경", null, null, null, null, false)))
+                new QnaUpdateRequest("변경", null, null)))
                 .isInstanceOf(QnaAccessDeniedException.class);
     }
 

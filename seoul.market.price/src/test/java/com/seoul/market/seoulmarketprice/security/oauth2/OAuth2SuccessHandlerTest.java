@@ -57,7 +57,7 @@ class OAuth2SuccessHandlerTest {
         when(member.getUserId()).thenReturn("kakao_123456789");
         when(member.getName()).thenReturn("홍길동");
 
-        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveById(1L)).thenReturn(Optional.of(member));
         when(jwtTokenProvider.createAccessToken(1L, "kakao_123456789", com.seoul.market.seoulmarketprice.auth.entity.Role.USER))
                 .thenReturn("access.token.value");
         when(jwtTokenProvider.createRefreshToken(1L))

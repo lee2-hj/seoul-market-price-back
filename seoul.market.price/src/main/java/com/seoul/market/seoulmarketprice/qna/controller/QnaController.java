@@ -1,5 +1,9 @@
 package com.seoul.market.seoulmarketprice.qna.controller;
 
+import com.seoul.market.seoulmarketprice.attachment.dto.AttachmentDownloadResponse;
+import com.seoul.market.seoulmarketprice.attachment.dto.AttachmentResponse;
+import com.seoul.market.seoulmarketprice.attachment.entity.AttachmentTargetType;
+import com.seoul.market.seoulmarketprice.attachment.service.AttachmentService;
 import com.seoul.market.seoulmarketprice.qna.dto.condition.QnaSearchCondition;
 import com.seoul.market.seoulmarketprice.qna.dto.request.QnaCreateRequest;
 import com.seoul.market.seoulmarketprice.qna.dto.request.QnaUpdateRequest;
@@ -16,6 +20,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 /** 프론트 화면에서 사용하는 공개 조회와 사용자 질문 관리 API를 제공한다. */
 @Tag(name = "Q&A", description = "사용자 Q&A 게시판 API")
@@ -25,6 +32,8 @@ import org.springframework.web.bind.annotation.*;
 public class QnaController {
     /** Q&A 조회와 변경 업무를 처리하는 서비스이다. */
     private final QnaService qnaService;
+    /** 공개 또는 작성자 전용 Q&A 첨부파일 업무를 처리한다. */
+    private final AttachmentService attachmentService;
 
     /** 공개 질문을 키워드, 답변 상태와 페이지 조건으로 조회한다. */
     @Operation(summary = "공개 Q&A 목록 조회")
@@ -78,6 +87,54 @@ public class QnaController {
     public ResponseEntity<Void> deleteQna(@PathVariable Long id,
             @AuthenticationPrincipal CustomUserPrincipal principal) {
         qnaService.deleteQna(id, principal.memberId());
+        return ResponseEntity.noContent().build();
+    }
+
+    /** 질문 작성자가 자신의 활성 Q&A에 파일을 첨부한다. */
+    @PostMapping(path = "/{id}/attachments", consumes = "multipart/form-data")
+    public ResponseEntity<List<AttachmentResponse>> uploadAttachments(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserPrincipal principal,
+            @RequestPart("files") List<MultipartFile> files
+    ) {
+        qnaService.requireOwner(id, principal.memberId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                attachmentService.upload(AttachmentTargetType.QNA_BOARD, id, files)
+        );
+    }
+
+    /** 공개 질문 또는 작성자 본인의 비공개 질문 첨부파일 목록을 조회한다. */
+    @GetMapping("/{id}/attachments")
+    public ResponseEntity<List<AttachmentResponse>> getAttachments(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserPrincipal principal
+    ) {
+        Long userId = principal == null ? null : principal.memberId();
+        qnaService.requireAccessible(id, userId);
+        return ResponseEntity.ok(attachmentService.list(AttachmentTargetType.QNA_BOARD, id));
+    }
+
+    /** 접근 가능한 Q&A 첨부파일의 단기 다운로드 URL을 발급한다. */
+    @GetMapping("/{id}/attachments/{attachmentId}/download")
+    public ResponseEntity<AttachmentDownloadResponse> downloadAttachment(
+            @PathVariable Long id, @PathVariable Long attachmentId,
+            @AuthenticationPrincipal CustomUserPrincipal principal
+    ) {
+        Long userId = principal == null ? null : principal.memberId();
+        qnaService.requireAccessible(id, userId);
+        return ResponseEntity.ok(attachmentService.download(
+                AttachmentTargetType.QNA_BOARD, id, attachmentId
+        ));
+    }
+
+    /** 질문 작성자가 자신의 첨부파일을 삭제한다. */
+    @DeleteMapping("/{id}/attachments/{attachmentId}")
+    public ResponseEntity<Void> deleteAttachment(
+            @PathVariable Long id, @PathVariable Long attachmentId,
+            @AuthenticationPrincipal CustomUserPrincipal principal
+    ) {
+        qnaService.requireOwner(id, principal.memberId());
+        attachmentService.delete(AttachmentTargetType.QNA_BOARD, id, attachmentId);
         return ResponseEntity.noContent().build();
     }
 }

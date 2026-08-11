@@ -4,6 +4,7 @@ import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCheckRe
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCreateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberIdCheckRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberIdFindRequest;
+import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberWithdrawalRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.PasswordResetCompleteRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.PasswordResetVerifyRequest;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberCheckResponse;
@@ -11,17 +12,20 @@ import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberCreate
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberIdCheckResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberIdFindResponse;
+import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberWithdrawalResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.PasswordResetCompleteResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.PasswordResetVerifyResponse;
 import com.seoul.market.seoulmarketprice.member.service.MemberService;
 import com.seoul.market.seoulmarketprice.member.service.MemberIdFindService;
 import com.seoul.market.seoulmarketprice.member.service.PasswordResetService;
 import com.seoul.market.seoulmarketprice.security.principal.CustomUserPrincipal;
+import com.seoul.market.seoulmarketprice.security.jwt.RefreshTokenCookieManager;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -48,6 +52,9 @@ public class MemberController {
     private final MemberIdFindService memberIdFindService;
 
     private final PasswordResetService passwordResetService;
+
+    /** 탈퇴 응답에서 Refresh Token 쿠키를 즉시 만료시킨다. */
+    private final RefreshTokenCookieManager refreshTokenCookieManager;
 
     /**
      * 아이디와 비밀번호를 사용하는 일반 회원을 생성한다.
@@ -142,6 +149,24 @@ public class MemberController {
     ) {
         // Entity를 직접 노출하지 않고 화면에 필요한 값만 응답한다.
         return ResponseEntity.ok(memberService.getMember(principal.memberId()));
+    }
+
+    /** 현재 비밀번호를 재확인한 뒤 로그인 회원을 소프트 삭제한다. */
+    @Operation(summary = "현재 로그인한 일반 회원 탈퇴")
+    @DeleteMapping("/me")
+    public ResponseEntity<MemberWithdrawalResponse> withdraw(
+            @AuthenticationPrincipal CustomUserPrincipal principal,
+            @Valid @RequestBody MemberWithdrawalRequest request
+    ) {
+        MemberWithdrawalResponse response = memberService.withdraw(
+                principal.memberId(), request
+        );
+        return ResponseEntity.ok()
+                .header(
+                        HttpHeaders.SET_COOKIE,
+                        refreshTokenCookieManager.deleteRefreshTokenCookie().toString()
+                )
+                .body(response);
     }
 
 //    @Operation(summary = "회원 정보 수정")

@@ -82,7 +82,7 @@ public class AuthServiceImpl implements AuthService {
          * 공격자가 특정 아이디의 가입 여부를 알아내기 어려워진다.
          */
         Member member = memberRepository
-                .findByUserId(request.userId())
+                .findActiveByUserId(request.userId())
                 .orElseThrow(() -> new IllegalArgumentException(
                         "아이디 또는 비밀번호가 올바르지 않습니다."
                 ));
@@ -209,6 +209,11 @@ public class AuthServiceImpl implements AuthService {
          * DB에 저장된 Refresh Token의 회원을 가져온다.
          */
         Member member = savedRefreshToken.getMember();
+
+        // 탈퇴와 토큰 재발급이 경합해도 삭제 회원에게 새 토큰을 발급하지 않는다.
+        if (member.isDeleted()) {
+            throw new IllegalArgumentException("활성 회원을 찾을 수 없습니다.");
+        }
 
         /*
          * JWT 안의 회원 번호와 DB 토큰 소유자의 회원 번호가 다르면

@@ -10,6 +10,7 @@ import com.seoul.market.seoulmarketprice.member.exception.DuplicateMemberExcepti
 import com.seoul.market.seoulmarketprice.member.exception.DuplicateAdminException;
 import com.seoul.market.seoulmarketprice.member.exception.AdminDeletionException;
 import com.seoul.market.seoulmarketprice.member.exception.AdminNotFoundException;
+import com.seoul.market.seoulmarketprice.member.exception.MemberNotFoundException;
 import com.seoul.market.seoulmarketprice.qna.exception.QnaAccessDeniedException;
 import com.seoul.market.seoulmarketprice.qna.exception.QnaNotFoundException;
 import org.springframework.http.HttpStatus;
@@ -24,6 +25,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    /** 존재하지 않거나 이미 탈퇴한 회원 요청을 404 응답으로 변환한다. */
+    @ExceptionHandler(MemberNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleMemberNotFound(MemberNotFoundException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("MEMBER-001", exception.getMessage()));
+    }
 
     /** ModelAttribute 쿼리 파라미터 바인딩과 검증 실패를 400 응답으로 변환한다. */
     @ExceptionHandler(BindException.class)

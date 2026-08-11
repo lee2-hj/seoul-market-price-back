@@ -41,7 +41,8 @@ class MemberIdFindServiceTest {
     void returnsOnlyMaskedUserIdAfterPassVerification() {
         Member member = Member.createLocalMember(
                 "seouluser01", "encoded", "홍길동", null, null, null,
-                "010-1234-5678", null, (byte) 1, (byte) 1, (byte) 1, null
+                "010-1234-5678", null, (byte) 1, (byte) 1, (byte) 1,
+                null, null, null, null
         );
         when(phoneVerificationService.confirm(
                 new PhoneVerificationConfirmRequest("verification-id")

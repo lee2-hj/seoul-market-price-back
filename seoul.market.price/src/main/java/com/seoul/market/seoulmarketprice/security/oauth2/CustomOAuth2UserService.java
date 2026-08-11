@@ -249,6 +249,11 @@ public class CustomOAuth2UserService
                         socialId
                 );
 
+        // 소셜 회원의 기존 행이 탈퇴 상태이면 신규 가입이나 재로그인으로 우회하지 못하게 한다.
+        if (existingMember.map(Member::isDeleted).orElse(false)) {
+            throw new OAuth2AuthenticationException("활성 회원을 찾을 수 없습니다.");
+        }
+
         boolean memberExists =
                 existingMember.isPresent();
 

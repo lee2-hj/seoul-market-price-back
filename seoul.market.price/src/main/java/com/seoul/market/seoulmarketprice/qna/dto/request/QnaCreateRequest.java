@@ -9,8 +9,6 @@ import jakarta.validation.constraints.Size;
  * @param title 질문 제목
  * @param questionContent 질문 본문
  * @param publicQuestion 공개 여부, null이면 공개로 처리
- * @param attachName 첨부파일 원본 이름
- * @param attachPath 첨부파일 저장 경로
  */
 public record QnaCreateRequest(
         @NotBlank(message = "제목을 입력해 주세요.")
@@ -18,10 +16,6 @@ public record QnaCreateRequest(
         String title,
         @NotBlank(message = "질문 내용을 입력해 주세요.")
         String questionContent,
-        Boolean publicQuestion,
-        @Size(max = 255, message = "첨부파일명은 255자 이하여야 합니다.")
-        String attachName,
-        @Size(max = 500, message = "첨부파일 경로는 500자 이하여야 합니다.")
-        String attachPath
+        Boolean publicQuestion
 ) {
 }

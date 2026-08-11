@@ -3,6 +3,7 @@ package com.seoul.market.seoulmarketprice.member.service;
 import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCreateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberIdCheckRequest;
+import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberWithdrawalRequest;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberCreateResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberIdCheckResponse;
 import com.seoul.market.seoulmarketprice.member.exception.DuplicateMemberException;
@@ -10,6 +11,7 @@ import com.seoul.market.seoulmarketprice.member.repository.MemberManagementRepos
 import com.seoul.market.seoulmarketprice.phoneverification.dto.request.PhoneVerificationConfirmRequest;
 import com.seoul.market.seoulmarketprice.phoneverification.dto.response.PhoneVerificationConfirmResponse;
 import com.seoul.market.seoulmarketprice.phoneverification.service.PhoneVerificationService;
+import com.seoul.market.seoulmarketprice.token.service.RefreshTokenService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,8 +19,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
+import java.math.BigDecimal;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -39,6 +44,9 @@ class MemberServiceTest {
     @Mock
     private PhoneVerificationService phoneVerificationService;
 
+    @Mock
+    private RefreshTokenService refreshTokenService;
+
     private MemberService memberService;
 
     @BeforeEach
@@ -46,7 +54,8 @@ class MemberServiceTest {
         memberService = new MemberService(
                 memberManagementRepository,
                 passwordEncoder,
-                phoneVerificationService
+                phoneVerificationService,
+                refreshTokenService
         );
     }
 
@@ -122,8 +131,54 @@ class MemberServiceTest {
                 (byte) 1,
                 (byte) 1,
                 (byte) 1,
-                "서울"
+                "중구",
+                "소공동",
+                new BigDecimal("37.5642135"),
+                new BigDecimal("126.9778292")
         );
+    }
+
+    /** 올바른 비밀번호로 탈퇴하면 회원과 모든 Refresh Token이 비활성화되는지 확인한다. */
+    @Test
+    void withdrawSoftDeletesMemberAndRevokesAllRefreshTokens() {
+        Member member = Member.createLocalMember(
+                "market_user", "encoded-password", "서울장터",
+                null, null, null, "010-1234-5678", null,
+                (byte) 1, (byte) 1, (byte) 1, null, null, null, null
+        );
+        ReflectionTestUtils.setField(member, "id", 1L);
+        when(memberManagementRepository.findActiveByIdForWithdrawal(1L))
+                .thenReturn(Optional.of(member));
+        when(passwordEncoder.matches("password123!", "encoded-password"))
+                .thenReturn(true);
+
+        memberService.withdraw(1L, new MemberWithdrawalRequest("password123!"));
+
+        assertThat(member.isDeleted()).isTrue();
+        assertThat(member.getDeleted_at()).isNotNull();
+        verify(refreshTokenService).deleteAllByMemberId(1L);
+    }
+
+    /** 현재 비밀번호가 다르면 회원 상태와 Refresh Token을 유지하는지 확인한다. */
+    @Test
+    void withdrawRejectsWrongPasswordWithoutDeletingMember() {
+        Member member = Member.createLocalMember(
+                "market_user", "encoded-password", "서울장터",
+                null, null, null, "010-1234-5678", null,
+                (byte) 1, (byte) 1, (byte) 1, null, null, null, null
+        );
+        when(memberManagementRepository.findActiveByIdForWithdrawal(1L))
+                .thenReturn(Optional.of(member));
+        when(passwordEncoder.matches("wrong-password", "encoded-password"))
+                .thenReturn(false);
+
+        assertThatThrownBy(() -> memberService.withdraw(
+                1L, new MemberWithdrawalRequest("wrong-password")
+        )).isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("현재 비밀번호가 올바르지 않습니다.");
+
+        assertThat(member.isDeleted()).isFalse();
+        verify(refreshTokenService, never()).deleteAllByMemberId(any());
     }
 
     private PhoneVerificationConfirmResponse verifiedIdentity() {
