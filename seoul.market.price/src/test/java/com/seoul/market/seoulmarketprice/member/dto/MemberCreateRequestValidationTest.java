@@ -33,7 +33,12 @@ class MemberCreateRequestValidationTest {
                 "",
                 null,
                 "1234",
-                "not-an-email"
+                "",
+                "not-an-email",
+                null,
+                null,
+                null,
+                null
         );
 
         Set<String> invalidFields = validator.validate(request).stream()
@@ -59,7 +64,12 @@ class MemberCreateRequestValidationTest {
                 "서울특별시 중구 세종대로 110",
                 "1층",
                 "010-1234-5678",
-                "market@example.com"
+                "verification-id",
+                "market@example.com",
+                (byte) 1,
+                (byte) 1,
+                (byte) 1,
+                "서울"
         );
     }
 }

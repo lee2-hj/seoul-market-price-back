@@ -83,6 +83,9 @@ public record MemberCreateRequest(
         )
         String phone,
 
+        @NotBlank(message = "본인인증 아이디는 필수입니다.")
+        String identityVerificationId,
+
         /**
          * 이메일 형식의 사용자 연락처.
          */
@@ -102,8 +105,8 @@ public record MemberCreateRequest(
         String myLocation
 ) {
         // 요청받은 데이터를 기반으로 엔티티 생성
-        public Member toEntity(String encodedPassword) {
-                return Member.createLocalMember(
+        public Member toEntity(String encodedPassword, String verifiedCi) {
+                Member member = Member.createLocalMember(
                         this.userId,
                         encodedPassword,
                         this.name,
@@ -117,5 +120,7 @@ public record MemberCreateRequest(
                         this.is_privacy_agreed,
                         this.myLocation
                 );
+                member.registerCi(verifiedCi);
+                return member;
         }
 }

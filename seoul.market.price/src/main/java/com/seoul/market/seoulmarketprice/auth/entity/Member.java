@@ -164,6 +164,10 @@ public class Member {
     @Column(name = "phone", nullable = true, comment = "휴대전화 번호")
     private String phone;
 
+    /** PASS 본인인증 연계정보. 기존 회원의 점진적 전환을 위해 null을 허용한다. */
+    @Column(name = "ci", unique = true, length = 255, comment = "PASS 본인인증 CI")
+    private String ci;
+
     /**
      * 이메일 주소.
      */
@@ -248,6 +252,21 @@ public class Member {
 
     public boolean hasPassword() {
         return password != null && !password.isBlank();
+    }
+
+    public boolean hasCi() {
+        return ci != null && !ci.isBlank();
+    }
+
+    /** 최초 확인된 CI만 등록하며, 이미 등록된 CI는 다른 값으로 변경할 수 없다. */
+    public void registerCi(String verifiedCi) {
+        if (verifiedCi == null || verifiedCi.isBlank()) {
+            throw new IllegalArgumentException("본인인증 CI를 확인할 수 없습니다.");
+        }
+        if (hasCi() && !ci.equals(verifiedCi)) {
+            throw new IllegalArgumentException("기존 본인인증 정보와 일치하지 않습니다.");
+        }
+        this.ci = verifiedCi;
     }
 
     /** 일반 로그인 회원의 비밀번호를 새 BCrypt 값으로 교체한다. */

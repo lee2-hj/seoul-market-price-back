@@ -61,16 +61,30 @@ public class PasswordResetService {
         validateRecentVerification(verification.verifiedAt());
 
         Member member = memberManagementRepository
-                .findActiveLocalMemberForPasswordReset(
-                        request.userId(),
-                        verification.name().trim(),
-                        MemberIdFindService.normalizePhone(
-                                verification.phoneNumber()
-                        )
-                )
+                .findActiveLocalByUserIdForCiRegistration(request.userId())
                 .orElseThrow(() -> new IllegalArgumentException(
                         MEMBER_MISMATCH_MESSAGE
                 ));
+
+        String verifiedCi = verification.ci();
+        if (member.hasCi()) {
+            if (!member.getCi().equals(verifiedCi)) {
+                throw new IllegalArgumentException(MEMBER_MISMATCH_MESSAGE);
+            }
+        } else {
+            String verifiedPhone = MemberIdFindService.normalizePhone(
+                    verification.phoneNumber()
+            );
+            String memberPhone = MemberIdFindService.normalizePhone(
+                    member.getPhone()
+            );
+            if (!member.getName().trim().equals(verification.name().trim())
+                    || !memberPhone.equals(verifiedPhone)
+                    || memberManagementRepository.existsByCi(verifiedCi)) {
+                throw new IllegalArgumentException(MEMBER_MISMATCH_MESSAGE);
+            }
+            member.registerCi(verifiedCi);
+        }
 
         if (!member.hasPassword()) {
             throw new IllegalArgumentException(MEMBER_MISMATCH_MESSAGE);

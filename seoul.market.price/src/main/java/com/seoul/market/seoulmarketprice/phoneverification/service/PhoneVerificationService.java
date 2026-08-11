@@ -83,6 +83,8 @@ public class PhoneVerificationService {
                 verifiedCustomer == null
                         || verifiedCustomer.name() == null
                         || verifiedCustomer.phoneNumber() == null
+                        || verifiedCustomer.ci() == null
+                        || verifiedCustomer.ci().isBlank()
         ) {
             throw new IllegalStateException(
                     "본인인증은 완료되었지만 인증된 회원 정보를 확인할 수 없습니다."
@@ -100,7 +102,8 @@ public class PhoneVerificationService {
                 verifiedCustomer.phoneNumber(),
                 verifiedCustomer.birthDate(),
                 verifiedCustomer.gender(),
-                response.verifiedAt()
+                response.verifiedAt(),
+                verifiedCustomer.ci()
         );
     }
 }
