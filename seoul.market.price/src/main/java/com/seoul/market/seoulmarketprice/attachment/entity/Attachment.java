@@ -8,7 +8,11 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 
-/** MinIO에 저장된 파일의 경로와 표시용 메타데이터를 관리하는 첨부파일 엔티티다. */
+/**
+ * MinIO에 저장된 파일의 객체 키와 화면 표시용 메타데이터를 MySQL에 보관하는 엔티티다.
+ * 실제 파일 데이터나 외부에서 바로 접근 가능한 URL은 DB에 저장하지 않으며, 삭제 시 행을
+ * 제거하지 않고 {@code deleted_at}을 기록한다.
+ */
 @Entity
 @Getter
 @Table(name = "tb_attachment", indexes = {
@@ -54,7 +58,17 @@ public class Attachment {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
-    /** 검증과 MinIO 저장을 마친 파일의 메타데이터 엔티티를 생성한다. */
+    /**
+     * 정책 검증과 MinIO 저장을 마친 파일의 메타데이터 엔티티를 생성한다.
+     *
+     * @param targetType 파일이 첨부된 게시판 유형
+     * @param targetId 파일이 첨부된 게시글의 기본 키
+     * @param objectKey MinIO 버킷 안에서 실제 파일을 찾는 고유 객체 키
+     * @param originalName 사용자가 업로드한 원본 파일명
+     * @param contentType 검증을 통과한 MIME 타입
+     * @param fileSize 바이트 단위 파일 크기
+     * @return 아직 영속화되지 않은 첨부파일 엔티티
+     */
     public static Attachment create(AttachmentTargetType targetType, Long targetId,
                                     String objectKey, String originalName,
                                     String contentType, long fileSize) {
@@ -68,7 +82,7 @@ public class Attachment {
         return attachment;
     }
 
-    /** 메타데이터를 소프트 삭제 상태로 전환한다. */
+    /** 메타데이터에 삭제 시각을 기록하여 이후 활성 첨부파일 조회에서 제외한다. */
     public void softDelete() {
         deletedAt = now();
     }

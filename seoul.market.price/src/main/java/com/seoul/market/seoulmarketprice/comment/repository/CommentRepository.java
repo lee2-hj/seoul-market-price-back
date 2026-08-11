@@ -2,6 +2,9 @@ package com.seoul.market.seoulmarketprice.comment.repository;
 
 import com.seoul.market.seoulmarketprice.comment.entity.BoardComment;
 import com.seoul.market.seoulmarketprice.comment.entity.BoardType;
+import com.seoul.market.seoulmarketprice.comment.entity.WriterType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -24,6 +27,28 @@ public interface CommentRepository extends JpaRepository<BoardComment, Long> {
     List<BoardComment> findAllByPost(
             @Param("boardType") BoardType boardType,
             @Param("postId") Long postId
+    );
+
+    /** 로그인 사용자가 작성했고 삭제되지 않은 댓글을 최신순으로 조회한다. */
+    @Query(value = """
+            SELECT c
+            FROM BoardComment c
+            LEFT JOIN FETCH c.parent
+            WHERE c.writerType = :writerType
+              AND c.writerId = :writerId
+              AND c.deletedAt IS NULL
+            ORDER BY c.createdAt DESC, c.id DESC
+            """, countQuery = """
+            SELECT COUNT(c)
+            FROM BoardComment c
+            WHERE c.writerType = :writerType
+              AND c.writerId = :writerId
+              AND c.deletedAt IS NULL
+            """)
+    Page<BoardComment> findMyComments(
+            @Param("writerType") WriterType writerType,
+            @Param("writerId") Long writerId,
+            Pageable pageable
     );
 
     /** URL의 게시글 ID와 실제 댓글 소속이 일치하는 댓글만 조회한다. */

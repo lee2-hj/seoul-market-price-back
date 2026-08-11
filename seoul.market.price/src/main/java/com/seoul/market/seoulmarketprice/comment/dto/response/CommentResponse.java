@@ -1,4 +1,6 @@
 package com.seoul.market.seoulmarketprice.comment.dto.response;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.seoul.market.seoulmarketprice.comment.entity.WriterType;
 
 import java.time.LocalDateTime;
@@ -18,4 +20,9 @@ public record CommentResponse(
         LocalDateTime updatedAt,
         List<CommentResponse> replies
 ) {
+    /** 프론트엔드가 작성자 실명을 name 필드로 사용할 수 있도록 기존 값을 함께 제공한다. */
+    @JsonProperty("name")
+    public String name() {
+        return writerName;
+    }
 }

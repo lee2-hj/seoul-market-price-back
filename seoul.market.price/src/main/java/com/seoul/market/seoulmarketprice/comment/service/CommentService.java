@@ -3,11 +3,16 @@ package com.seoul.market.seoulmarketprice.comment.service;
 import com.seoul.market.seoulmarketprice.auth.entity.Admin;
 import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import com.seoul.market.seoulmarketprice.auth.repository.AdminRepository;
+import com.seoul.market.seoulmarketprice.board.entity.Board;
 import com.seoul.market.seoulmarketprice.board.exception.BoardNotFoundException;
 import com.seoul.market.seoulmarketprice.board.repository.BoardQueryRepository;
+import com.seoul.market.seoulmarketprice.board.repository.BoardRepository;
+import com.seoul.market.seoulmarketprice.comment.dto.condition.MyCommentSearchCondition;
 import com.seoul.market.seoulmarketprice.comment.dto.request.CommentCreateRequest;
 import com.seoul.market.seoulmarketprice.comment.dto.request.CommentUpdateRequest;
 import com.seoul.market.seoulmarketprice.comment.dto.response.CommentResponse;
+import com.seoul.market.seoulmarketprice.comment.dto.response.MyCommentPageResponse;
+import com.seoul.market.seoulmarketprice.comment.dto.response.MyCommentResponse;
 import com.seoul.market.seoulmarketprice.comment.entity.BoardComment;
 import com.seoul.market.seoulmarketprice.comment.entity.BoardType;
 import com.seoul.market.seoulmarketprice.comment.entity.WriterType;
@@ -16,6 +21,8 @@ import com.seoul.market.seoulmarketprice.comment.exception.CommentNotFoundExcept
 import com.seoul.market.seoulmarketprice.comment.repository.CommentRepository;
 import com.seoul.market.seoulmarketprice.member.repository.MemberManagementRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +45,7 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
     private final BoardQueryRepository boardQueryRepository;
+    private final BoardRepository boardRepository;
     private final MemberManagementRepository memberRepository;
     private final AdminRepository adminRepository;
 
@@ -50,6 +58,34 @@ public class CommentService {
         );
         Map<String, String> writerNames = loadWriterNames(comments);
         return buildTree(comments, writerNames);
+    }
+
+    /** 로그인 사용자가 작성한 활성 댓글을 마이페이지용 목록으로 최신순 조회한다. */
+    public MyCommentPageResponse getMyComments(
+            Long userId,
+            MyCommentSearchCondition condition
+    ) {
+        Page<BoardComment> page = commentRepository.findMyComments(
+                WriterType.USER,
+                userId,
+                PageRequest.of(condition.getPage(), condition.getSize())
+        );
+        Map<Long, String> boardTitles = loadBoardTitles(page.getContent());
+        String name = userName(userId);
+
+        List<MyCommentResponse> content = page.getContent().stream()
+                .map(comment -> toMyCommentResponse(comment, name, boardTitles))
+                .toList();
+
+        return new MyCommentPageResponse(
+                content,
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.isFirst(),
+                page.isLast()
+        );
     }
 
     /** 로그인한 일반 사용자의 최상위 댓글을 생성한다. */
@@ -311,6 +347,37 @@ public class CommentService {
         return comment.getParent() == null
                 ? null
                 : comment.getParent().getId();
+    }
+
+    /** 내 댓글 엔티티를 원문 이동 정보가 포함된 마이페이지 응답으로 변환한다. */
+    private MyCommentResponse toMyCommentResponse(
+            BoardComment comment,
+            String name,
+            Map<Long, String> boardTitles
+    ) {
+        return new MyCommentResponse(
+                comment.getId(),
+                parentId(comment),
+                comment.getBoardType(),
+                comment.getPostId(),
+                boardTitles.get(comment.getPostId()),
+                name,
+                comment.getContent(),
+                comment.isVisible(),
+                comment.getCreatedAt(),
+                comment.getUpdatedAt()
+        );
+    }
+
+    /** 일반 게시판 댓글의 게시글 제목을 한 번에 조회해 댓글별 제목 맵을 만든다. */
+    private Map<Long, String> loadBoardTitles(List<BoardComment> comments) {
+        Set<Long> boardIds = comments.stream()
+                .filter(comment -> comment.getBoardType() == BoardType.GENERAL)
+                .map(BoardComment::getPostId)
+                .collect(Collectors.toSet());
+
+        return boardRepository.findAllById(boardIds).stream()
+                .collect(Collectors.toMap(Board::getId, Board::getTitle));
     }
 
     /** 댓글 작성자 ID를 유형별로 모아 이름을 일괄 조회한다. */

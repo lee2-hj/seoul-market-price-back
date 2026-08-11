@@ -151,6 +151,8 @@ public class SecurityConfig {
 
                     auth.requestMatchers(HttpMethod.GET, "/api/qnas/me")
                             .hasRole("USER");
+                    auth.requestMatchers(HttpMethod.GET, "/api/comments/me")
+                            .hasRole("USER");
                     // 공개 Q&A와 그 하위 첨부파일 조회 경로를 비로그인 사용자에게 허용한다.
                     auth.requestMatchers(HttpMethod.GET, "/api/qnas", "/api/qnas/**")
                             .permitAll();

@@ -7,14 +7,28 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;
 
-/** 첨부파일 메타데이터의 저장과 활성 파일 조회를 담당한다. */
+/** 첨부파일 메타데이터의 JPA 저장과 소프트 삭제 조건이 적용된 활성 파일 조회를 담당한다. */
 public interface AttachmentRepository extends JpaRepository<Attachment, Long> {
-    /** 특정 게시글에 연결된 활성 첨부파일을 등록 순서대로 조회한다. */
+    /**
+     * 특정 게시글에 연결된 활성 첨부파일을 등록 순서대로 조회한다.
+     *
+     * @param targetType 첨부 대상 게시판 유형
+     * @param targetId 첨부 대상 게시글 기본 키
+     * @return {@code deleted_at IS NULL}인 첨부파일 목록
+     */
     List<Attachment> findAllByTargetTypeAndTargetIdAndDeletedAtIsNullOrderByIdAsc(
             AttachmentTargetType targetType, Long targetId
     );
 
-    /** 게시판 종류, 게시글, 첨부파일 식별자가 모두 일치하는 활성 파일을 조회한다. */
+    /**
+     * 게시판 유형·게시글 ID·첨부파일 ID가 모두 일치하는 활성 파일을 조회한다.
+     * 다른 게시글의 첨부파일 ID를 URL에 넣어 접근하는 것을 서비스 계층에서 차단할 수 있게 한다.
+     *
+     * @param id 첨부파일 기본 키
+     * @param targetType 첨부 대상 게시판 유형
+     * @param targetId 첨부 대상 게시글 기본 키
+     * @return 조건에 맞는 활성 첨부파일, 없으면 빈 값
+     */
     Optional<Attachment> findByIdAndTargetTypeAndTargetIdAndDeletedAtIsNull(
             Long id, AttachmentTargetType targetType, Long targetId
     );
