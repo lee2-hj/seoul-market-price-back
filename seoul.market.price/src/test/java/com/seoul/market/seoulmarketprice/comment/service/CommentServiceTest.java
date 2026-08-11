@@ -1,9 +1,13 @@
 package com.seoul.market.seoulmarketprice.comment.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import com.seoul.market.seoulmarketprice.auth.repository.AdminRepository;
 import com.seoul.market.seoulmarketprice.board.entity.Board;
 import com.seoul.market.seoulmarketprice.board.exception.BoardNotFoundException;
 import com.seoul.market.seoulmarketprice.board.repository.BoardQueryRepository;
+import com.seoul.market.seoulmarketprice.board.repository.BoardRepository;
+import com.seoul.market.seoulmarketprice.comment.dto.condition.MyCommentSearchCondition;
 import com.seoul.market.seoulmarketprice.comment.dto.request.CommentCreateRequest;
 import com.seoul.market.seoulmarketprice.comment.dto.request.CommentUpdateRequest;
 import com.seoul.market.seoulmarketprice.comment.entity.BoardComment;
@@ -17,13 +21,17 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -36,6 +44,8 @@ class CommentServiceTest {
     @Mock
     private BoardQueryRepository boardQueryRepository;
     @Mock
+    private BoardRepository boardRepository;
+    @Mock
     private MemberManagementRepository memberRepository;
     @Mock
     private AdminRepository adminRepository;
@@ -47,6 +57,7 @@ class CommentServiceTest {
         service = new CommentService(
                 commentRepository,
                 boardQueryRepository,
+                boardRepository,
                 memberRepository,
                 adminRepository
         );
@@ -54,8 +65,11 @@ class CommentServiceTest {
 
     /** 공개 게시글에는 로그인 사용자의 댓글을 생성할 수 있다. */
     @Test
-    void userCreatesCommentOnPublicBoard() {
+    void userCreatesCommentOnPublicBoard() throws Exception {
+        Member member = mock(Member.class);
         when(boardQueryRepository.existsPublicById(1L)).thenReturn(true);
+        when(memberRepository.findById(7L)).thenReturn(Optional.of(member));
+        when(member.getName()).thenReturn("홍길동");
         when(commentRepository.save(any(BoardComment.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -67,6 +81,9 @@ class CommentServiceTest {
 
         assertThat(response.writerType()).isEqualTo(WriterType.USER);
         assertThat(response.writerId()).isEqualTo(7L);
+        assertThat(response.name()).isEqualTo("홍길동");
+        assertThat(new ObjectMapper().writeValueAsString(response))
+                .contains("\"name\":\"홍길동\"");
         assertThat(response.content()).isEqualTo("댓글");
     }
 
@@ -152,5 +169,40 @@ class CommentServiceTest {
         );
 
         assertThat(response.writerType()).isEqualTo(WriterType.ADMIN);
+    }
+
+    /** 내 댓글 조회는 활성 사용자 댓글을 페이징 응답으로 반환한다. */
+    @Test
+    void getsMyCommentsAsPagedResponse() {
+        BoardComment comment = BoardComment.create(
+                BoardType.GENERAL,
+                11L,
+                WriterType.USER,
+                7L,
+                null,
+                "내 댓글"
+        );
+        MyCommentSearchCondition condition = new MyCommentSearchCondition();
+        condition.setPage(0);
+        condition.setSize(20);
+
+        when(commentRepository.findMyComments(
+                WriterType.USER,
+                7L,
+                PageRequest.of(0, 20)
+        )).thenReturn(new PageImpl<>(
+                List.of(comment),
+                PageRequest.of(0, 20),
+                1
+        ));
+        when(boardRepository.findAllById(any())).thenReturn(List.of());
+
+        var response = service.getMyComments(7L, condition);
+
+        assertThat(response.totalElements()).isEqualTo(1);
+        assertThat(response.content()).singleElement().satisfies(item -> {
+            assertThat(item.postId()).isEqualTo(11L);
+            assertThat(item.content()).isEqualTo("내 댓글");
+        });
     }
 }

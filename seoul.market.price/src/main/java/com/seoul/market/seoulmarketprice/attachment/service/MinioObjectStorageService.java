@@ -14,7 +14,11 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
-/** MinIO Java SDK를 이용해 실제 첨부파일 객체를 저장·삭제·다운로드한다. */
+/**
+ * {@link ObjectStorageService}를 MinIO Java SDK로 구현한다.
+ * 모든 연산은 설정된 단일 버킷을 사용하며 SDK 예외는 서비스 계층에서 처리할 수 있도록
+ * {@link IllegalStateException}으로 변환한다.
+ */
 @Service
 @RequiredArgsConstructor
 public class MinioObjectStorageService implements ObjectStorageService {
@@ -23,7 +27,12 @@ public class MinioObjectStorageService implements ObjectStorageService {
     /** 버킷 이름을 포함한 MinIO 연결 설정. */
     private final MinioProperties properties;
 
-    /** Multipart 파일 스트림을 설정 버킷의 객체 키에 업로드한다. */
+    /**
+     * multipart 파일을 메모리에 전부 적재하지 않고 입력 스트림으로 MinIO에 업로드한다.
+     *
+     * @param objectKey 버킷 내부에 저장할 객체 키
+     * @param file 업로드할 multipart 파일
+     */
     @Override
     public void upload(String objectKey, MultipartFile file) {
         try {
@@ -38,7 +47,11 @@ public class MinioObjectStorageService implements ObjectStorageService {
         }
     }
 
-    /** 설정 버킷에서 객체 키에 해당하는 파일을 제거한다. */
+    /**
+     * 설정된 버킷에서 객체 키에 해당하는 파일을 물리적으로 제거한다.
+     *
+     * @param objectKey 삭제할 객체 키
+     */
     @Override
     public void delete(String objectKey) {
         try {
@@ -49,7 +62,15 @@ public class MinioObjectStorageService implements ObjectStorageService {
         }
     }
 
-    /** 원본 파일명을 Content-Disposition에 포함한 단기 다운로드 URL을 생성한다. */
+    /**
+     * 원본 파일명을 RFC 5987 형식의 {@code Content-Disposition} 응답 값에 포함한 URL을 생성한다.
+     * 한글과 공백이 포함된 파일명도 유지되도록 UTF-8 URL 인코딩 후 공백을 {@code %20}으로 바꾼다.
+     *
+     * @param objectKey 다운로드할 객체 키
+     * @param originalName 브라우저에 표시할 원본 파일명
+     * @param expirySeconds 서명 URL의 유효시간(초)
+     * @return MinIO가 서명한 HTTP GET 다운로드 URL
+     */
     @Override
     public String createDownloadUrl(String objectKey, String originalName, int expirySeconds) {
         try {
