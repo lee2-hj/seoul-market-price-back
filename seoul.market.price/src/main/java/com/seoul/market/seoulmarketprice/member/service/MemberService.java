@@ -179,7 +179,10 @@ public class MemberService {
     //일반 회원 가입 시 이미 등록 된 회원인지 체크
     public MemberCheckResponse checkMember(MemberCheckRequest request) {
 
-        boolean check = memberManagementRepository.existsByNameAndPhone(request.name(), request.phone());
+        boolean check = memberManagementRepository.existsActiveByNameAndPhone(
+                request.name(),
+                request.phone()
+        );
 
         boolean isDuple = check;
 

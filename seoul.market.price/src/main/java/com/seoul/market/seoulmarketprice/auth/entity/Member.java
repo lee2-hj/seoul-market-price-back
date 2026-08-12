@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.math.BigDecimal;
+import java.util.UUID;
 
 /**
  * 회원 엔티티.
@@ -286,6 +287,14 @@ public class Member {
     /** 회원을 소프트 삭제 상태로 전환한다. */
     public void withdraw() {
         LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+        String withdrawnMarker = "wd:" + id + ":" + UUID.randomUUID()
+                .toString()
+                .replace("-", "")
+                .substring(0, 16);
+
+        this.userId = withdrawnMarker;
+        this.ci = withdrawnMarker;
+        this.phone = withdrawnMarker;
         this.deleted_at = now;
         this.updated_at = now;
     }
