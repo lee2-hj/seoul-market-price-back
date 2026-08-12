@@ -23,6 +23,8 @@ public record PhoneVerificationConfirmResponse(
         String phoneNumber,
         String birthDate,
         String gender,
+        MembershipStatus membershipStatus,
+        boolean signupAllowed,
         @JsonIgnore String verifiedAt,
         @JsonIgnore String ci
 ) {
@@ -33,6 +35,18 @@ public record PhoneVerificationConfirmResponse(
             String birthDate,
             String gender
     ) {
-        this(verified, name, phoneNumber, birthDate, gender, null, null);
+        this(verified, name, phoneNumber, birthDate, gender, MembershipStatus.NEW, true, null, null);
+    }
+
+    public PhoneVerificationConfirmResponse(
+            boolean verified,
+            String name,
+            String phoneNumber,
+            String birthDate,
+            String gender,
+            String verifiedAt,
+            String ci
+    ) {
+        this(verified, name, phoneNumber, birthDate, gender, MembershipStatus.NEW, true, verifiedAt, ci);
     }
 }

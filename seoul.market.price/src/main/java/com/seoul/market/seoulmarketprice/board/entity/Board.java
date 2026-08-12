@@ -192,6 +192,13 @@ public class Board {
         return member == null ? null : member.getName();
     }
 
+    /** 일반 게시글은 회원 이름, 공지사항은 관리자 이름을 반환한다. */
+    public String getWriterName() {
+        return postType == PostType.GENERAL
+                ? (user == null ? null : user.getName())
+                : getWriterAdminName();
+    }
+
     /** 최초 저장 직전에 생성 시각을 기록한다. */
     @PrePersist
     private void prePersist() {

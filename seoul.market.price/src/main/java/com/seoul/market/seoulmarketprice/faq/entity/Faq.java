@@ -1,5 +1,6 @@
 package com.seoul.market.seoulmarketprice.faq.entity;
 
+import com.seoul.market.seoulmarketprice.auth.entity.Admin;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -8,6 +9,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -30,6 +34,15 @@ public class Faq {
     /** FAQ를 마지막으로 등록하거나 수정한 관리자 인덱스이다. */
     @Column(name = "member_id", nullable = false)
     private Long memberId;
+
+    /** 마지막으로 FAQ를 작성하거나 수정한 관리자이다. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "member_id", insertable = false, updatable = false)
+    private Admin member;
+
+    public String getWriterName() {
+        return member == null ? null : member.getName();
+    }
 
     /** 목록에 노출되는 질문 제목이다. */
     @Column(nullable = false, length = 300)

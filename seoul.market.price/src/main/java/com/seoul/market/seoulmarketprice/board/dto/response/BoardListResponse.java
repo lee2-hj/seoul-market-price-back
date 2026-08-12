@@ -8,6 +8,7 @@ public record BoardListResponse(
         PostType postType,
         String title,
         String userId,
+        String writerName,
         Long memberId,
         int viewCount,
         boolean pinned,

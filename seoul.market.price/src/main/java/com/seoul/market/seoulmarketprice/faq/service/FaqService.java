@@ -136,6 +136,7 @@ public class FaqService {
                 faq.getQuestion(),
                 faq.getAnswer(),
                 faq.getCategory(),
+                faq.getWriterName(),
                 faq.getDisplayOrder(),
                 faq.getViewCount(),
                 faq.getCreatedAt()
@@ -149,6 +150,7 @@ public class FaqService {
                 faq.getQuestion(),
                 faq.getAnswer(),
                 faq.getCategory(),
+                faq.getWriterName(),
                 faq.getDisplayOrder(),
                 faq.isVisible(),
                 faq.getViewCount(),

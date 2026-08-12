@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.DateTimeException;
 import java.time.Duration;
@@ -101,16 +102,16 @@ public class MemberService {
         }
 
         // 유저 아이디 중복 체크
-        if (memberManagementRepository.existsByUserId(request.userId())) {
+        if (memberManagementRepository.existsActiveByUserId(request.userId())) {
             throw new DuplicateMemberException();
         }
 
         //전화번호 중복체크
-        if(memberManagementRepository.existsByPhone(request.phone())){
+        if(memberManagementRepository.existsActiveByPhone(request.phone())){
             throw new DuplicateMemberException("이미 사용 중인 전화번호입니다.");
         }
 
-        if (memberManagementRepository.existsByCi(verification.ci())) {
+        if (memberManagementRepository.existsActiveByCi(verification.ci())) {
             throw new DuplicateMemberException("이미 가입된 본인인증 정보입니다.");
         }
 
@@ -118,7 +119,12 @@ public class MemberService {
                 passwordEncoder.encode(request.password()),
                 verification.ci()
         );
-        memberManagementRepository.save(member);
+        try {
+            memberManagementRepository.saveAndFlush(member);
+        } catch (DataIntegrityViolationException exception) {
+            // 동시 가입 요청도 DB의 활성 회원 UNIQUE 인덱스에서 최종 차단한다.
+            throw new DuplicateMemberException("이미 가입된 회원입니다.");
+        }
 
         String msg = "회원가입이 완료되었습니다.";
         return new MemberCreateResponse(msg);
@@ -163,7 +169,7 @@ public class MemberService {
     //회원 아이디 중복 체크(회원가입 시 아이디 중복 체크 용도)
     public MemberIdCheckResponse checkMemberId(MemberIdCheckRequest request) {
         // 유저 아이디 중복 체크
-        boolean isDuplicated = memberManagementRepository.existsByUserId(request.userId());
+        boolean isDuplicated = memberManagementRepository.existsActiveByUserId(request.userId());
 
         boolean isAvailable = !isDuplicated;
 

@@ -8,6 +8,7 @@ public record AdminFaqResponse(
         String question,
         String answer,
         String category,
+        String writerName,
         int displayOrder,
         boolean visible,
         int viewCount,

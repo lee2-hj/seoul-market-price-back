@@ -8,6 +8,7 @@ public record FaqPublicResponse(
         String question,
         String answer,
         String category,
+        String writerName,
         int displayOrder,
         int viewCount,
         LocalDateTime createdAt

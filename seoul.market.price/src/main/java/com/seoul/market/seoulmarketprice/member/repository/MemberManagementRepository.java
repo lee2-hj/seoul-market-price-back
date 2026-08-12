@@ -41,11 +41,17 @@ public interface MemberManagementRepository extends JpaRepository<Member, Long> 
      * @param userId 확인할 사용자 아이디
      * @return 동일한 아이디가 존재하면 true
      */
-    boolean existsByUserId(String userId);
+    @Query("SELECT (COUNT(m) > 0) FROM Member m WHERE m.userId = :userId AND m.deleted_at IS NULL")
+    boolean existsActiveByUserId(@Param("userId") String userId);
 
-    boolean existsByPhone(String phoneNumber);
+    @Query("SELECT (COUNT(m) > 0) FROM Member m WHERE m.phone = :phone AND m.deleted_at IS NULL")
+    boolean existsActiveByPhone(@Param("phone") String phoneNumber);
 
-    boolean existsByCi(String ci);
+    @Query("SELECT (COUNT(m) > 0) FROM Member m WHERE m.ci = :ci AND m.deleted_at IS NULL")
+    boolean existsActiveByCi(@Param("ci") String ci);
+
+    @Query("SELECT (COUNT(m) > 0) FROM Member m WHERE m.ci = :ci")
+    boolean existsAnyByCi(@Param("ci") String ci);
 
     boolean existsByNameAndPhone(String name, String phone);
 

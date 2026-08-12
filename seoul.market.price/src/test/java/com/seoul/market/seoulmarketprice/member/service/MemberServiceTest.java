@@ -65,17 +65,17 @@ class MemberServiceTest {
         when(phoneVerificationService.confirm(
                 new PhoneVerificationConfirmRequest("verification-id")
         )).thenReturn(verifiedIdentity());
-        when(memberManagementRepository.existsByUserId("market_user"))
+        when(memberManagementRepository.existsActiveByUserId("market_user"))
                 .thenReturn(false);
         when(passwordEncoder.encode("password123!"))
                 .thenReturn("encoded-password");
-        when(memberManagementRepository.save(any(Member.class)))
+        when(memberManagementRepository.saveAndFlush(any(Member.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         MemberCreateResponse response = memberService.createMember(request);
 
         ArgumentCaptor<Member> captor = ArgumentCaptor.forClass(Member.class);
-        verify(memberManagementRepository).save(captor.capture());
+        verify(memberManagementRepository).saveAndFlush(captor.capture());
         Member savedMember = captor.getValue();
 
         assertThat(savedMember.getUserId()).isEqualTo("market_user");
@@ -90,7 +90,7 @@ class MemberServiceTest {
         when(phoneVerificationService.confirm(
                 new PhoneVerificationConfirmRequest("verification-id")
         )).thenReturn(verifiedIdentity());
-        when(memberManagementRepository.existsByUserId("market_user"))
+        when(memberManagementRepository.existsActiveByUserId("market_user"))
                 .thenReturn(true);
 
         assertThatThrownBy(() -> memberService.createMember(validRequest()))
@@ -98,14 +98,14 @@ class MemberServiceTest {
                 .hasMessage("이미 사용 중인 아이디입니다.");
 
         verify(passwordEncoder, never()).encode(any());
-        verify(memberManagementRepository, never()).save(any());
+        verify(memberManagementRepository, never()).saveAndFlush(any());
     }
 
     @Test
     void checkUserIdReturnsAvailability() {
-        when(memberManagementRepository.existsByUserId("new_user"))
+        when(memberManagementRepository.existsActiveByUserId("new_user"))
                 .thenReturn(false);
-        when(memberManagementRepository.existsByUserId("used_user"))
+        when(memberManagementRepository.existsActiveByUserId("used_user"))
                 .thenReturn(true);
 
         MemberIdCheckResponse available =

@@ -126,7 +126,7 @@ public class Member {
      * 로그인에 사용하는 사용자 아이디.
      * id 길이가 google+21자 28개여서 length 20->50으로 늘림
      */
-    @Column(name = "user_id", nullable = false, unique = true, length = 50, comment = "로그인에 사용하는 유저 아이디")
+    @Column(name = "user_id", nullable = false, length = 50, comment = "로그인에 사용하는 유저 아이디")
     private String userId;
 
     /**
@@ -172,7 +172,7 @@ public class Member {
     private String phone;
 
     /** PASS 본인인증 연계정보. 기존 회원의 점진적 전환을 위해 null을 허용한다. */
-    @Column(name = "ci", unique = true, length = 255, comment = "PASS 본인인증 CI")
+    @Column(name = "ci", length = 255, comment = "PASS 본인인증 CI")
     private String ci;
 
     /**

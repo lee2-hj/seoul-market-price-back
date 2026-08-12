@@ -30,6 +30,7 @@ public class FaqQueryRepository {
     public List<Faq> findPublicList(String category) {
         return queryFactory
                 .selectFrom(faq)
+                .leftJoin(faq.member).fetchJoin()
                 .where(active(), faq.visible.isTrue(), categoryEq(category))
                 .orderBy(faq.displayOrder.asc(), faq.id.asc())
                 .fetch();
@@ -39,6 +40,7 @@ public class FaqQueryRepository {
     public Optional<Faq> findPublicById(Long id) {
         return Optional.ofNullable(queryFactory
                 .selectFrom(faq)
+                .leftJoin(faq.member).fetchJoin()
                 .where(faq.id.eq(id), active(), faq.visible.isTrue())
                 .fetchOne());
     }
@@ -47,6 +49,7 @@ public class FaqQueryRepository {
     public List<Faq> findAdminList() {
         return queryFactory
                 .selectFrom(faq)
+                .leftJoin(faq.member).fetchJoin()
                 .where(active())
                 .orderBy(faq.displayOrder.asc(), faq.id.asc())
                 .fetch();
@@ -56,6 +59,7 @@ public class FaqQueryRepository {
     public Optional<Faq> findActiveById(Long id) {
         return Optional.ofNullable(queryFactory
                 .selectFrom(faq)
+                .leftJoin(faq.member).fetchJoin()
                 .where(faq.id.eq(id), active())
                 .fetchOne());
     }
