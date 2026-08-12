@@ -89,4 +89,14 @@ class MemberIdFindServiceTest {
         assertThat(MemberIdFindService.maskUserId("abcd")).isEqualTo("a**d");
         assertThat(MemberIdFindService.maskUserId("abcde")).isEqualTo("ab**e");
     }
+
+    @Test
+    void normalizesDomesticAndCountryCodePhoneFormats() {
+        assertThat(MemberIdFindService.normalizePhone("010-1234-5678"))
+                .isEqualTo("01012345678");
+        assertThat(MemberIdFindService.normalizePhone("+82 10-1234-5678"))
+                .isEqualTo("01012345678");
+        assertThat(MemberIdFindService.normalizePhone("+82 (10) 1234 5678"))
+                .isEqualTo("01012345678");
+    }
 }
