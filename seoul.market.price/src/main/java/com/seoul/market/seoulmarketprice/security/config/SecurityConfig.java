@@ -164,6 +164,12 @@ public class SecurityConfig {
                             .hasRole("USER");
                     auth.requestMatchers(HttpMethod.GET, "/api/boards", "/api/boards/**")
                             .permitAll();
+                    auth.requestMatchers(HttpMethod.GET, "/api/reports", "/api/reports/**")
+                            .permitAll();
+                    auth.requestMatchers(HttpMethod.POST, "/api/reports", "/api/reports/**")
+                            .hasRole("USER");
+                    auth.requestMatchers(HttpMethod.DELETE, "/api/reports/**")
+                            .hasRole("USER");
                     auth.requestMatchers(HttpMethod.GET, "/api/faqs", "/api/faqs/**")
                             .permitAll();
                     auth.requestMatchers(HttpMethod.POST, "/api/boards", "/api/boards/**")
