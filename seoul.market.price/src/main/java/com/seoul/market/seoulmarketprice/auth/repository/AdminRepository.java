@@ -21,7 +21,7 @@ import java.util.Optional;
  * 별도로 구현하지 않아도 사용할 수 있다.
  * </p>
  */
-public interface AdminRepository extends JpaRepository<Admin, Long> {
+public interface AdminRepository extends JpaRepository<Admin, Long>, AdminRepositoryCustom {
 
     /**
      * 관리자 로그인 아이디로 관리자 정보를 조회한다.
@@ -48,10 +48,6 @@ public interface AdminRepository extends JpaRepository<Admin, Long> {
     Optional<Admin> findByAdminId(String adminId);
 
     /** 삭제되지 않은 관리자만 로그인 아이디로 조회한다. */
-    @Query("SELECT a FROM Admin a WHERE a.adminId = :adminId AND a.deleted_at IS NULL")
-    Optional<Admin> findActiveByAdminId(@Param("adminId") String adminId);
 
     /** 삭제되지 않은 관리자만 고유번호로 조회한다. */
-    @Query("SELECT (COUNT(a) > 0) FROM Admin a WHERE a.id = :id AND a.deleted_at IS NULL")
-    boolean existsActiveById(@Param("id") Long id);
 }

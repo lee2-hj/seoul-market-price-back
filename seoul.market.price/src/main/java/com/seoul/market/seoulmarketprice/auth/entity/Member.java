@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.math.BigDecimal;
+import java.util.UUID;
 
 /**
  * 회원 엔티티.
@@ -126,7 +127,7 @@ public class Member {
      * 로그인에 사용하는 사용자 아이디.
      * id 길이가 google+21자 28개여서 length 20->50으로 늘림
      */
-    @Column(name = "user_id", nullable = false, unique = true, length = 50, comment = "로그인에 사용하는 유저 아이디")
+    @Column(name = "user_id", nullable = false, length = 50, comment = "로그인에 사용하는 유저 아이디")
     private String userId;
 
     /**
@@ -172,7 +173,7 @@ public class Member {
     private String phone;
 
     /** PASS 본인인증 연계정보. 기존 회원의 점진적 전환을 위해 null을 허용한다. */
-    @Column(name = "ci", unique = true, length = 255, comment = "PASS 본인인증 CI")
+    @Column(name = "ci", length = 255, comment = "PASS 본인인증 CI")
     private String ci;
 
     /**
@@ -286,6 +287,14 @@ public class Member {
     /** 회원을 소프트 삭제 상태로 전환한다. */
     public void withdraw() {
         LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+        String withdrawnMarker = "wd:" + id + ":" + UUID.randomUUID()
+                .toString()
+                .replace("-", "")
+                .substring(0, 16);
+
+        this.userId = withdrawnMarker;
+        this.ci = withdrawnMarker;
+        this.phone = withdrawnMarker;
         this.deleted_at = now;
         this.updated_at = now;
     }

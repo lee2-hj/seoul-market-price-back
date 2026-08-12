@@ -71,7 +71,7 @@ class PasswordResetServiceTest {
         when(memberManagementRepository.findActiveLocalByUserIdForCiRegistration(
                 "seouluser01"
         )).thenReturn(Optional.of(member));
-        when(memberManagementRepository.existsByCi("ci-value")).thenReturn(false);
+        when(memberManagementRepository.existsActiveByCi("ci-value")).thenReturn(false);
 
         PasswordResetVerifyResponse verified = service.verify(
                 new PasswordResetVerifyRequest(

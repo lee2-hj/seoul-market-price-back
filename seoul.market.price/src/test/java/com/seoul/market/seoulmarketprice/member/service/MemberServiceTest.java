@@ -1,10 +1,12 @@
 package com.seoul.market.seoulmarketprice.member.service;
 
 import com.seoul.market.seoulmarketprice.auth.entity.Member;
+import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCheckRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCreateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberIdCheckRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberWithdrawalRequest;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberCreateResponse;
+import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberCheckResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberIdCheckResponse;
 import com.seoul.market.seoulmarketprice.member.exception.DuplicateMemberException;
 import com.seoul.market.seoulmarketprice.member.repository.MemberManagementRepository;
@@ -65,17 +67,17 @@ class MemberServiceTest {
         when(phoneVerificationService.confirm(
                 new PhoneVerificationConfirmRequest("verification-id")
         )).thenReturn(verifiedIdentity());
-        when(memberManagementRepository.existsByUserId("market_user"))
+        when(memberManagementRepository.existsActiveByUserId("market_user"))
                 .thenReturn(false);
         when(passwordEncoder.encode("password123!"))
                 .thenReturn("encoded-password");
-        when(memberManagementRepository.save(any(Member.class)))
+        when(memberManagementRepository.saveAndFlush(any(Member.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         MemberCreateResponse response = memberService.createMember(request);
 
         ArgumentCaptor<Member> captor = ArgumentCaptor.forClass(Member.class);
-        verify(memberManagementRepository).save(captor.capture());
+        verify(memberManagementRepository).saveAndFlush(captor.capture());
         Member savedMember = captor.getValue();
 
         assertThat(savedMember.getUserId()).isEqualTo("market_user");
@@ -90,7 +92,7 @@ class MemberServiceTest {
         when(phoneVerificationService.confirm(
                 new PhoneVerificationConfirmRequest("verification-id")
         )).thenReturn(verifiedIdentity());
-        when(memberManagementRepository.existsByUserId("market_user"))
+        when(memberManagementRepository.existsActiveByUserId("market_user"))
                 .thenReturn(true);
 
         assertThatThrownBy(() -> memberService.createMember(validRequest()))
@@ -98,14 +100,14 @@ class MemberServiceTest {
                 .hasMessage("이미 사용 중인 아이디입니다.");
 
         verify(passwordEncoder, never()).encode(any());
-        verify(memberManagementRepository, never()).save(any());
+        verify(memberManagementRepository, never()).saveAndFlush(any());
     }
 
     @Test
     void checkUserIdReturnsAvailability() {
-        when(memberManagementRepository.existsByUserId("new_user"))
+        when(memberManagementRepository.existsActiveByUserId("new_user"))
                 .thenReturn(false);
-        when(memberManagementRepository.existsByUserId("used_user"))
+        when(memberManagementRepository.existsActiveByUserId("used_user"))
                 .thenReturn(true);
 
         MemberIdCheckResponse available =
@@ -115,6 +117,26 @@ class MemberServiceTest {
 
         assertThat(available.available()).isTrue();
         assertThat(unavailable.available()).isFalse();
+    }
+
+    @Test
+    void checkMemberOnlyReportsActiveMembersAsDuplicated() {
+        MemberCheckRequest request = new MemberCheckRequest(
+                "market member",
+                "010-1234-5678"
+        );
+        when(memberManagementRepository.existsActiveByNameAndPhone(
+                request.name(),
+                request.phone()
+        )).thenReturn(false);
+
+        MemberCheckResponse response = memberService.checkMember(request);
+
+        assertThat(response.isduplicated()).isFalse();
+        verify(memberManagementRepository).existsActiveByNameAndPhone(
+                request.name(),
+                request.phone()
+        );
     }
 
     private MemberCreateRequest validRequest() {
@@ -156,6 +178,11 @@ class MemberServiceTest {
 
         assertThat(member.isDeleted()).isTrue();
         assertThat(member.getDeleted_at()).isNotNull();
+        assertThat(member.getUserId()).startsWith("wd:1:");
+        assertThat(member.getCi()).startsWith("wd:1:");
+        assertThat(member.getPhone()).startsWith("wd:1:");
+        assertThat(member.getUserId()).isEqualTo(member.getCi());
+        assertThat(member.getPhone()).isEqualTo(member.getCi());
         verify(refreshTokenService).deleteAllByMemberId(1L);
     }
 

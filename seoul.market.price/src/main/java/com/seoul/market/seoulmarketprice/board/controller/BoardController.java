@@ -141,6 +141,7 @@ public class BoardController {
     }
 
     /** 작성자 본인의 첨부파일을 MinIO와 활성 목록에서 제거한다. */
+    /** 작성자 본인의 첨부파일을 MinIO와 활성 목록에서 제거한다. */
     @DeleteMapping("/{id}/attachments/{attachmentId}")
     public ResponseEntity<Void> deleteAttachment(
             @PathVariable Long id, @PathVariable Long attachmentId,

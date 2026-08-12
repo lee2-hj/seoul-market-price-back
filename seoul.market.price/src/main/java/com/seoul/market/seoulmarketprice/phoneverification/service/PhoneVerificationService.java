@@ -4,6 +4,8 @@ import com.seoul.market.seoulmarketprice.phoneverification.client.PortOneIdentit
 import com.seoul.market.seoulmarketprice.phoneverification.dto.portone.PortOneIdentityVerificationResponse;
 import com.seoul.market.seoulmarketprice.phoneverification.dto.request.PhoneVerificationConfirmRequest;
 import com.seoul.market.seoulmarketprice.phoneverification.dto.response.PhoneVerificationConfirmResponse;
+import com.seoul.market.seoulmarketprice.phoneverification.dto.response.MembershipStatus;
+import com.seoul.market.seoulmarketprice.member.repository.MemberManagementRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -24,11 +26,14 @@ public class PhoneVerificationService {
     private static final String VERIFIED_STATUS = "VERIFIED";
 
     private final PortOneIdentityVerificationClient portOneIdentityVerificationClient;
+    private final MemberManagementRepository memberManagementRepository;
 
     public PhoneVerificationService(
-            PortOneIdentityVerificationClient portOneIdentityVerificationClient
+            PortOneIdentityVerificationClient portOneIdentityVerificationClient,
+            MemberManagementRepository memberManagementRepository
     ) {
         this.portOneIdentityVerificationClient = portOneIdentityVerificationClient;
+        this.memberManagementRepository = memberManagementRepository;
     }
 
     /**
@@ -96,14 +101,27 @@ public class PhoneVerificationService {
                 request.identityVerificationId()
         );
 
+        MembershipStatus membershipStatus = resolveMembershipStatus(verifiedCustomer.ci());
+
         return new PhoneVerificationConfirmResponse(
                 true,
                 verifiedCustomer.name(),
                 verifiedCustomer.phoneNumber(),
                 verifiedCustomer.birthDate(),
                 verifiedCustomer.gender(),
+                membershipStatus,
+                membershipStatus != MembershipStatus.ACTIVE,
                 response.verifiedAt(),
                 verifiedCustomer.ci()
         );
+    }
+
+    private MembershipStatus resolveMembershipStatus(String ci) {
+        if (memberManagementRepository.existsActiveByCi(ci)) {
+            return MembershipStatus.ACTIVE;
+        }
+        return memberManagementRepository.existsAnyByCi(ci)
+                ? MembershipStatus.WITHDRAWN
+                : MembershipStatus.NEW;
     }
 }

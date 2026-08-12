@@ -9,6 +9,7 @@ public record BoardDetailResponse(
         String title,
         String content,
         String userId,
+        String writerName,
         Long memberId,
         int viewCount,
         boolean visible,
