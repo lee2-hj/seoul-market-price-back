@@ -50,7 +50,11 @@ public interface MemberManagementRepository extends JpaRepository<Member, Long>,
             SELECT *
             FROM tb_user
             WHERE TRIM(name) = :name
-              AND REPLACE(REPLACE(phone, '-', ''), ' ', '') = :phone
+              AND CASE
+                    WHEN REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '82%'
+                      THEN CONCAT('0', SUBSTRING(REGEXP_REPLACE(phone, '[^0-9]', ''), 3))
+                    ELSE REGEXP_REPLACE(phone, '[^0-9]', '')
+                  END = :phone
               AND user_type = 0
               AND deleted_at IS NULL
             """, nativeQuery = true)
