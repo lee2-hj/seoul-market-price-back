@@ -2,6 +2,7 @@ package com.seoul.market.seoulmarketprice.member.dto.response.member;
 
 import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import com.seoul.market.seoulmarketprice.auth.entity.UserType;
+import com.seoul.market.seoulmarketprice.member.service.DistrictPreferenceResolver;
 
 import java.time.LocalDateTime;
 import java.math.BigDecimal;
@@ -35,6 +36,8 @@ public record MemberResponse(
         UserType userType,
         /** 사용자가 선택한 선호 자치구. */
         String myGu,
+        /** myGu, 가입 주소, 중구 순서로 결정한 헤더 표시 자치구. */
+        String preferredDistrict,
         /** 사용자가 선택한 선호 행정동. */
         String myDong,
         /** 선호 위치의 위도. */
@@ -47,6 +50,9 @@ public record MemberResponse(
 ) {
     /** 회원 엔티티에서 비밀번호와 CI를 제외한 화면용 응답을 생성한다. */
     public static MemberResponse from(Member member) {
+        String preferredGu = member.getPreferredSgg() == null
+                ? member.getMyGu()
+                : member.getPreferredSgg().getSggName();
         return new MemberResponse(
                 member.getId(),
                 member.getUserId(),
@@ -58,7 +64,11 @@ public record MemberResponse(
                 member.getEmail(),
                 member.getSocialId(),
                 member.getUserType(),
-                member.getMyGu(),
+                preferredGu,
+                DistrictPreferenceResolver.resolve(
+                        preferredGu,
+                        member.getAddress()
+                ),
                 member.getMyDong(),
                 member.getLatitude(),
                 member.getLongitude(),

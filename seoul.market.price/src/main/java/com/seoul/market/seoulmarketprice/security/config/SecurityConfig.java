@@ -123,6 +123,7 @@ public class SecurityConfig {
                                 "/api/members/check-id",
                                 "/api/members/find-id",
                                 "/api/members/password-reset/**",
+                                "/api/location/current-district",
 
                                 // 회원가입 화면(로그인 전)에서 호출하는
                                 // 휴대폰 PASS 본인인증 결과 확인 API
