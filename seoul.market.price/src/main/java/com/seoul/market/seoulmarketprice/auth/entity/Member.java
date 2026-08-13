@@ -1,5 +1,10 @@
 package com.seoul.market.seoulmarketprice.auth.entity;
 
+import com.seoul.market.seoulmarketprice.auth.crypto.CiEncryptionConverter;
+import com.seoul.market.seoulmarketprice.auth.crypto.MemberDataCrypto;
+import com.seoul.market.seoulmarketprice.auth.crypto.NameEncryptionConverter;
+import com.seoul.market.seoulmarketprice.auth.crypto.PhoneEncryptionConverter;
+import com.seoul.market.seoulmarketprice.auth.crypto.UserIdEncryptionConverter;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -127,8 +132,12 @@ public class Member {
      * 로그인에 사용하는 사용자 아이디.
      * id 길이가 google+21자 28개여서 length 20->50으로 늘림
      */
-    @Column(name = "user_id", nullable = false, length = 50, comment = "로그인에 사용하는 유저 아이디")
+    @Convert(converter = UserIdEncryptionConverter.class)
+    @Column(name = "user_id", nullable = false, length = 512, comment = "로그인에 사용하는 유저 아이디")
     private String userId;
+
+    @Column(name = "user_id_hash", length = 43)
+    private String userIdHash;
 
     /**
      * 암호화된 비밀번호.
@@ -142,8 +151,12 @@ public class Member {
     /**
      * 사용자 실명 또는 닉네임.
      */
-    @Column(name = "name", nullable = false, comment = "유저명")
+    @Convert(converter = NameEncryptionConverter.class)
+    @Column(name = "name", nullable = false, length = 512, comment = "유저명")
     private String name;
+
+    @Column(name = "name_hash", length = 43)
+    private String nameHash;
 
     /**
      * 배송지 우편번호.
@@ -169,12 +182,20 @@ public class Member {
      * 일반 회원은 필수이며,
      * 소셜 회원은 추가 정보 입력 전까지 null일 수 있다.
      */
-    @Column(name = "phone", nullable = true, comment = "휴대전화 번호")
+    @Convert(converter = PhoneEncryptionConverter.class)
+    @Column(name = "phone", nullable = true, length = 512, comment = "휴대전화 번호")
     private String phone;
 
+    @Column(name = "phone_hash", length = 43)
+    private String phoneHash;
+
     /** PASS 본인인증 연계정보. 기존 회원의 점진적 전환을 위해 null을 허용한다. */
-    @Column(name = "ci", length = 255, comment = "PASS 본인인증 CI")
+    @Convert(converter = CiEncryptionConverter.class)
+    @Column(name = "ci", length = 512, comment = "PASS 본인인증 CI")
     private String ci;
+
+    @Column(name = "ci_hash", length = 43)
+    private String ciHash;
 
     /**
      * 이메일 주소.
@@ -242,6 +263,7 @@ public class Member {
      */
     @PrePersist
     private void prePersist() {
+        updateSearchHashes();
         this.created_at = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
     }
 
@@ -250,7 +272,15 @@ public class Member {
      */
     @PreUpdate
     private void preUpdate() {
+        updateSearchHashes();
         this.updated_at = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+    }
+
+    private void updateSearchHashes() {
+        this.userIdHash = MemberDataCrypto.searchHash("userId", userId);
+        this.nameHash = MemberDataCrypto.searchHash("name", name);
+        this.phoneHash = MemberDataCrypto.searchHash("phone", phone);
+        this.ciHash = MemberDataCrypto.searchHash("ci", ci);
     }
 
     /**
