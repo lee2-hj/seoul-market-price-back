@@ -50,7 +50,7 @@ class BoardServiceTest {
     @Test
     void getBoardsPassesModelAttributeSearchCondition() {
         BoardSearchCondition condition = new BoardSearchCondition();
-        condition.setSearchType(BoardSearchType.TITLE_CONTENT);
+        condition.setSearchType(BoardSearchType.TITLE);
         condition.setKeyword(" 시장 ");
 
         when(queryRepository.findPublicPage(any(BoardSearchCondition.class), any(Pageable.class)))

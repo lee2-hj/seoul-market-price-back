@@ -112,7 +112,7 @@ public class BoardQueryRepository {
 
         String value = keyword.trim();
         BoardSearchType effectiveType = searchType == null
-                ? BoardSearchType.TITLE_CONTENT
+                ? BoardSearchType.TITLE
                 : searchType;
 
         if (effectiveType == BoardSearchType.WRITER) {
@@ -129,7 +129,6 @@ public class BoardQueryRepository {
                     .or(board.member.name.containsIgnoreCase(value));
         }
 
-        return board.title.containsIgnoreCase(value)
-                .or(board.content.containsIgnoreCase(value));
+        return board.title.containsIgnoreCase(value);
     }
 }

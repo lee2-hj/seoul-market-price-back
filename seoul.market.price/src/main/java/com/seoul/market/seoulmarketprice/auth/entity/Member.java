@@ -5,6 +5,7 @@ import com.seoul.market.seoulmarketprice.auth.crypto.MemberDataCrypto;
 import com.seoul.market.seoulmarketprice.auth.crypto.NameEncryptionConverter;
 import com.seoul.market.seoulmarketprice.auth.crypto.PhoneEncryptionConverter;
 import com.seoul.market.seoulmarketprice.auth.crypto.UserIdEncryptionConverter;
+import com.seoul.market.seoulmarketprice.location.entity.SggMaster;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -236,6 +237,16 @@ public class Member {
     /** 사용자가 가격 정보를 우선 확인하려는 서울시 자치구. */
     @Column(name = "my_gu", length = 50, comment = "유저 선호 자치구")
     private String myGu;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+            name = "my_gu",
+            referencedColumnName = "id",
+            insertable = false,
+            updatable = false,
+            foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT)
+    )
+    private SggMaster preferredSgg;
 
     /** 사용자가 선택한 자치구 안의 선호 행정동. */
     @Column(name = "my_dong", length = 50, comment = "유저 선호 행정동")
