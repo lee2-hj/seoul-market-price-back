@@ -121,7 +121,7 @@ public class BoardQueryRepository {
                     .where(QMember.member.deleted_at.isNull())
                     .fetch()
                     .stream()
-                    .filter(user -> user.getUserId().toLowerCase(Locale.ROOT).contains(normalized))
+                    .filter(user -> user.getName().toLowerCase(Locale.ROOT).contains(normalized))
                     .map(user -> user.getId())
                     .toList();
             return board.userId.in(matchingUserIds)
