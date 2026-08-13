@@ -6,6 +6,7 @@ import com.seoul.market.seoulmarketprice.board.dto.condition.BoardSearchConditio
 import com.seoul.market.seoulmarketprice.board.dto.condition.BoardSearchType;
 import com.seoul.market.seoulmarketprice.board.entity.Board;
 import com.seoul.market.seoulmarketprice.board.entity.QBoard;
+import com.seoul.market.seoulmarketprice.auth.entity.QMember;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Locale;
 
 /** QueryDSL로 공개 게시판 목록의 동적 검색과 페이징을 처리한다. */
 @Repository
@@ -114,7 +116,15 @@ public class BoardQueryRepository {
                 : searchType;
 
         if (effectiveType == BoardSearchType.WRITER) {
-            return board.user.userId.containsIgnoreCase(value)
+            String normalized = value.toLowerCase(Locale.ROOT);
+            List<Long> matchingUserIds = queryFactory.selectFrom(QMember.member)
+                    .where(QMember.member.deleted_at.isNull())
+                    .fetch()
+                    .stream()
+                    .filter(user -> user.getUserId().toLowerCase(Locale.ROOT).contains(normalized))
+                    .map(user -> user.getId())
+                    .toList();
+            return board.userId.in(matchingUserIds)
                     .or(board.member.adminId.containsIgnoreCase(value))
                     .or(board.member.name.containsIgnoreCase(value));
         }

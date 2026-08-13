@@ -1,6 +1,7 @@
 package com.seoul.market.seoulmarketprice.auth.repository;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import com.seoul.market.seoulmarketprice.auth.crypto.MemberDataCrypto;
 import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import com.seoul.market.seoulmarketprice.auth.entity.QMember;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +14,7 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
 
     public Optional<Member> findActiveByUserId(String userId) {
         return Optional.ofNullable(queryFactory.selectFrom(member)
-                .where(member.userId.eq(userId), member.deleted_at.isNull()).fetchOne());
+                .where(member.userIdHash.eq(MemberDataCrypto.searchHash("userId", userId)), member.deleted_at.isNull()).fetchOne());
     }
     public boolean existsActiveById(Long id) {
         return queryFactory.selectOne().from(member)

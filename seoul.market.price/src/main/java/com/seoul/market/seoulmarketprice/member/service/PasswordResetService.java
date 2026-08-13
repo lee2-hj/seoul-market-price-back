@@ -48,6 +48,7 @@ public class PasswordResetService {
         this.refreshTokenService = refreshTokenService;
     }
 
+    @Transactional
     public PasswordResetVerifyResponse verify(
             PasswordResetVerifyRequest request
     ) {

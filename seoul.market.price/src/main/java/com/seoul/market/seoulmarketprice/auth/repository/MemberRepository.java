@@ -32,8 +32,6 @@ public interface MemberRepository extends JpaRepository<Member, Long>, MemberRep
      * Optional을 사용하는 이유
      * 회원이 없을 수도 있기 때문이다.
      */
-    Optional<Member> findByUserId(String userId);
-
     Optional<Member> findBySocialId(String socialId);
 
     /** 탈퇴하지 않은 회원을 로그인 아이디로 조회한다. */

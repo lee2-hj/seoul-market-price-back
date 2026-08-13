@@ -2,6 +2,7 @@ package com.seoul.market.seoulmarketprice.member.repository;
 
 import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import java.util.Optional;
+import java.util.List;
 
 public interface MemberManagementRepositoryCustom {
     boolean existsActiveByUserId(String userId);
@@ -13,4 +14,5 @@ public interface MemberManagementRepositoryCustom {
     Optional<Member> findActiveByIdForPasswordReset(Long memberId);
     Optional<Member> findActiveById(Long memberId);
     Optional<Member> findActiveByIdForWithdrawal(Long memberId);
+    List<Member> findActiveLocalMembersByVerifiedIdentity(String name, String phone);
 }

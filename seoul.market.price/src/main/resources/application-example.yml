@@ -15,6 +15,11 @@ minio:
   bucket: ${MINIO_BUCKET:seoul-market-attachments}
 
 app:
+  # 회원 개인정보 암호화에는 MEMBER_DATA_ENCRYPTION_KEY 환경변수가 필요합니다.
+  # 32바이트 난수 키를 Base64로 인코딩한 값이며 운영 중에는 변경하지 마세요.
+  member-data:
+    encryption-key: ${MEMBER_DATA_ENCRYPTION_KEY:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
+    migrate-plaintext: false
   # 일반 게시판과 Q&A가 공통으로 사용하는 첨부 정책이다.
   attachment:
     max-file-count: 5
