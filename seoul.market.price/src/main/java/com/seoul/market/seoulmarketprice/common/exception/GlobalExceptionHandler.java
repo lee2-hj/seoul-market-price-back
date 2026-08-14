@@ -11,6 +11,7 @@ import com.seoul.market.seoulmarketprice.member.exception.DuplicateAdminExceptio
 import com.seoul.market.seoulmarketprice.member.exception.AdminDeletionException;
 import com.seoul.market.seoulmarketprice.member.exception.AdminNotFoundException;
 import com.seoul.market.seoulmarketprice.member.exception.MemberNotFoundException;
+import com.seoul.market.seoulmarketprice.location.exception.SggNotFoundException;
 import com.seoul.market.seoulmarketprice.qna.exception.QnaAccessDeniedException;
 import com.seoul.market.seoulmarketprice.qna.exception.QnaNotFoundException;
 import org.springframework.http.HttpStatus;
@@ -25,6 +26,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    /** 존재하지 않는 자치구 코드로 행정동을 조회한 요청을 404 응답으로 변환한다. */
+    @ExceptionHandler(SggNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleSggNotFound(SggNotFoundException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("LOCATION-001", exception.getMessage()));
+    }
 
     /** 존재하지 않거나 이미 탈퇴한 회원 요청을 404 응답으로 변환한다. */
     @ExceptionHandler(MemberNotFoundException.class)

@@ -124,6 +124,9 @@ public class SecurityConfig {
                                 "/api/members/find-id",
                                 "/api/members/password-reset/**",
                                 "/api/location/current-district",
+                                // 로그인 전 회원가입 화면에서도 지역 목록을 조회할 수 있도록 공개한다.
+                                "/api/location/sggs",
+                                "/api/location/dongs",
 
                                 // 회원가입 화면(로그인 전)에서 호출하는
                                 // 휴대폰 PASS 본인인증 결과 확인 API
