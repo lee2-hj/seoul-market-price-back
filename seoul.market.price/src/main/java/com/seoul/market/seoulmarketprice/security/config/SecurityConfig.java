@@ -135,6 +135,9 @@ public class SecurityConfig {
                                 "/oauth2/**",
                                 "/login/oauth2/**",
 
+                                // fastApi 호출 API는 로그인 없이도 접근할 수 있도록 공개한다.
+                                "/fastApi/**",
+
                                 // Swagger UI 및 OpenAPI 명세 조회는 인증 없이 접근 허용
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",

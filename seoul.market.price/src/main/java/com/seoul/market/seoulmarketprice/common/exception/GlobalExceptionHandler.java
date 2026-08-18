@@ -20,6 +20,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientResponseException;
 
 /**
  * 프로젝트 전체 예외를 처리한다.
@@ -202,6 +204,47 @@ public class GlobalExceptionHandler {
                 );
     }
 
+    /** fastApi 호출 시 응답으로 내려온 오류 상태코드를 그대로 전달한다. */
+    @ExceptionHandler(RestClientResponseException.class)
+    public ResponseEntity<ErrorResponse> handleFastApiResponseError(
+            RestClientResponseException exception
+    ) {
+
+        HttpStatus status = HttpStatus.resolve(exception.getStatusCode().value());
+        if (status == null) {
+            status = HttpStatus.INTERNAL_SERVER_ERROR;
+        }
+
+        return ResponseEntity
+                .status(status)
+                .body(
+                        new ErrorResponse(
+                                "FASTAPI-001",
+                                "fastApi 호출 중 오류가 발생하였습니다."
+                        )
+                );
+    }
+
+    /** fastApi 서버와 통신하지 못한 네트워크 오류를 발생 원인에 맞는 상태코드로 변환한다. */
+    @ExceptionHandler(ResourceAccessException.class)
+    public ResponseEntity<ErrorResponse> handleFastApiConnectionError(
+            ResourceAccessException exception
+    ) {
+
+        HttpStatus status = exception.getCause() instanceof java.net.SocketTimeoutException
+                ? HttpStatus.GATEWAY_TIMEOUT
+                : HttpStatus.BAD_GATEWAY;
+
+        return ResponseEntity
+                .status(status)
+                .body(
+                        new ErrorResponse(
+                                String.valueOf(status.value()),
+                                "fastApi 서버와 통신할 수 없습니다."
+                        )
+                );
+    }
+
     /**
      * 처리하지 못한 예외.
      */
@@ -219,4 +262,6 @@ public class GlobalExceptionHandler {
                         )
                 );
     }
+
+    
 }
