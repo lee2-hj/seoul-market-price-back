@@ -14,6 +14,8 @@ import com.seoul.market.seoulmarketprice.member.exception.MemberNotFoundExceptio
 import com.seoul.market.seoulmarketprice.location.exception.SggNotFoundException;
 import com.seoul.market.seoulmarketprice.qna.exception.QnaAccessDeniedException;
 import com.seoul.market.seoulmarketprice.qna.exception.QnaNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -28,6 +30,8 @@ import org.springframework.web.client.RestClientResponseException;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /** 존재하지 않는 자치구 코드로 행정동을 조회한 요청을 404 응답으로 변환한다. */
     @ExceptionHandler(SggNotFoundException.class)
@@ -170,6 +174,7 @@ public class GlobalExceptionHandler {
     ) {
 
         HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
+        log.error("서버 내부 상태 오류가 발생했습니다.", exception);
 
         return ResponseEntity
                 .status(status)
@@ -252,6 +257,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleException(
             Exception exception
     ) {
+
+        log.error("처리하지 못한 서버 예외가 발생했습니다.", exception);
 
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)

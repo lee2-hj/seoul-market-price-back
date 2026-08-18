@@ -168,8 +168,4 @@ public class MemberController {
                 )
                 .body(response);
     }
-
-//    @Operation(summary = "회원 정보 수정")
-//    @PatchMapping("/me")
-//    public ResponseEntity
 }

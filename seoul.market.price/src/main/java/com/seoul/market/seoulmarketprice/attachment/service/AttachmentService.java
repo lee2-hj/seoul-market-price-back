@@ -7,6 +7,8 @@ import com.seoul.market.seoulmarketprice.attachment.entity.AttachmentTargetType;
 import com.seoul.market.seoulmarketprice.attachment.repository.AttachmentRepository;
 import com.seoul.market.seoulmarketprice.config.AttachmentProperties;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,6 +32,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AttachmentService {
+    private static final Logger log = LoggerFactory.getLogger(AttachmentService.class);
     /** 발급한 MinIO 다운로드 URL의 유효시간인 5분을 초로 표현한 값. */
     private static final int DOWNLOAD_EXPIRY_SECONDS = 300;
     /** 일반 게시판에서 허용하는 안전한 문서·이미지·압축파일 확장자 목록. */
@@ -71,13 +74,15 @@ public class AttachmentService {
         }
         List<Attachment> existing = active(type, targetId);
         if (existing.size() + files.size() > properties.maxFileCount()) {
-            throw new IllegalArgumentException("첨부파일은 게시글당 최대 5개까지 등록할 수 있습니다.");
+            throw new IllegalArgumentException("첨부파일은 게시글당 최대 "
+                    + properties.maxFileCount() + "개까지 등록할 수 있습니다.");
         }
 
         long existingSize = existing.stream().mapToLong(Attachment::getFileSize).sum();
         long newSize = files.stream().mapToLong(MultipartFile::getSize).sum();
         if (existingSize + newSize > properties.maxTotalSize()) {
-            throw new IllegalArgumentException("첨부파일 전체 크기는 30MB를 초과할 수 없습니다.");
+            throw new IllegalArgumentException("첨부파일 전체 크기는 "
+                    + formatSize(properties.maxTotalSize()) + "를 초과할 수 없습니다.");
         }
 
         List<String> uploadedKeys = new ArrayList<>();
@@ -95,9 +100,13 @@ public class AttachmentService {
             return saved.stream().map(AttachmentResponse::from).toList();
         } catch (RuntimeException exception) {
             // MinIO는 DB 롤백 대상이 아니므로 이번 요청에서 생성한 객체를 직접 보상 삭제한다.
-            // 보상 삭제 실패는 최초 예외를 가리지 않도록 무시하고 최초 실패 원인을 다시 던진다.
+            // 보상 삭제 실패는 경고 로그로 남기되 최초 예외를 가리지 않는다.
             uploadedKeys.forEach(key -> {
-                try { objectStorageService.delete(key); } catch (RuntimeException ignored) { }
+                try {
+                    objectStorageService.delete(key);
+                } catch (RuntimeException cleanupException) {
+                    log.warn("첨부파일 보상 삭제에 실패했습니다. objectKey={}", key, cleanupException);
+                }
             });
             throw exception;
         }
@@ -182,7 +191,8 @@ public class AttachmentService {
             throw new IllegalArgumentException("빈 파일은 첨부할 수 없습니다.");
         }
         if (file.getSize() > properties.maxFileSize()) {
-            throw new IllegalArgumentException("첨부파일 하나의 크기는 10MB를 초과할 수 없습니다.");
+            throw new IllegalArgumentException("첨부파일 하나의 크기는 "
+                    + formatSize(properties.maxFileSize()) + "를 초과할 수 없습니다.");
         }
         String originalName = file.getOriginalFilename();
         if (originalName == null || originalName.isBlank()) {
@@ -239,6 +249,19 @@ public class AttachmentService {
     private String objectKey(AttachmentTargetType type, String extension) {
         String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM"));
         return type.objectPrefix() + "/" + date + "/" + UUID.randomUUID() + "." + extension;
+    }
+
+    /** 설정된 바이트 제한을 사용자에게 읽기 쉬운 단위로 표현한다. */
+    private static String formatSize(long bytes) {
+        long megabyte = 1024L * 1024L;
+        long kilobyte = 1024L;
+        if (bytes % megabyte == 0) {
+            return (bytes / megabyte) + "MB";
+        }
+        if (bytes % kilobyte == 0) {
+            return (bytes / kilobyte) + "KB";
+        }
+        return bytes + "바이트";
     }
 
     /** 검증과 정규화를 마친 파일명·확장자·MIME 타입을 업로드 흐름 내부에서 전달한다. */

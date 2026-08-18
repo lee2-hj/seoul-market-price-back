@@ -68,7 +68,6 @@ public class QnaBoard {
 
     /** 첨부파일의 원본 파일명이다. */
 //    경로에서 파일명만 가져오면 되므로 삭제(260807)
-//    @Column(name = "attach_name", length = 255)
 //    private String attachName;
 
     /** 서버 또는 외부 스토리지에 저장된 첨부파일 경로이다. */

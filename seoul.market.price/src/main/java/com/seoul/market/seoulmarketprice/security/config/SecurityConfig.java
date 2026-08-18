@@ -64,7 +64,7 @@ public class SecurityConfig {
                         corsConfigurationSource
                 ))
 
-                // 서버에 인증 세션을 저장하지 않는다.
+                // 일반 JWT 인증에는 세션을 사용하지 않지만 OAuth2 인가 과정에는 필요 시 세션을 허용한다.
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
                                 SessionCreationPolicy.IF_REQUIRED
