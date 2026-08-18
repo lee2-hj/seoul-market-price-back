@@ -59,10 +59,10 @@ public record TopAndBottomResponse(
             @JsonProperty("deal_cnt")
             Integer dealCnt,
 
-            @JsonProperty("total_thing_amt")
-            Long totalThingAmt,
+            @JsonProperty("avg_thing_amt")
+            Long avgThingAmt,
 
-            @JsonProperty("total_pyeong_amt")
-            Long totalPyeongAmt
+            @JsonProperty("avg_pyeong_amt")
+            Long avgPyeongAmt
     ){}
 }

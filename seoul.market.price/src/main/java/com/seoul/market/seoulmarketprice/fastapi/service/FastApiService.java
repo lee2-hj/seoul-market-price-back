@@ -19,6 +19,7 @@ public class FastApiService {
 
     private final RestClient restClient;
 
+    //지역별 평균가격 비교
     public CompareResponse getCompare(CompareRequest request) {
         return restClient.get()
                 .uri(uriBuilder -> uriBuilder
@@ -32,6 +33,7 @@ public class FastApiService {
                 .body(CompareResponse.class);
     }
 
+    //지역별 평균가격 리스트
     public ListResponse getPyeongList(@Valid ListRequest request) {
         return restClient.get()
                 .uri(uriBuilder -> uriBuilder
@@ -42,12 +44,14 @@ public class FastApiService {
                 .body(ListResponse.class);
     }
 
+    //해당 지역내 아파트 상위, 하위 5개
     public TopAndBottomResponse getTopAndBottom(@Valid TopAndBottomRequest request) {
         return restClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/api/v1/apt-price/top-bottom")
                         .queryParam("region_cgg_cd", request.guCode())
                         .queryParam("region_stdg_cd", request.dongCode())
+                        .queryParam("metric_type", request.metricType())
                         .build())
                 .retrieve()
                 .body(TopAndBottomResponse.class);
