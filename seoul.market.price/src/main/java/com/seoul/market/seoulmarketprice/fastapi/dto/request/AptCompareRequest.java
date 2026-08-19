@@ -27,4 +27,7 @@ public record AptCompareRequest(
         @NotBlank(message = "selectGroup2 값을 입력하세요")
         String selectGroup2
 ) {
+        public AptCompareRequest {
+                dongCode = DongCodeSupport.normalize(dongCode);
+        }
 }
