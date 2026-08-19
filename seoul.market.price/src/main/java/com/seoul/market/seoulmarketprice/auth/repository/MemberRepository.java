@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 /**
@@ -17,6 +18,23 @@ import java.util.Optional;
  * Service에서는 Repository를 통해 회원을 조회하거나 저장한다.
  */
 public interface MemberRepository extends JpaRepository<Member, Long>, MemberRepositoryCustom {
+
+    /** 탈퇴하지 않은 활성 회원 수를 조회한다. */
+    @Query("select count(m) from Member m where m.deleted_at is null")
+    long countActiveUsers();
+
+    /** 지정 기간에 가입했으며 현재 탈퇴하지 않은 회원 수를 조회한다. */
+    @Query("""
+            select count(m)
+            from Member m
+            where m.created_at >= :from
+              and m.created_at < :to
+              and m.deleted_at is null
+            """)
+    long countActiveUsersCreatedBetween(
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to
+    );
 
     /**
      * 로그인 아이디(user_id)로 회원을 조회한다.
