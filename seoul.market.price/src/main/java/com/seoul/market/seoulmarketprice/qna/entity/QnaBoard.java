@@ -66,14 +66,6 @@ public class QnaBoard {
     @Column(name = "answer_status", nullable = false)
     private AnswerStatus answerStatus;
 
-    /** 첨부파일의 원본 파일명이다. */
-//    경로에서 파일명만 가져오면 되므로 삭제(260807)
-//    private String attachName;
-
-    /** 서버 또는 외부 스토리지에 저장된 첨부파일 경로이다. */
-    @Column(name = "attach_path", length = 500)
-    private String attachPath;
-
     /** 상세 화면 조회 횟수이다. */
     @Column(name = "view_count", nullable = false)
     private int viewCount;
@@ -100,27 +92,22 @@ public class QnaBoard {
 
     /** 일반 사용자가 작성하는 신규 Q&A 게시글을 생성한다. */
     public static QnaBoard create(Long userId, String title, String questionContent,
-                                  boolean publicQuestion, String attachName, String attachPath) {
+                                  boolean publicQuestion) {
         QnaBoard qna = new QnaBoard();
         qna.userId = userId;
         qna.title = title;
         qna.questionContent = questionContent;
         qna.publicQuestion = publicQuestion;
-        qna.attachPath = attachPath;
         qna.answerStatus = AnswerStatus.WAITING;
         qna.viewCount = 0;
         return qna;
     }
 
     /** 작성자가 전달한 질문 필드와 첨부파일 메타데이터를 선택적으로 변경한다. */
-    public void updateQuestion(String title, String questionContent, Boolean publicQuestion,
-                               String attachName, String attachPath, boolean attachmentChanged) {
+    public void updateQuestion(String title, String questionContent, Boolean publicQuestion) {
         if (title != null) this.title = title;
         if (questionContent != null) this.questionContent = questionContent;
         if (publicQuestion != null) this.publicQuestion = publicQuestion;
-        if (attachmentChanged) {
-            this.attachPath = attachPath;
-        }
         this.updatedAt = now();
     }
 

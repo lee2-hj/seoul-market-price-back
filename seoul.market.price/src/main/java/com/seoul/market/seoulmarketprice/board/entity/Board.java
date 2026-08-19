@@ -64,14 +64,6 @@ public class Board {
     @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String content;
 
-    /** 첨부파일의 원본 파일명이다. */
-//    경로에서 파일명만 가져오면 되므로 삭제(260807)
-//    private String attachName;
-
-    /** 첨부파일이 저장된 서버 또는 스토리지 경로이다. */
-    @Column(name = "attach_path", length = 500)
-    private String attachPath;
-
     /** 게시글 상세 조회 횟수이다. */
     @Column(name = "view_count", nullable = false)
     private int viewCount;

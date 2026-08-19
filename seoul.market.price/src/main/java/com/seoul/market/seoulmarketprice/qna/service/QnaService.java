@@ -1,5 +1,7 @@
 package com.seoul.market.seoulmarketprice.qna.service;
 
+import com.seoul.market.seoulmarketprice.attachment.entity.AttachmentTargetType;
+import com.seoul.market.seoulmarketprice.attachment.repository.AttachmentRepository;
 import com.seoul.market.seoulmarketprice.qna.dto.condition.AdminQnaSearchCondition;
 import com.seoul.market.seoulmarketprice.qna.dto.condition.QnaSearchCondition;
 import com.seoul.market.seoulmarketprice.qna.dto.request.QnaAnswerRequest;
@@ -20,6 +22,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 /** Q&A의 조회, 작성자 권한 검증, 질문 관리와 관리자 답변 업무를 처리한다. */
 @Service
 @RequiredArgsConstructor
@@ -30,6 +36,8 @@ public class QnaService {
 
     /** QueryDSL 기반 화면별 조회와 벌크 수정을 담당하는 저장소이다. */
     private final QnaQueryRepository qnaQueryRepository;
+
+    private final AttachmentRepository attachmentRepository;
 
     /** 공개 Q&A 목록을 검색 조건과 페이지 정보에 맞춰 조회한다. */
     public QnaPageResponse getPublicQnas(QnaSearchCondition condition) {
@@ -83,9 +91,7 @@ public class QnaService {
     public QnaDetailResponse createQna(Long userId, QnaCreateRequest request) {
         QnaBoard saved = qnaRepository.save(QnaBoard.create(
                 userId, required(request.title(), "제목"), required(request.questionContent(), "질문 내용"),
-                request.publicQuestion() == null || request.publicQuestion(),
-                // 첨부파일은 별도 tb_attachment와 MinIO 업로드 API에서 관리한다.
-                null, null));
+                request.publicQuestion() == null || request.publicQuestion()));
         return toDetailResponse(saved);
     }
 
@@ -98,9 +104,7 @@ public class QnaService {
             throw new QnaAccessDeniedException();
         }
         qna.updateQuestion(optionalRequired(request.title(), "제목"),
-                optionalRequired(request.questionContent(), "질문 내용"), request.publicQuestion(),
-                // 기존 단일 attach_path 컬럼은 더 이상 수정 요청으로 변경하지 않는다.
-                null, null, false);
+                optionalRequired(request.questionContent(), "질문 내용"), request.publicQuestion());
         return toDetailResponse(qna);
     }
 
@@ -173,23 +177,31 @@ public class QnaService {
 
     /** JPA 페이지 결과를 API 페이지 응답으로 변환한다. */
     private QnaPageResponse toPageResponse(Page<QnaBoard> page) {
-        return new QnaPageResponse(page.getContent().stream().map(this::toListResponse).toList(),
+        List<QnaBoard> qnas = page.getContent();
+        Set<Long> attachmentTargetIds = qnas.isEmpty()
+                ? Set.of()
+                : new HashSet<>(attachmentRepository.findActiveTargetIds(
+                        AttachmentTargetType.QNA_BOARD,
+                        qnas.stream().map(QnaBoard::getId).toList()));
+        return new QnaPageResponse(qnas.stream()
+                .map(qna -> toListResponse(qna, attachmentTargetIds)).toList(),
                 page.getNumber(), page.getSize(), page.getTotalElements(), page.getTotalPages(),
                 page.isFirst(), page.isLast());
     }
 
     /** Q&A 엔티티를 목록용 요약 응답으로 변환한다. */
-    private QnaListResponse toListResponse(QnaBoard qna) {
+    private QnaListResponse toListResponse(QnaBoard qna, Set<Long> attachmentTargetIds) {
         return new QnaListResponse(qna.getId(), qna.getTitle(), qna.getWriterLoginId(), qna.getWriterName(),
                 qna.getAnswerStatus(), qna.getViewCount(), qna.isPublicQuestion(),
-                qna.getAttachPath() != null, qna.getCreatedAt(), qna.getAnsweredAt());
+                attachmentTargetIds.contains(qna.getId()),
+                qna.getCreatedAt(), qna.getAnsweredAt());
     }
 
     /** Q&A 엔티티를 질문·답변 상세 응답으로 변환한다. */
     private QnaDetailResponse toDetailResponse(QnaBoard qna) {
         return new QnaDetailResponse(qna.getId(), qna.getWriterLoginId(), qna.getWriterName(), qna.getTitle(),
                 qna.getQuestionContent(), qna.getAnswerContent(), qna.getAnswerAdminName(),
-                qna.getAnswerStatus(), qna.getAttachPath(), qna.getViewCount(), qna.isPublicQuestion(),
+                qna.getAnswerStatus(), qna.getViewCount(), qna.isPublicQuestion(),
                 qna.getCreatedAt(), qna.getUpdatedAt(), qna.getAnsweredAt());
     }
 

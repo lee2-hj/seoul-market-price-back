@@ -15,7 +15,6 @@ import java.time.LocalDateTime;
  * @param answerContent 관리자 답변 본문
  * @param answerAdminName 답변 관리자 이름
  * @param answerStatus 답변 상태
- * @param attachName 첨부파일 원본 이름
  * @param viewCount 조회수
  * @param publicQuestion 공개 여부
  * @param createdAt 질문 등록 시각
@@ -31,7 +30,6 @@ public record QnaDetailResponse(
         String answerContent,
         String answerAdminName,
         AnswerStatus answerStatus,
-        String attachName,
         int viewCount,
         boolean publicQuestion,
         LocalDateTime createdAt,

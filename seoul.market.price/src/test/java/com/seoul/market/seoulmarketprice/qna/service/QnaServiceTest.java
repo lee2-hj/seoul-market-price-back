@@ -1,5 +1,6 @@
 package com.seoul.market.seoulmarketprice.qna.service;
 
+import com.seoul.market.seoulmarketprice.attachment.repository.AttachmentRepository;
 import com.seoul.market.seoulmarketprice.qna.dto.request.QnaAnswerRequest;
 import com.seoul.market.seoulmarketprice.qna.dto.request.QnaCreateRequest;
 import com.seoul.market.seoulmarketprice.qna.dto.request.QnaUpdateRequest;
@@ -32,11 +33,14 @@ class QnaServiceTest {
     @Mock
     private QnaQueryRepository queryRepository;
 
+    @Mock
+    private AttachmentRepository attachmentRepository;
+
     private QnaService service;
 
     @BeforeEach
     void setUp() {
-        service = new QnaService(repository, queryRepository);
+        service = new QnaService(repository, queryRepository, attachmentRepository);
     }
 
     @Test
@@ -63,7 +67,7 @@ class QnaServiceTest {
 
     @Test
     void updateQnaRejectsDifferentWriter() {
-        QnaBoard qna = QnaBoard.create(3L, "질문", "내용", false, null, null);
+        QnaBoard qna = QnaBoard.create(3L, "질문", "내용", false);
         when(queryRepository.findActiveById(1L)).thenReturn(Optional.of(qna));
 
         assertThatThrownBy(() -> service.updateQna(1L, 4L,
@@ -73,7 +77,7 @@ class QnaServiceTest {
 
     @Test
     void saveAnswerChangesStatusAndAdmin() {
-        QnaBoard qna = QnaBoard.create(3L, "질문", "내용", true, null, null);
+        QnaBoard qna = QnaBoard.create(3L, "질문", "내용", true);
         when(queryRepository.findActiveById(1L)).thenReturn(Optional.of(qna));
 
         var response = service.saveAnswer(1L, 8L, new QnaAnswerRequest(" 답변 "));
@@ -86,7 +90,7 @@ class QnaServiceTest {
 
     @Test
     void deleteAnswerReturnsPostToWaiting() {
-        QnaBoard qna = QnaBoard.create(3L, "질문", "내용", true, null, null);
+        QnaBoard qna = QnaBoard.create(3L, "질문", "내용", true);
         qna.answer(8L, "답변");
         when(queryRepository.findActiveById(1L)).thenReturn(Optional.of(qna));
 
@@ -100,7 +104,7 @@ class QnaServiceTest {
 
     @Test
     void deleteByAdminSoftDeletesPost() {
-        QnaBoard qna = QnaBoard.create(3L, "질문", "내용", true, null, null);
+        QnaBoard qna = QnaBoard.create(3L, "질문", "내용", true);
         when(queryRepository.findActiveById(1L)).thenReturn(Optional.of(qna));
 
         service.deleteByAdmin(1L);

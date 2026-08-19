@@ -3,6 +3,8 @@ package com.seoul.market.seoulmarketprice.attachment.repository;
 import com.seoul.market.seoulmarketprice.attachment.entity.Attachment;
 import com.seoul.market.seoulmarketprice.attachment.entity.AttachmentTargetType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,6 +20,18 @@ public interface AttachmentRepository extends JpaRepository<Attachment, Long> {
      */
     List<Attachment> findAllByTargetTypeAndTargetIdAndDeletedAtIsNullOrderByIdAsc(
             AttachmentTargetType targetType, Long targetId
+    );
+
+    @Query("""
+            select distinct attachment.targetId
+            from Attachment attachment
+            where attachment.targetType = :targetType
+              and attachment.targetId in :targetIds
+              and attachment.deletedAt is null
+            """)
+    List<Long> findActiveTargetIds(
+            @Param("targetType") AttachmentTargetType targetType,
+            @Param("targetIds") List<Long> targetIds
     );
 
     /**
