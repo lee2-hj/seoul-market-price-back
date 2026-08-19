@@ -1,8 +1,10 @@
 package com.seoul.market.seoulmarketprice.fastapi.service;
 
+import com.seoul.market.seoulmarketprice.fastapi.dto.request.AptCompareRequest;
 import com.seoul.market.seoulmarketprice.fastapi.dto.request.CompareRequest;
 import com.seoul.market.seoulmarketprice.fastapi.dto.request.ListRequest;
 import com.seoul.market.seoulmarketprice.fastapi.dto.request.TopAndBottomRequest;
+import com.seoul.market.seoulmarketprice.fastapi.dto.response.AptCompareResponse;
 import com.seoul.market.seoulmarketprice.fastapi.dto.response.CompareResponse;
 import com.seoul.market.seoulmarketprice.fastapi.dto.response.ListResponse;
 import com.seoul.market.seoulmarketprice.fastapi.dto.response.TopAndBottomResponse;
@@ -55,5 +57,22 @@ public class FastApiService {
                         .build())
                 .retrieve()
                 .body(TopAndBottomResponse.class);
+    }
+
+    public AptCompareResponse getAptCompare(@Valid AptCompareRequest request) {
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/v1/apt-price/apt-compare")
+                        .queryParam("cgg_cd", request.guCode())
+                        .queryParam("stdg_cd",request.dongCode())
+                        .queryParam("bldg_nm", request.aptName())
+                        .queryParam("mno", request.mno())
+                        .queryParam("sno", request.sno())
+                        .queryParam("query_type", request.queryType())
+                        .queryParam("grp", request.selectGroup1())
+                        .queryParam("grp2", request.selectGroup2())
+                        .build())
+                .retrieve()
+                .body(AptCompareResponse.class);
     }
 }

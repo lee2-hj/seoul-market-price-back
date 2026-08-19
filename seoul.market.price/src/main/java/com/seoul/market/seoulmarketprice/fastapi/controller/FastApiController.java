@@ -1,12 +1,15 @@
 package com.seoul.market.seoulmarketprice.fastapi.controller;
 
+import com.seoul.market.seoulmarketprice.fastapi.dto.request.AptCompareRequest;
 import com.seoul.market.seoulmarketprice.fastapi.dto.request.CompareRequest;
 import com.seoul.market.seoulmarketprice.fastapi.dto.request.ListRequest;
 import com.seoul.market.seoulmarketprice.fastapi.dto.request.TopAndBottomRequest;
+import com.seoul.market.seoulmarketprice.fastapi.dto.response.AptCompareResponse;
 import com.seoul.market.seoulmarketprice.fastapi.dto.response.CompareResponse;
 import com.seoul.market.seoulmarketprice.fastapi.dto.response.ListResponse;
 import com.seoul.market.seoulmarketprice.fastapi.dto.response.TopAndBottomResponse;
 import com.seoul.market.seoulmarketprice.fastapi.service.FastApiService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +25,7 @@ public class FastApiController {
 
     private final FastApiService fastApiService;
 
-    @Tag(name = "지역별 평균가 비교", description = "지역별 평균가 비교 데이터 api")
+    @Operation(summary = "지역별 평균가 비교", description = "지역별 평균가 비교 데이터 api")
     @GetMapping("/compare")
     public ResponseEntity<CompareResponse> compare(@Valid @ModelAttribute CompareRequest request){
         CompareResponse response = fastApiService.getCompare(request);
@@ -30,7 +33,7 @@ public class FastApiController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-    @Tag(name = "지역별 평균가 비교(지도용)", description = "지역별 평균가 비교 데이터 api")
+    @Operation(summary = "지역별 평균가 비교(지도용)", description = "지역별 평균가 비교 데이터 api")
     @GetMapping("/list")
     public ResponseEntity<ListResponse> pyeongList(@Valid @ModelAttribute ListRequest request){
         ListResponse response = fastApiService.getPyeongList(request);
@@ -38,10 +41,18 @@ public class FastApiController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-    @Tag(name = "지역내 아파트 가격 상위 5개,하위 5개", description = "지역내 아파트 가격 상위5개, 하위5개 데이터 api")
+    @Operation(summary = "지역내 아파트 가격 상위 5개,하위 5개", description = "지역내 아파트 가격 상위5개, 하위5개 데이터 api")
     @GetMapping("/topandbottom")
     public ResponseEntity<TopAndBottomResponse> topAndbottom(@Valid @ModelAttribute TopAndBottomRequest request){
         TopAndBottomResponse response = fastApiService.getTopAndBottom(request);
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @Operation(summary = "아파트 타입별 비교(평형,층수)", description = "아파트 층수별, 평형별 비교  api")
+    @GetMapping("/aptcompare")
+    public ResponseEntity<AptCompareResponse> aptcompare(@Valid @ ModelAttribute AptCompareRequest request){
+        AptCompareResponse response = fastApiService.getAptCompare(request);
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
