@@ -9,17 +9,20 @@ import com.seoul.market.seoulmarketprice.fastapi.dto.response.CompareResponse;
 import com.seoul.market.seoulmarketprice.fastapi.dto.response.ListResponse;
 import com.seoul.market.seoulmarketprice.fastapi.dto.response.TopAndBottomResponse;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 @Service
-@RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class FastApiService {
 
     private final RestClient restClient;
+
+    public FastApiService(@Qualifier("fastApiRestClient") RestClient restClient) {
+        this.restClient = restClient;
+    }
 
     //지역별 평균가격 비교
     public CompareResponse getCompare(CompareRequest request) {
