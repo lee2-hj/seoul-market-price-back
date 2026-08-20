@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 /** 게시글 목록 한 건을 표현하는 응답이다. */
 public record BoardListResponse(
         Long id,
+        Long boardId,
         PostType postType,
         String title,
         String userId,

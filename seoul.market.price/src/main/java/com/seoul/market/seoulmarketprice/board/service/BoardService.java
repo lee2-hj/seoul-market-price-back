@@ -225,6 +225,7 @@ public class BoardService {
     private BoardListResponse toListResponse(Board board) {
         return new BoardListResponse(
                 board.getId(),
+                board.getId(),
                 board.getPostType(),
                 board.getTitle(),
                 board.getWriterUserId(),
