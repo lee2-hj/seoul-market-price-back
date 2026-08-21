@@ -5,6 +5,7 @@ import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCheckRe
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCreateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberIdCheckRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberWithdrawalRequest;
+import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberUpdateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberCreateResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberCheckResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberIdCheckResponse;
@@ -206,6 +207,73 @@ class MemberServiceTest {
 
         assertThat(member.isDeleted()).isFalse();
         verify(refreshTokenService, never()).deleteAllByMemberId(any());
+    }
+
+    @Test
+    void updateMemberChangesPasswordWithoutCheckingCurrentPassword() {
+        Member member = localMember();
+        when(memberManagementRepository.findActiveByIdForUpdate(1L))
+                .thenReturn(Optional.of(member));
+        when(passwordEncoder.encode("new-password123!"))
+                .thenReturn("encoded-new-password");
+
+        memberService.updateMember(1L, new MemberUpdateRequest(
+                "new-password123!", null, null, null, null, null, null
+        ));
+
+        assertThat(member.getPassword()).isEqualTo("encoded-new-password");
+        verify(passwordEncoder).encode("new-password123!");
+        verify(passwordEncoder, never()).matches(any(), any());
+    }
+
+    @Test
+    void updateMemberChangesOnlyProvidedContactAndAddressFields() {
+        Member member = localMember();
+        when(memberManagementRepository.findActiveByIdForUpdate(1L))
+                .thenReturn(Optional.of(member));
+
+        memberService.updateMember(1L, new MemberUpdateRequest(
+                null, null, null, "new@example.com", null, null, "101호"
+        ));
+
+        assertThat(member.getEmail()).isEqualTo("new@example.com");
+        assertThat(member.getAddressDetail()).isEqualTo("101호");
+        assertThat(member.getAddress()).isEqualTo("서울시 중구");
+        assertThat(member.getPhone()).isEqualTo("010-1234-5678");
+    }
+
+    @Test
+    void updateMemberVerifiesAndChangesUniquePhone() {
+        Member member = localMember();
+        member.registerCi("ci-value");
+        when(memberManagementRepository.findActiveByIdForUpdate(1L))
+                .thenReturn(Optional.of(member));
+        when(phoneVerificationService.confirm(
+                new PhoneVerificationConfirmRequest("verification-id")
+        )).thenReturn(new PhoneVerificationConfirmResponse(
+                true, "서울장터", "01099998888", null, null,
+                Instant.now().toString(), "ci-value"
+        ));
+        when(memberManagementRepository.existsActiveByPhone("010-9999-8888"))
+                .thenReturn(false);
+
+        memberService.updateMember(1L, new MemberUpdateRequest(
+                null, "010-9999-8888", "verification-id", null, null, null, null
+        ));
+
+        assertThat(member.getPhone()).isEqualTo("010-9999-8888");
+        verify(memberManagementRepository).existsActiveByPhone("010-9999-8888");
+    }
+
+    private Member localMember() {
+        Member member = Member.createLocalMember(
+                "market_user", "encoded-password", "서울장터",
+                "04524", "서울시 중구", "1층", "010-1234-5678",
+                "market@example.com", (byte) 1, (byte) 1, (byte) 1,
+                null, null, null, null
+        );
+        ReflectionTestUtils.setField(member, "id", 1L);
+        return member;
     }
 
     private PhoneVerificationConfirmResponse verifiedIdentity() {

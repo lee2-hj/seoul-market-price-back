@@ -8,6 +8,7 @@ import com.seoul.market.seoulmarketprice.qna.dto.condition.QnaSearchCondition;
 import com.seoul.market.seoulmarketprice.qna.dto.request.QnaCreateRequest;
 import com.seoul.market.seoulmarketprice.qna.dto.request.QnaUpdateRequest;
 import com.seoul.market.seoulmarketprice.qna.dto.response.QnaDetailResponse;
+import com.seoul.market.seoulmarketprice.qna.dto.response.QnaFullDetailResponse;
 import com.seoul.market.seoulmarketprice.qna.dto.response.QnaPageResponse;
 import com.seoul.market.seoulmarketprice.qna.service.QnaService;
 import com.seoul.market.seoulmarketprice.security.principal.CustomUserPrincipal;
@@ -60,6 +61,21 @@ public class QnaController {
     public ResponseEntity<QnaDetailResponse> getQna(@PathVariable Long id,
             @AuthenticationPrincipal CustomUserPrincipal principal) {
         return ResponseEntity.ok(qnaService.getQna(id, principal == null ? null : principal.memberId()));
+    }
+
+    /** Q&A와 첨부파일을 상세 화면용 통합 응답으로 조회한다. */
+    @Operation(summary = "Q&A 통합 상세 조회")
+    @GetMapping("/{id}/full")
+    public ResponseEntity<QnaFullDetailResponse> getFullQna(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserPrincipal principal
+    ) {
+        Long userId = principal == null ? null : principal.memberId();
+        QnaDetailResponse detail = qnaService.getQna(id, userId);
+        return ResponseEntity.ok(new QnaFullDetailResponse(
+                detail,
+                attachmentService.list(AttachmentTargetType.QNA_BOARD, id)
+        ));
     }
 
     /** 로그인 사용자의 식별자로 신규 질문을 등록한다. */

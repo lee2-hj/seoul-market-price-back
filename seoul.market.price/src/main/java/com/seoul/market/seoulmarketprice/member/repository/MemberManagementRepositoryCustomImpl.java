@@ -36,6 +36,7 @@ public class MemberManagementRepositoryCustomImpl implements MemberManagementRep
     public Optional<Member> findActiveById(Long id) {
         return Optional.ofNullable(queryFactory.selectFrom(member).where(member.id.eq(id), active()).fetchOne());
     }
+    public Optional<Member> findActiveByIdForUpdate(Long id) { return locked(member.id.eq(id).and(active())); }
     public Optional<Member> findActiveByIdForWithdrawal(Long id) { return locked(member.id.eq(id).and(active())); }
 
     private boolean exists(BooleanExpression condition) {

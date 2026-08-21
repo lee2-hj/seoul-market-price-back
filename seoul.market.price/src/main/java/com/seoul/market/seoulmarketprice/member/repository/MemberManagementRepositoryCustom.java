@@ -13,6 +13,7 @@ public interface MemberManagementRepositoryCustom {
     Optional<Member> findActiveLocalByUserIdForCiRegistration(String userId);
     Optional<Member> findActiveByIdForPasswordReset(Long memberId);
     Optional<Member> findActiveById(Long memberId);
+    Optional<Member> findActiveByIdForUpdate(Long memberId);
     Optional<Member> findActiveByIdForWithdrawal(Long memberId);
     List<Member> findActiveLocalMembersByVerifiedIdentity(String name, String phone);
 }

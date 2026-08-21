@@ -17,4 +17,11 @@ public class RestClientConfig {
                 .baseUrl(fastApiUrl)
                 .build();
     }
+
+    @Bean
+    public RestClient aiFastApiRestClient(
+            @Value("${fastapi.ai-url:http://localhost:8001}") String aiFastApiUrl
+    ) {
+        return RestClient.builder().baseUrl(aiFastApiUrl).build();
+    }
 }

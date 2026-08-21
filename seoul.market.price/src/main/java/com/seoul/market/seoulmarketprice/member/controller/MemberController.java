@@ -4,6 +4,7 @@ import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCheckRe
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCreateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberIdCheckRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberIdFindRequest;
+import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberUpdateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberWithdrawalRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.PasswordResetCompleteRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.PasswordResetVerifyRequest;
@@ -149,6 +150,16 @@ public class MemberController {
     ) {
         // Entity를 직접 노출하지 않고 화면에 필요한 값만 응답한다.
         return ResponseEntity.ok(memberService.getMember(principal.memberId()));
+    }
+
+    /** 현재 로그인한 회원이 전달한 항목만 선택적으로 변경한다. */
+    @Operation(summary = "현재 로그인한 회원 수정")
+    @PatchMapping("/me")
+    public ResponseEntity<MemberResponse> updateMe(
+            @AuthenticationPrincipal CustomUserPrincipal principal,
+            @Valid @RequestBody MemberUpdateRequest request
+    ) {
+        return ResponseEntity.ok(memberService.updateMember(principal.memberId(), request));
     }
 
     /** 현재 비밀번호를 재확인한 뒤 로그인 회원을 소프트 삭제한다. */

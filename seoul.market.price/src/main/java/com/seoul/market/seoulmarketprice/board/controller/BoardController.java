@@ -8,8 +8,10 @@ import com.seoul.market.seoulmarketprice.board.dto.condition.BoardSearchConditio
 import com.seoul.market.seoulmarketprice.board.dto.request.BoardCreateRequest;
 import com.seoul.market.seoulmarketprice.board.dto.request.BoardUpdateRequest;
 import com.seoul.market.seoulmarketprice.board.dto.response.BoardDetailResponse;
+import com.seoul.market.seoulmarketprice.board.dto.response.BoardFullDetailResponse;
 import com.seoul.market.seoulmarketprice.board.dto.response.BoardPageResponse;
 import com.seoul.market.seoulmarketprice.board.service.BoardService;
+import com.seoul.market.seoulmarketprice.comment.service.CommentService;
 import com.seoul.market.seoulmarketprice.security.principal.CustomUserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -46,6 +48,8 @@ public class BoardController {
     /** 일반 게시판 첨부파일의 저장과 조회를 처리한다. */
     private final AttachmentService attachmentService;
 
+    private final CommentService commentService;
+
     /** 공개 게시글을 공지 우선, 최신순으로 조회한다. */
     @Operation(summary = "게시글 목록 조회")
     @GetMapping
@@ -65,6 +69,18 @@ public class BoardController {
             @PathVariable Long id
     ) {
         return ResponseEntity.ok(boardService.getBoard(id));
+    }
+
+    /** 게시글, 댓글, 첨부파일을 상세 화면용 통합 응답으로 조회한다. */
+    @Operation(summary = "게시글 통합 상세 조회")
+    @GetMapping("/{id}/full")
+    public ResponseEntity<BoardFullDetailResponse> getFullBoard(@PathVariable Long id) {
+        BoardDetailResponse detail = boardService.getBoard(id);
+        return ResponseEntity.ok(new BoardFullDetailResponse(
+                detail,
+                commentService.getComments(id),
+                attachmentService.list(AttachmentTargetType.BOARD, id)
+        ));
     }
 
     /** 로그인한 일반 사용자 명의로 게시글을 등록한다. */

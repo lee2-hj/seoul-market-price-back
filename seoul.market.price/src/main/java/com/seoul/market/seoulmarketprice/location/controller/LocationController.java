@@ -2,6 +2,7 @@ package com.seoul.market.seoulmarketprice.location.controller;
 
 import com.seoul.market.seoulmarketprice.location.dto.CurrentDistrictResponse;
 import com.seoul.market.seoulmarketprice.location.dto.DongResponse;
+import com.seoul.market.seoulmarketprice.location.dto.DongRegionResponse;
 import com.seoul.market.seoulmarketprice.location.dto.SggResponse;
 import com.seoul.market.seoulmarketprice.location.service.LocationService;
 import com.seoul.market.seoulmarketprice.location.service.LocationMasterService;
@@ -50,5 +51,10 @@ public class LocationController {
     @GetMapping("/dongs")
     public List<DongResponse> getDongs(@RequestParam String sggCd) {
         return locationMasterService.getDongs(sggCd);
+    }
+
+    @GetMapping("/resolve-dongs")
+    public List<DongRegionResponse> resolveDongs(@RequestParam String dong1, @RequestParam String dong2) {
+        return locationMasterService.resolveDongs(dong1, dong2);
     }
 }
