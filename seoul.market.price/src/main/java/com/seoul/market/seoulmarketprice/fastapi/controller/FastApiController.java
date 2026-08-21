@@ -1,13 +1,7 @@
 package com.seoul.market.seoulmarketprice.fastapi.controller;
 
-import com.seoul.market.seoulmarketprice.fastapi.dto.request.AptCompareRequest;
-import com.seoul.market.seoulmarketprice.fastapi.dto.request.CompareRequest;
-import com.seoul.market.seoulmarketprice.fastapi.dto.request.ListRequest;
-import com.seoul.market.seoulmarketprice.fastapi.dto.request.TopAndBottomRequest;
-import com.seoul.market.seoulmarketprice.fastapi.dto.response.AptCompareResponse;
-import com.seoul.market.seoulmarketprice.fastapi.dto.response.CompareResponse;
-import com.seoul.market.seoulmarketprice.fastapi.dto.response.ListResponse;
-import com.seoul.market.seoulmarketprice.fastapi.dto.response.TopAndBottomResponse;
+import com.seoul.market.seoulmarketprice.fastapi.dto.request.*;
+import com.seoul.market.seoulmarketprice.fastapi.dto.response.*;
 import com.seoul.market.seoulmarketprice.fastapi.service.FastApiService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -57,4 +51,11 @@ public class FastApiController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @Operation(summary = "지역별 거래 동향", description = "지역별 거래 동향 api")
+    @GetMapping("/rtt")
+    public ResponseEntity<RttRespopnse> rttInfo(@Valid @ModelAttribute RttRequest request){
+        RttRespopnse response = fastApiService.getRttInfo(request);
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
 }

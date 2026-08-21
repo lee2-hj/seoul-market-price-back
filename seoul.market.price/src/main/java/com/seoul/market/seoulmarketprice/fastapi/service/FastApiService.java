@@ -1,18 +1,13 @@
 package com.seoul.market.seoulmarketprice.fastapi.service;
 
-import com.seoul.market.seoulmarketprice.fastapi.dto.request.AptCompareRequest;
-import com.seoul.market.seoulmarketprice.fastapi.dto.request.CompareRequest;
-import com.seoul.market.seoulmarketprice.fastapi.dto.request.ListRequest;
-import com.seoul.market.seoulmarketprice.fastapi.dto.request.TopAndBottomRequest;
-import com.seoul.market.seoulmarketprice.fastapi.dto.response.AptCompareResponse;
-import com.seoul.market.seoulmarketprice.fastapi.dto.response.CompareResponse;
-import com.seoul.market.seoulmarketprice.fastapi.dto.response.ListResponse;
-import com.seoul.market.seoulmarketprice.fastapi.dto.response.TopAndBottomResponse;
+import com.seoul.market.seoulmarketprice.fastapi.dto.request.*;
+import com.seoul.market.seoulmarketprice.fastapi.dto.response.*;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.util.StringUtils;
 
 @Service
 @Transactional(readOnly = true)
@@ -77,5 +72,19 @@ public class FastApiService {
                         .build())
                 .retrieve()
                 .body(AptCompareResponse.class);
+    }
+
+    public RttRespopnse getRttInfo(@Valid RttRequest request) {
+        return restClient.get()
+                .uri(uriBuilder -> {
+                    uriBuilder.path("/api/v1/rtt/summary")
+                            .queryParam("sgg_cd", request.guCode());
+                    if (StringUtils.hasText(request.dongCode())) {
+                        uriBuilder.queryParam("dong_cd", request.dongCode());
+                    }
+                    return uriBuilder.build();
+                })
+                .retrieve()
+                .body(RttRespopnse.class);
     }
 }
