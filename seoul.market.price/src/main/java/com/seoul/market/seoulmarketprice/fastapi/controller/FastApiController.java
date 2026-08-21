@@ -43,7 +43,9 @@ public class FastApiController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-    @Operation(summary = "아파트 타입별 비교(평형,층수)", description = "아파트 층수별, 평형별 비교  api")
+    @Operation(summary = "아파트 타입별 비교(평형,층수)", description = "아파트 층수별 비교 api <br>" +
+            "- 평형별 비교  api 'pyeong'=평단가,'floor'=층별가 <br>" +
+            "- query_type='pyeong'이면 10/20/30/40 중 하나(40은 40평 이상 포함), query_type='floor'이면 LOW/MID/HIGH 중 하나")
     @GetMapping("/aptcompare")
     public ResponseEntity<AptCompareResponse> aptcompare(@Valid @ ModelAttribute AptCompareRequest request){
         AptCompareResponse response = fastApiService.getAptCompare(request);
