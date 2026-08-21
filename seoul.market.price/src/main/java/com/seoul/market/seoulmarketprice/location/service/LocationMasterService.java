@@ -54,14 +54,31 @@ public class LocationMasterService {
     public List<DongRegionResponse> resolveDongs(String dong1, String dong2) {
         List<DongRegionResponse> result = new ArrayList<>();
         for (String name : List.of(dong1, dong2)) {
-            DongMaster dong = dongMasterRepository.findAllByDongName(name).stream().findFirst()
-                    .or(() -> dongMasterRepository.findAll().stream()
-                            .filter(candidate -> candidate.getDongName().contains(name.replaceAll("[0-9]", "")))
-                            .findFirst())
-                    .orElseThrow(() -> new IllegalArgumentException(name + "을(를) 찾을 수 없습니다."));
-            result.add(new DongRegionResponse(dong.getDongName(), dong.getDongCode(), dong.getSgg().getSggName(), dong.getSgg().getSggCode()));
+            List<DongMaster> candidates = dongMasterRepository.findAllByDongName(name);
+            if (candidates.isEmpty()) {
+                String normalized = name.replaceAll("[0-9]", "");
+                candidates = dongMasterRepository.findAll().stream()
+                        .filter(candidate -> candidate.getDongName().contains(normalized)).toList();
+            }
+            if (candidates.isEmpty()) throw new IllegalArgumentException(name + "을(를) 찾을 수 없습니다.");
+            for (DongMaster dong : candidates) {
+                result.add(new DongRegionResponse(name, dong.getDongName(), dong.getDongCode(), dong.getSgg().getSggName(), dong.getSgg().getSggCode()));
+            }
         }
         return result;
+    }
+
+    @Transactional(readOnly = true)
+    public List<DongRegionResponse> resolveDong(String name) {
+        List<DongMaster> candidates = dongMasterRepository.findAllByDongName(name);
+        if (candidates.isEmpty()) {
+            String normalized = name.replaceAll("[0-9]", "");
+            candidates = dongMasterRepository.findAll().stream()
+                    .filter(candidate -> candidate.getDongName().contains(normalized)).toList();
+        }
+        if (candidates.isEmpty()) throw new IllegalArgumentException(name + "을(를) 찾을 수 없습니다.");
+        return candidates.stream().map(dong -> new DongRegionResponse(name, dong.getDongName(),
+                dong.getDongCode(), dong.getSgg().getSggName(), dong.getSgg().getSggCode())).toList();
     }
 
     /** 요청받은 자치구 코드의 앞뒤 공백을 제거하고 빈 값 입력을 거부한다. */

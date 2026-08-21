@@ -57,4 +57,9 @@ public class LocationController {
     public List<DongRegionResponse> resolveDongs(@RequestParam String dong1, @RequestParam String dong2) {
         return locationMasterService.resolveDongs(dong1, dong2);
     }
+
+    @GetMapping("/resolve-dong")
+    public List<DongRegionResponse> resolveDong(@RequestParam String dong) {
+        return locationMasterService.resolveDong(dong);
+    }
 }
