@@ -1,6 +1,7 @@
 package com.seoul.market.seoulmarketprice.member.dto.request.member;
 
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
@@ -16,6 +17,9 @@ public record MemberUpdateRequest(
                 message = "휴대전화 번호는 010-1234-5678 형식이어야 합니다."
         )
         String phone,
+
+        /** 휴대전화 번호 변경 시 프론트에서 완료한 PASS 본인인증 아이디. */
+        String identityVerificationId,
 
         /** 변경할 이메일 주소. */
         @Email(message = "이메일 형식이 올바르지 않습니다.")
@@ -34,4 +38,21 @@ public record MemberUpdateRequest(
         @Size(max = 255, message = "상세 주소는 255자 이하여야 합니다.")
         String addressDetail
 ) {
+    /** 휴대전화 번호를 변경하려면 해당 번호로 완료한 본인인증 결과가 필요하다. */
+    @AssertTrue(message = "휴대전화 번호 변경 시 본인인증 아이디는 필수입니다.")
+    public boolean isPhoneVerificationProvided() {
+        return phone == null
+                || (identityVerificationId != null && !identityVerificationId.isBlank());
+    }
+
+    /** 실제로 변경할 값이 하나 이상 전달되었는지 확인한다. */
+    @AssertTrue(message = "변경할 회원 정보를 하나 이상 입력해야 합니다.")
+    public boolean isAnyFieldProvided() {
+        return password != null
+                || phone != null
+                || email != null
+                || zipcode != null
+                || address != null
+                || addressDetail != null;
+    }
 }

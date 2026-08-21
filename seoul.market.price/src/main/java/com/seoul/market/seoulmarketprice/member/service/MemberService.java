@@ -5,6 +5,7 @@ import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCheckRe
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCreateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberIdCheckRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberWithdrawalRequest;
+import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberUpdateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberCheckResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberCreateResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberResponse;
@@ -70,6 +71,53 @@ public class MemberService {
                 .orElseThrow(MemberNotFoundException::new);
 
         return MemberResponse.from(member);
+    }
+
+    /** 현재 로그인한 회원의 비밀번호·연락처·주소를 선택적으로 변경한다. */
+    @Transactional
+    public MemberResponse updateMember(Long memberId, MemberUpdateRequest request) {
+        Member member = memberManagementRepository.findActiveByIdForUpdate(memberId)
+                .orElseThrow(MemberNotFoundException::new);
+
+        if (request.password() != null) {
+            member.changePassword(passwordEncoder.encode(request.password()));
+        }
+
+        if (request.phone() != null && !request.phone().equals(member.getPhone())) {
+            verifyPhoneChange(member, request);
+            if (memberManagementRepository.existsActiveByPhone(request.phone())) {
+                throw new DuplicateMemberException("이미 사용 중인 전화번호입니다.");
+            }
+            member.changePhone(request.phone());
+        }
+
+        member.changeContactAndAddress(
+                request.email(),
+                request.zipcode(),
+                request.address(),
+                request.addressDetail()
+        );
+
+        try {
+            memberManagementRepository.flush();
+        } catch (DataIntegrityViolationException exception) {
+            throw new DuplicateMemberException("이미 사용 중인 회원 정보입니다.");
+        }
+        return MemberResponse.from(member);
+    }
+
+    private void verifyPhoneChange(Member member, MemberUpdateRequest request) {
+        PhoneVerificationConfirmResponse verification = phoneVerificationService.confirm(
+                new PhoneVerificationConfirmRequest(request.identityVerificationId())
+        );
+        validateRecentVerification(verification.verifiedAt());
+
+        if (!MemberIdFindService.normalizePhone(request.phone()).equals(
+                MemberIdFindService.normalizePhone(verification.phoneNumber())
+        )) {
+            throw new IllegalArgumentException("변경할 전화번호와 본인인증 정보가 일치하지 않습니다.");
+        }
+        member.registerCi(verification.ci());
     }
 
     /**

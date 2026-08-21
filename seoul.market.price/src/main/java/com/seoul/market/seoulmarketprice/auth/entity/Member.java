@@ -365,4 +365,33 @@ public class Member {
         }
         this.password = encodedPassword;
     }
+
+    /** 본인인증된 새 휴대전화 번호로 교체한다. */
+    public void changePhone(String phone) {
+        if (phone == null || phone.isBlank()) {
+            throw new IllegalArgumentException("휴대전화 번호는 비어 있을 수 없습니다.");
+        }
+        this.phone = phone;
+    }
+
+    /** 전달된 연락처·주소 값만 선택적으로 변경한다. */
+    public void changeContactAndAddress(
+            String email,
+            String zipcode,
+            String address,
+            String addressDetail
+    ) {
+        if (email != null) {
+            this.email = email;
+        }
+        if (zipcode != null) {
+            this.zipcode = zipcode;
+        }
+        if (address != null) {
+            this.address = address;
+        }
+        if (addressDetail != null) {
+            this.addressDetail = addressDetail;
+        }
+    }
 }

@@ -17,14 +17,36 @@ class MemberUpdateRequestValidationTest {
     @Test
     void acceptsOnlyHyphenated010PhoneFormat() {
         MemberUpdateRequest valid = new MemberUpdateRequest(
-                null, "010-1234-5678", null, null, null, null
+                null, "010-1234-5678", "verification-id", null, null, null, null
         );
         MemberUpdateRequest invalid = new MemberUpdateRequest(
-                null, "01012345678", null, null, null, null
+                null, "01012345678", "verification-id", null, null, null, null
         );
 
         assertThat(validator.validate(valid)).isEmpty();
         assertThat(validator.validate(invalid))
                 .anyMatch(violation -> violation.getPropertyPath().toString().equals("phone"));
+    }
+
+    @Test
+    void requiresVerificationIdWhenPhoneIsProvided() {
+        MemberUpdateRequest request = new MemberUpdateRequest(
+                null, "010-1234-5678", null, null, null, null, null
+        );
+
+        assertThat(validator.validate(request))
+                .anyMatch(violation -> violation.getMessage()
+                        .equals("휴대전화 번호 변경 시 본인인증 아이디는 필수입니다."));
+    }
+
+    @Test
+    void rejectsRequestWithoutAnyChanges() {
+        MemberUpdateRequest request = new MemberUpdateRequest(
+                null, null, null, null, null, null, null
+        );
+
+        assertThat(validator.validate(request))
+                .anyMatch(violation -> violation.getMessage()
+                        .equals("변경할 회원 정보를 하나 이상 입력해야 합니다."));
     }
 }
