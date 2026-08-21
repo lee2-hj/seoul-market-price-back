@@ -71,6 +71,10 @@ public class Admin {
     @Column(name = "password", nullable = false, comment = "비밀번호")
     private String password;
 
+    /** 현재 로그인 세션의 Refresh Token SHA-256 해시값. */
+    @Column(name = "refresh_token_hash", length = 64)
+    private String refreshTokenHash;
+
     /**
      * 관리자 이름.
      *
@@ -125,5 +129,18 @@ public class Admin {
 
     public boolean hasPassword() {
         return password != null && !password.isBlank();
+    }
+
+    /** 새 로그인 또는 재발급 시 기존 Refresh Token 해시를 덮어쓴다. */
+    public void replaceRefreshTokenHash(String tokenHash) {
+        if (tokenHash == null || tokenHash.isBlank()) {
+            throw new IllegalArgumentException("Refresh Token 해시는 비어 있을 수 없습니다.");
+        }
+        this.refreshTokenHash = tokenHash;
+    }
+
+    /** 로그아웃 시 현재 Refresh Token을 무효화한다. */
+    public void clearRefreshTokenHash() {
+        this.refreshTokenHash = null;
     }
 }

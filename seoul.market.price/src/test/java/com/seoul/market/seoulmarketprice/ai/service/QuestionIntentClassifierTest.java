@@ -16,11 +16,17 @@ class QuestionIntentClassifierTest {
     @Test
     void classifiesComparisonQuestions() {
         assertEquals(PRICE_COMPARISON, classifier.classify("마포구 서교동과 성동구 성수동 가격 비교해줘"));
+        assertEquals(PRICE_COMPARISON, classifier.classify("강동구 강서구 비교"));
     }
 
     @Test
     void classifiesSingleRegionQuestions() {
         assertEquals(SINGLE_REGION, classifier.classify("마포구 서교동 평균 가격 알려줘"));
+    }
+
+    @Test
+    void classifiesDistrictSummaryWithoutTreatingGangdongAsDong() {
+        assertEquals(DISTRICT_SUMMARY, classifier.classify("강동구 아파트 평균가 알려줘"));
     }
 
     @Test

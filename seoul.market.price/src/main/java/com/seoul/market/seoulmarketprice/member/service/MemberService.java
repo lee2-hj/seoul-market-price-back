@@ -197,7 +197,7 @@ public class MemberService {
         }
 
         member.withdraw();
-        refreshTokenService.deleteAllByMemberId(memberId);
+        refreshTokenService.clear(member);
         return new MemberWithdrawalResponse("회원 탈퇴가 완료되었습니다.");
     }
 

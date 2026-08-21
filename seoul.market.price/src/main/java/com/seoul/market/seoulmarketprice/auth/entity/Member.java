@@ -149,6 +149,10 @@ public class Member {
     @Column(name = "password", nullable = true, comment = "비밀번호")
     private String password;
 
+    /** 현재 로그인 세션의 Refresh Token SHA-256 해시값. */
+    @Column(name = "refresh_token_hash", length = 64)
+    private String refreshTokenHash;
+
     /**
      * 사용자 실명 또는 닉네임.
      */
@@ -364,6 +368,19 @@ public class Member {
             );
         }
         this.password = encodedPassword;
+    }
+
+    /** 새 로그인 또는 재발급 시 기존 Refresh Token 해시를 덮어쓴다. */
+    public void replaceRefreshTokenHash(String tokenHash) {
+        if (tokenHash == null || tokenHash.isBlank()) {
+            throw new IllegalArgumentException("Refresh Token 해시는 비어 있을 수 없습니다.");
+        }
+        this.refreshTokenHash = tokenHash;
+    }
+
+    /** 로그아웃·비밀번호 변경·탈퇴 시 저장된 Refresh Token을 무효화한다. */
+    public void clearRefreshTokenHash() {
+        this.refreshTokenHash = null;
     }
 
     /** 본인인증된 새 휴대전화 번호로 교체한다. */

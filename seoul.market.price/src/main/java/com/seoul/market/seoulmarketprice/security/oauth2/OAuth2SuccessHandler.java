@@ -286,6 +286,8 @@ public class OAuth2SuccessHandler
                 member,
                 refreshToken
         );
+        // 성공 핸들러는 서비스 트랜잭션 밖에서 실행되므로 변경된 해시를 명시적으로 저장한다.
+        memberRepository.save(member);
 
         /*
          * Refresh Token을 담을 HttpOnly 쿠키를 생성한다.

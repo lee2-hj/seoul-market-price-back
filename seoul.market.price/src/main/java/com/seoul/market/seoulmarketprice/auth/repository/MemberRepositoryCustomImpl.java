@@ -5,6 +5,7 @@ import com.seoul.market.seoulmarketprice.auth.crypto.MemberDataCrypto;
 import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import com.seoul.market.seoulmarketprice.auth.entity.QMember;
 import lombok.RequiredArgsConstructor;
+import jakarta.persistence.LockModeType;
 import java.util.Optional;
 
 @RequiredArgsConstructor
@@ -23,5 +24,10 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
     public Optional<Member> findActiveById(Long id) {
         return Optional.ofNullable(queryFactory.selectFrom(member)
                 .where(member.id.eq(id), member.deleted_at.isNull()).fetchOne());
+    }
+    public Optional<Member> findActiveByIdForTokenUpdate(Long id) {
+        return Optional.ofNullable(queryFactory.selectFrom(member)
+                .where(member.id.eq(id), member.deleted_at.isNull())
+                .setLockMode(LockModeType.PESSIMISTIC_WRITE).fetchOne());
     }
 }

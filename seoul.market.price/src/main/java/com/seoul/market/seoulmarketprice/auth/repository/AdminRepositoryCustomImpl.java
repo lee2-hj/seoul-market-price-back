@@ -4,6 +4,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.seoul.market.seoulmarketprice.auth.entity.Admin;
 import com.seoul.market.seoulmarketprice.auth.entity.QAdmin;
 import lombok.RequiredArgsConstructor;
+import jakarta.persistence.LockModeType;
 import java.util.Optional;
 
 @RequiredArgsConstructor
@@ -18,5 +19,10 @@ public class AdminRepositoryCustomImpl implements AdminRepositoryCustom {
     public boolean existsActiveById(Long id) {
         return queryFactory.selectOne().from(admin)
                 .where(admin.id.eq(id), admin.deleted_at.isNull()).fetchFirst() != null;
+    }
+    public Optional<Admin> findActiveByIdForTokenUpdate(Long id) {
+        return Optional.ofNullable(queryFactory.selectFrom(admin)
+                .where(admin.id.eq(id), admin.deleted_at.isNull())
+                .setLockMode(LockModeType.PESSIMISTIC_WRITE).fetchOne());
     }
 }

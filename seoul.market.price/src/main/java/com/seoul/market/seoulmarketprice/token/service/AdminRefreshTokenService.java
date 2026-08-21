@@ -1,14 +1,7 @@
 package com.seoul.market.seoulmarketprice.token.service;
 
 import com.seoul.market.seoulmarketprice.auth.entity.Admin;
-import com.seoul.market.seoulmarketprice.security.jwt.JwtProperties;
-import com.seoul.market.seoulmarketprice.token.domain.AdminRefreshToken;
-import com.seoul.market.seoulmarketprice.token.repository.AdminRefreshTokenRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Duration;
-import java.time.LocalDateTime;
 
 /**
  * 관리자 Refresh Token의 저장, 조회 및 폐기를 담당하는 서비스이다.
@@ -20,14 +13,7 @@ import java.time.LocalDateTime;
  * </p>
  */
 @Service
-@Transactional(readOnly = true)
 public class AdminRefreshTokenService {
-
-    /**
-     * 관리자 Refresh Token의 DB 작업을 담당한다.
-     */
-    private final AdminRefreshTokenRepository
-            adminRefreshTokenRepository;
 
     /**
      * Refresh Token 원문을 SHA-256으로 변환한다.
@@ -37,24 +23,8 @@ public class AdminRefreshTokenService {
     /**
      * Refresh Token 만료시간 설정을 제공한다.
      */
-    private final JwtProperties jwtProperties;
-
-    /**
-     * 생성자 주입을 사용한다.
-     *
-     * @param adminRefreshTokenRepository 관리자 토큰 Repository
-     * @param tokenHashService             토큰 해시 서비스
-     * @param jwtProperties                JWT 설정값
-     */
-    public AdminRefreshTokenService(
-            AdminRefreshTokenRepository adminRefreshTokenRepository,
-            TokenHashService tokenHashService,
-            JwtProperties jwtProperties
-    ) {
-        this.adminRefreshTokenRepository =
-                adminRefreshTokenRepository;
+    public AdminRefreshTokenService(TokenHashService tokenHashService) {
         this.tokenHashService = tokenHashService;
-        this.jwtProperties = jwtProperties;
     }
 
     /**
@@ -68,34 +38,11 @@ public class AdminRefreshTokenService {
      * @param admin          토큰을 발급받은 관리자
      * @param rawRefreshToken Refresh Token 원문
      */
-    @Transactional
     public void save(
             Admin admin,
             String rawRefreshToken
     ) {
-        // Refresh Token 원문을 SHA-256 해시값으로 변환한다.
-        String tokenHash =
-                tokenHashService.hash(rawRefreshToken);
-
-        // 설정된 Refresh Token 유효시간으로 DB 만료 시각을 계산한다.
-        LocalDateTime expiresAt =
-                LocalDateTime.now()
-                        .plus(
-                                Duration.ofMillis(
-                                        jwtProperties
-                                                .refreshTokenExpiry()
-                                )
-                        );
-
-        // 정적 팩토리 메서드로 관리자 토큰 엔티티를 생성한다.
-        AdminRefreshToken adminRefreshToken =
-                AdminRefreshToken.createAdminRefreshToken(
-                        admin,
-                        tokenHash,
-                        expiresAt
-                );
-
-        adminRefreshTokenRepository.save(adminRefreshToken);
+        admin.replaceRefreshTokenHash(tokenHashService.hash(rawRefreshToken));
     }
 
     /**
@@ -109,28 +56,10 @@ public class AdminRefreshTokenService {
      * @param rawRefreshToken Refresh Token 원문
      * @return 사용 가능한 관리자 Refresh Token 엔티티
      */
-    public AdminRefreshToken getUsableToken(
-            String rawRefreshToken
-    ) {
-        String tokenHash =
-                tokenHashService.hash(rawRefreshToken);
-
-        AdminRefreshToken adminRefreshToken =
-                adminRefreshTokenRepository
-                        .findByTokenHash(tokenHash)
-                        .orElseThrow(() ->
-                                new IllegalArgumentException(
-                                        "등록되지 않은 관리자 Refresh Token입니다."
-                                )
-                        );
-
-        if (!adminRefreshToken.isUsable()) {
-            throw new IllegalStateException(
-                    "만료되었거나 폐기된 관리자 Refresh Token입니다."
-            );
+    public void validate(Admin admin, String rawRefreshToken) {
+        if (!tokenHashService.matches(rawRefreshToken, admin.getRefreshTokenHash())) {
+            throw new IllegalArgumentException("등록되지 않은 관리자 Refresh Token입니다.");
         }
-
-        return adminRefreshToken;
     }
 
     /**
@@ -138,12 +67,9 @@ public class AdminRefreshTokenService {
      *
      * @param rawRefreshToken 폐기할 Refresh Token 원문
      */
-    @Transactional
-    public void revoke(String rawRefreshToken) {
-        AdminRefreshToken adminRefreshToken =
-                getUsableToken(rawRefreshToken);
-
-        adminRefreshToken.revoke();
+    public void revoke(Admin admin, String rawRefreshToken) {
+        validate(admin, rawRefreshToken);
+        admin.clearRefreshTokenHash();
     }
 
     /**
@@ -151,9 +77,7 @@ public class AdminRefreshTokenService {
      *
      * @param adminId 관리자 PK
      */
-    @Transactional
-    public void deleteAllByAdminId(Long adminId) {
-        adminRefreshTokenRepository
-                .deleteAllByAdmin_Id(adminId);
+    public void clear(Admin admin) {
+        admin.clearRefreshTokenHash();
     }
 }

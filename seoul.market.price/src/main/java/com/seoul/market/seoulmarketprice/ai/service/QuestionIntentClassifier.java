@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class QuestionIntentClassifier {
-    public enum Intent { PRICE_COMPARISON, SINGLE_REGION, TOP_BOTTOM }
+    public enum Intent { PRICE_COMPARISON, SINGLE_REGION, DISTRICT_SUMMARY, TOP_BOTTOM }
     private final AiQuestionProperties properties;
 
     public QuestionIntentClassifier(AiQuestionProperties properties) {
@@ -31,6 +31,12 @@ public class QuestionIntentClassifier {
                 .matcher(question).results().count();
         if (regionCount >= 2) return Intent.PRICE_COMPARISON;
         if (regionCount == 1) return Intent.SINGLE_REGION;
+        long districtCount = java.util.regex.Pattern.compile("[가-힣]+구")
+                .matcher(question).results().count();
+        if (districtCount >= 2) return Intent.PRICE_COMPARISON;
+        if (districtCount == 1) {
+            return Intent.DISTRICT_SUMMARY;
+        }
         throw new IllegalArgumentException("지역을 찾지 못했습니다. 자치구와 동을 함께 입력해주세요.");
     }
 }
