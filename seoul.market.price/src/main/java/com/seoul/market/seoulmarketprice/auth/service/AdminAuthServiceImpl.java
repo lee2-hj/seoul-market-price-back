@@ -6,7 +6,6 @@ import com.seoul.market.seoulmarketprice.auth.entity.Admin;
 import com.seoul.market.seoulmarketprice.auth.entity.Role;
 import com.seoul.market.seoulmarketprice.auth.repository.AdminRepository;
 import com.seoul.market.seoulmarketprice.security.jwt.JwtTokenProvider;
-import com.seoul.market.seoulmarketprice.token.domain.AdminRefreshToken;
 import com.seoul.market.seoulmarketprice.token.service.AdminRefreshTokenService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -212,44 +211,14 @@ public class AdminAuthServiceImpl
             );
         }
 
-        /*
-         * 쿠키의 원문 토큰을 해시로 변환하여 DB에서 조회하고,
-         * 폐기 및 만료 여부를 검사한다.
-         */
-        AdminRefreshToken savedRefreshToken =
-                adminRefreshTokenService
-                        .getUsableToken(rawRefreshToken);
-
         // JWT subject에서 관리자 PK를 가져온다.
         Long tokenAdminId =
                 jwtTokenProvider
                         .getMemberId(rawRefreshToken);
 
-        // DB 토큰과 연결된 관리자를 가져온다.
-        Admin admin = savedRefreshToken.getAdmin();
-
-        // JWT와 DB의 관리자 PK가 같은지 확인한다.
-        if (!admin.getId().equals(tokenAdminId)) {
-            throw new IllegalArgumentException(
-                    "Refresh Token의 관리자 정보가 올바르지 않습니다."
-            );
-        }
-
-        /*
-         * 토큰 발급 후 관리자가 삭제되었다면
-         * 기존 Refresh Token이 남아 있어도 재발급을 거부한다.
-         */
-        if (!adminRepository.existsActiveById(admin.getId())) {
-            throw new IllegalStateException(
-                    "사용할 수 없는 관리자 계정입니다."
-            );
-        }
-
-        /*
-         * 기존 Refresh Token을 폐기한다.
-         * 이후 같은 토큰으로 다시 재발급할 수 없다.
-         */
-        savedRefreshToken.revoke();
+        Admin admin = adminRepository.findActiveByIdForTokenUpdate(tokenAdminId)
+                .orElseThrow(() -> new IllegalStateException("사용할 수 없는 관리자 계정입니다."));
+        adminRefreshTokenService.validate(admin, rawRefreshToken);
 
         // 새로운 관리자 Access Token을 생성한다.
         String newAccessToken =
@@ -312,7 +281,14 @@ public class AdminAuthServiceImpl
             return;
         }
 
-        // DB의 관리자 Refresh Token을 폐기한다.
-        adminRefreshTokenService.revoke(rawRefreshToken);
+        Long adminId = jwtTokenProvider.getMemberId(rawRefreshToken);
+        adminRepository.findActiveByIdForTokenUpdate(adminId)
+                .ifPresent(admin -> {
+                    try {
+                        adminRefreshTokenService.revoke(admin, rawRefreshToken);
+                    } catch (IllegalArgumentException ignored) {
+                        // 다른 로그인으로 이미 교체된 토큰이면 로그아웃 상태로 처리한다.
+                    }
+                });
     }
 }

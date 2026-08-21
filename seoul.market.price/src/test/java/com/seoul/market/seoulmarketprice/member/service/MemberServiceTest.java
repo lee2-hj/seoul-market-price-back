@@ -184,7 +184,7 @@ class MemberServiceTest {
         assertThat(member.getPhone()).startsWith("wd:1:");
         assertThat(member.getUserId()).isEqualTo(member.getCi());
         assertThat(member.getPhone()).isEqualTo(member.getCi());
-        verify(refreshTokenService).deleteAllByMemberId(1L);
+        verify(refreshTokenService).clear(member);
     }
 
     /** 현재 비밀번호가 다르면 회원 상태와 Refresh Token을 유지하는지 확인한다. */
@@ -206,7 +206,7 @@ class MemberServiceTest {
                 .hasMessage("현재 비밀번호가 올바르지 않습니다.");
 
         assertThat(member.isDeleted()).isFalse();
-        verify(refreshTokenService, never()).deleteAllByMemberId(any());
+        verify(refreshTokenService, never()).clear(any());
     }
 
     @Test

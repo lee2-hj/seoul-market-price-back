@@ -5,7 +5,6 @@ import com.seoul.market.seoulmarketprice.auth.dto.response.LoginResponse;
 import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import com.seoul.market.seoulmarketprice.auth.repository.MemberRepository;
 import com.seoul.market.seoulmarketprice.security.jwt.JwtTokenProvider;
-import com.seoul.market.seoulmarketprice.token.domain.RefreshToken;
 import com.seoul.market.seoulmarketprice.token.service.RefreshTokenService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -192,12 +191,10 @@ public class AuthServiceImpl implements AuthService {
             );
         }
 
-        /*
-         * 쿠키의 토큰을 해시로 변환해 DB에서 조회하고,
-         * 폐기되었거나 만료된 토큰인지 확인한다.
-         */
-        RefreshToken savedRefreshToken =
-                refreshTokenService.getUsableToken(rawRefreshToken);
+        if (!jwtTokenProvider.isRefreshToken(rawRefreshToken)
+                || jwtTokenProvider.getRole(rawRefreshToken) != Role.USER) {
+            throw new IllegalArgumentException("회원 Refresh Token이 아닙니다.");
+        }
 
         /*
          * JWT subject에 저장된 회원 PK를 꺼낸다.
@@ -205,33 +202,9 @@ public class AuthServiceImpl implements AuthService {
         Long tokenMemberId =
                 jwtTokenProvider.getMemberId(rawRefreshToken);
 
-        /*
-         * DB에 저장된 Refresh Token의 회원을 가져온다.
-         */
-        Member member = savedRefreshToken.getMember();
-
-        // 탈퇴와 토큰 재발급이 경합해도 삭제 회원에게 새 토큰을 발급하지 않는다.
-        if (member.isDeleted()) {
-            throw new IllegalArgumentException("활성 회원을 찾을 수 없습니다.");
-        }
-
-        /*
-         * JWT 안의 회원 번호와 DB 토큰 소유자의 회원 번호가 다르면
-         * 위조되었거나 잘못 연결된 토큰으로 판단한다.
-         */
-        if (!member.getId().equals(tokenMemberId)) {
-            throw new IllegalArgumentException(
-                    "Refresh Token의 사용자 정보가 올바르지 않습니다."
-            );
-        }
-
-        /*
-         * 기존 Refresh Token을 폐기한다.
-         *
-         * 재발급 이후 기존 토큰을 다시 사용할 수 없게 만드는 것이
-         * Refresh Token Rotation의 핵심이다.
-         */
-        savedRefreshToken.revoke();
+        Member member = memberRepository.findActiveByIdForTokenUpdate(tokenMemberId)
+                .orElseThrow(() -> new IllegalArgumentException("활성 회원을 찾을 수 없습니다."));
+        refreshTokenService.validate(member, rawRefreshToken);
 
         /*
          * 새로운 Access Token을 생성한다.
@@ -286,8 +259,20 @@ public class AuthServiceImpl implements AuthService {
             return;
         }
 
-        // DB에 저장된 Refresh Token을 폐기한다.
-        refreshTokenService.revoke(rawRefreshToken);
+        if (!jwtTokenProvider.isRefreshToken(rawRefreshToken)
+                || jwtTokenProvider.getRole(rawRefreshToken) != Role.USER) {
+            return;
+        }
+
+        Long memberId = jwtTokenProvider.getMemberId(rawRefreshToken);
+        memberRepository.findActiveByIdForTokenUpdate(memberId)
+                .ifPresent(member -> {
+                    try {
+                        refreshTokenService.revoke(member, rawRefreshToken);
+                    } catch (IllegalArgumentException ignored) {
+                        // 다른 로그인으로 이미 교체된 토큰이면 로그아웃 상태로 처리한다.
+                    }
+                });
     }
 
 }

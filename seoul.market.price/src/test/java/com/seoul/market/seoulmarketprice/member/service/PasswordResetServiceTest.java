@@ -95,6 +95,6 @@ class PasswordResetServiceTest {
 
         assertThat(member.getPassword()).isEqualTo("encoded-new-password");
         assertThat(member.getCi()).isEqualTo("ci-value");
-        verify(refreshTokenService).deleteAllByMemberId(1L);
+        verify(refreshTokenService).clear(member);
     }
 }

@@ -1,14 +1,7 @@
 package com.seoul.market.seoulmarketprice.token.service;
 
 import com.seoul.market.seoulmarketprice.auth.entity.Member;
-import com.seoul.market.seoulmarketprice.security.jwt.JwtProperties;
-import com.seoul.market.seoulmarketprice.token.domain.RefreshToken;
-import com.seoul.market.seoulmarketprice.token.repository.RefreshTokenRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.time.Duration;
 /**
  * Refresh Token의 저장, 조회, 폐기를 담당하는 서비스이다.
  *
@@ -22,39 +15,15 @@ import java.time.Duration;
  * </p>
  */
 @Service
-@Transactional(readOnly = true)
 public class RefreshTokenService {
-
-    /**
-     * Refresh Token DB 작업을 담당하는 Repository이다.
-     */
-    private final RefreshTokenRepository refreshTokenRepository;
 
     /**
      * Refresh Token 원문을 SHA-256 해시값으로 변환한다.
      */
     private final TokenHashService tokenHashService;
 
-    /**
-     * Refresh Token의 만료시간 설정값을 가지고 있다.
-     */
-    private final JwtProperties jwtProperties;
-
-    /**
-     * 생성자 주입을 사용한다.
-     *
-     * @param refreshTokenRepository Refresh Token Repository
-     * @param tokenHashService       토큰 해시 변환 서비스
-     * @param jwtProperties          JWT 설정값
-     */
-    public RefreshTokenService(
-            RefreshTokenRepository refreshTokenRepository,
-            TokenHashService tokenHashService,
-            JwtProperties jwtProperties
-    ) {
-        this.refreshTokenRepository = refreshTokenRepository;
+    public RefreshTokenService(TokenHashService tokenHashService) {
         this.tokenHashService = tokenHashService;
-        this.jwtProperties = jwtProperties;
     }
 
     /**
@@ -68,38 +37,11 @@ public class RefreshTokenService {
      * @param member          토큰을 발급받은 회원
      * @param rawRefreshToken 실제 Refresh Token 문자열
      */
-    @Transactional
     public void save(
             Member member,
             String rawRefreshToken
     ) {
-        /*
-         * Refresh Token 원문을 SHA-256 해시값으로 변환한다.
-         */
-        String tokenHash = tokenHashService.hash(rawRefreshToken);
-
-        /*
-         * 현재 시각에 설정된 Refresh Token 유효시간을 더해
-         * DB에서 관리할 만료 시각을 계산한다.
-         */
-        LocalDateTime expiresAt = LocalDateTime.now()
-                .plus(
-                        Duration.ofMillis(
-                                jwtProperties.refreshTokenExpiry()
-                        )
-                );
-
-        /*
-         * Setter 대신 RefreshToken의 정적 팩토리 메서드를 사용해
-         * 새로운 엔티티를 생성한다.
-         */
-        RefreshToken refreshToken = RefreshToken.create(
-                member,
-                tokenHash,
-                expiresAt
-        );
-
-        refreshTokenRepository.save(refreshToken);
+        member.replaceRefreshTokenHash(tokenHashService.hash(rawRefreshToken));
     }
 
     /**
@@ -113,22 +55,10 @@ public class RefreshTokenService {
      * @param rawRefreshToken 쿠키에서 전달받은 Refresh Token 원문
      * @return 사용 가능한 RefreshToken 엔티티
      */
-    public RefreshToken getUsableToken(String rawRefreshToken) {
-        String tokenHash = tokenHashService.hash(rawRefreshToken);
-
-        RefreshToken refreshToken = refreshTokenRepository
-                .findByTokenHash(tokenHash)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "등록되지 않은 Refresh Token입니다."
-                ));
-
-        if (!refreshToken.isUsable()) {
-            throw new IllegalStateException(
-                    "만료되었거나 폐기된 Refresh Token입니다."
-            );
+    public void validate(Member member, String rawRefreshToken) {
+        if (!tokenHashService.matches(rawRefreshToken, member.getRefreshTokenHash())) {
+            throw new IllegalArgumentException("등록되지 않은 Refresh Token입니다.");
         }
-
-        return refreshToken;
     }
 
     /**
@@ -141,12 +71,9 @@ public class RefreshTokenService {
      *
      * @param rawRefreshToken 폐기할 Refresh Token 원문
      */
-    @Transactional
-    public void revoke(String rawRefreshToken) {
-        RefreshToken refreshToken =
-                getUsableToken(rawRefreshToken);
-
-        refreshToken.revoke();
+    public void revoke(Member member, String rawRefreshToken) {
+        validate(member, rawRefreshToken);
+        member.clearRefreshTokenHash();
     }
 
     /**
@@ -158,8 +85,7 @@ public class RefreshTokenService {
      *
      * @param memberId 회원 고유번호
      */
-    @Transactional
-    public void deleteAllByMemberId(Long memberId) {
-        refreshTokenRepository.deleteAllByMember_Id(memberId);
+    public void clear(Member member) {
+        member.clearRefreshTokenHash();
     }
 }

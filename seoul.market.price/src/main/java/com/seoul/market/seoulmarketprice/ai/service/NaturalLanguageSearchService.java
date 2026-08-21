@@ -13,20 +13,23 @@ import java.util.regex.Pattern;
 @Service
 public class NaturalLanguageSearchService {
     private static final Pattern FULL_REGION = Pattern.compile("[가-힣]+구\\s+[가-힣]+동");
-    private static final Pattern DONG = Pattern.compile("([가-힣]+동)");
+    private static final Pattern DONG = Pattern.compile("([가-힣]+동)(?!구)");
     private final QuestionIntentClassifier classifier;
     private final AiSearchService comparisonService;
     private final SingleRegionSearchService singleRegionService;
+    private final DistrictSummarySearchService districtSummaryService;
     private final TopBottomSearchService topBottomService;
     private final LocationMasterService locationService;
 
     public NaturalLanguageSearchService(QuestionIntentClassifier classifier, AiSearchService comparisonService,
                                         SingleRegionSearchService singleRegionService,
+                                        DistrictSummarySearchService districtSummaryService,
                                         TopBottomSearchService topBottomService,
                                         LocationMasterService locationService) {
         this.classifier = classifier;
         this.comparisonService = comparisonService;
         this.singleRegionService = singleRegionService;
+        this.districtSummaryService = districtSummaryService;
         this.topBottomService = topBottomService;
         this.locationService = locationService;
     }
@@ -40,6 +43,7 @@ public class NaturalLanguageSearchService {
             Object result = switch (intent) {
                 case PRICE_COMPARISON -> comparisonService.search(normalizedQuestion);
                 case SINGLE_REGION -> singleRegionService.search(normalizedQuestion);
+                case DISTRICT_SUMMARY -> districtSummaryService.search(normalizedQuestion);
                 case TOP_BOTTOM -> topBottomService.search(normalizedQuestion);
             };
             return NaturalSearchResponse.success(intent.name(), result);
