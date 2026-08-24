@@ -60,4 +60,12 @@ public class FastApiController {
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
+
+    @Operation(summary = "아파트 별 거래 동향", description = "아파트 별 거래 동향 api")
+    @GetMapping("/aptmkt")
+    public ResponseEntity<AptMktResponse> aptmktInfo(@Valid @ModelAttribute AptMktRequest request){
+        AptMktResponse response = fastApiService.getAptmktInfo(request);
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
 }

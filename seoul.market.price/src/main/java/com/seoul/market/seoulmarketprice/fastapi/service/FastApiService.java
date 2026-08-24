@@ -87,4 +87,19 @@ public class FastApiService {
                 .retrieve()
                 .body(RttRespopnse.class);
     }
+
+    public AptMktResponse getAptmktInfo(@Valid AptMktRequest request) {
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/v1/apt-trend/summary")
+                        .queryParam("cgg_cd", request.guCode())
+                        .queryParam("stdg_cd", request.dongCode())
+                        .queryParam("mno", request.mno())
+                        .queryParam("sno", request.sno())
+                        .queryParam("apt_name", request.aptName())
+                        .build())
+                .retrieve()
+                .body(AptMktResponse.class);
+
+    }
 }
