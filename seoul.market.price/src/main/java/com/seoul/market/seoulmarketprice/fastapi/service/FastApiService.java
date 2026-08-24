@@ -102,4 +102,23 @@ public class FastApiService {
                 .body(AptMktResponse.class);
 
     }
+
+    public RegionAptCompareResponse getRegionaptcompare(@Valid RegionAptCompareRequest request) {
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/v1/region-apt-compare")
+                        .queryParam("cgg_cd_1",request.guCode1())
+                        .queryParam("bjd_cd_1",request.dongCode1())
+                        .queryParam("apt_nm_1",request.aptName1())
+                        .queryParam("mno_1", request.mno1())
+                        .queryParam("sno_1", request.sno1())
+                        .queryParam("cgg_cd_2",request.guCode2())
+                        .queryParam("bjd_cd_2",request.dongCode2())
+                        .queryParam("apt_nm_2",request.aptName2())
+                        .queryParam("mno_2", request.mno2())
+                        .queryParam("sno_2", request.sno2())
+                        .build())
+                .retrieve()
+                .body(RegionAptCompareResponse.class);
+    }
 }
