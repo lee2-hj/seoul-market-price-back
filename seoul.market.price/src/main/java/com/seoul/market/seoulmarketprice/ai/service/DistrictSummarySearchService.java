@@ -46,7 +46,7 @@ public class DistrictSummarySearchService {
         long averagePrice = weightedAverage(list, false);
         long averagePyeongPrice = weightedAverage(list, true);
         SingleRegionFacts facts = new SingleRegionFacts(guName, averagePrice, averagePyeongPrice,
-                Math.toIntExact(totalCount), list.baseDate(), "원");
+                Math.toIntExact(totalCount), list.baseDate(), "만원", "만원/평");
         SingleRegionPriceRequest request = new SingleRegionPriceRequest("district-summary-search", question, facts,
                 List.of(guName + "의 조회 데이터 기준 평균 가격 설명"), List.of("가격 예측", "투자 추천"));
         return aiClient.post().uri("/ai/explain-single-region").body(request).retrieve()

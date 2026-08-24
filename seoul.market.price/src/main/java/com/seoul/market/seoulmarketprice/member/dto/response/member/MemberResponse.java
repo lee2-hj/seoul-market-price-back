@@ -36,6 +36,7 @@ public record MemberResponse(
         UserType userType,
         /** 사용자가 선택한 선호 자치구. */
         String myGu,
+        String myGuCode,
         /** myGu, 가입 주소, 중구 순서로 결정한 헤더 표시 자치구. */
         String preferredDistrict,
         /** 사용자가 선택한 선호 행정동. */
@@ -53,6 +54,9 @@ public record MemberResponse(
         String preferredGu = member.getPreferredSgg() == null
                 ? member.getMyGu()
                 : member.getPreferredSgg().getSggName();
+        String preferredGuCode = member.getPreferredSgg() == null
+                ? null
+                : member.getPreferredSgg().getSggCode();
         return new MemberResponse(
                 member.getId(),
                 member.getUserId(),
@@ -65,6 +69,7 @@ public record MemberResponse(
                 member.getSocialId(),
                 member.getUserType(),
                 preferredGu,
+                preferredGuCode,
                 DistrictPreferenceResolver.resolve(
                         preferredGu,
                         member.getAddress()

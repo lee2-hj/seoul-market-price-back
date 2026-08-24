@@ -14,11 +14,9 @@ import org.springframework.web.client.RestClient;
 
 import java.util.List;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Service
 public class SingleRegionSearchService {
-    private static final Pattern REGION = Pattern.compile("([가-힣]+구)\\s+([가-힣]+동)");
     private final SggMasterRepository sggRepository;
     private final DongMasterRepository dongRepository;
     private final FastApiService fastApiService;
@@ -34,7 +32,7 @@ public class SingleRegionSearchService {
     }
 
     public SingleRegionPriceResponse search(String question) {
-        Matcher matcher = REGION.matcher(question);
+        Matcher matcher = RegionQuestionPatterns.FULL_REGION.matcher(question);
         if (!matcher.find()) throw new IllegalArgumentException("구와 동을 입력해주세요. 예: 마포구 서교동 평균 가격 알려줘");
         String guName = matcher.group(1), dongName = matcher.group(2);
         SggMaster gu = sggRepository.findBySggName(guName)
@@ -49,7 +47,7 @@ public class SingleRegionSearchService {
         SingleRegionFacts facts = new SingleRegionFacts(guName + " " + dong.getDongName(),
                 value.avg_thing_amt() == null ? 0 : value.avg_thing_amt(),
                 value.avg_pyeong_amt() == null ? 0 : value.avg_pyeong_amt(),
-                value.total_count() == null ? 0 : value.total_count(), list.baseDate(), "원");
+                value.total_count() == null ? 0 : value.total_count(), list.baseDate(), "만원", "만원/평");
         SingleRegionPriceRequest request = new SingleRegionPriceRequest("single-search", question, facts,
                 List.of(facts.region() + "의 조회 데이터 설명"), List.of("가격 예측", "투자 추천"));
         return aiClient.post().uri("/ai/explain-single-region").body(request).retrieve()

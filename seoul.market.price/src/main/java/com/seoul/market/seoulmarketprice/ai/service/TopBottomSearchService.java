@@ -45,7 +45,7 @@ public class TopBottomSearchService {
                 .orElseThrow(() -> new IllegalArgumentException(guName + "의 평단가 데이터가 없습니다."));
         SingleRegionFacts facts = new SingleRegionFacts(guName + " " + selected.name(),
                 selected.avg_thing_amt() == null ? 0 : selected.avg_thing_amt(), selected.avg_pyeong_amt(),
-                selected.total_count() == null ? 0 : selected.total_count(), list.baseDate(), "원");
+                selected.total_count() == null ? 0 : selected.total_count(), list.baseDate(), "만원", "만원/평");
         String direction = lowest ? "가장 낮은" : "가장 높은";
         SingleRegionPriceRequest request = new SingleRegionPriceRequest("top-bottom-search", question, facts,
                 List.of(guName + "에서 평단가가 " + direction + " 동은 " + selected.name()),

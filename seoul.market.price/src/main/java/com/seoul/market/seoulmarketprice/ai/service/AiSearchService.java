@@ -14,13 +14,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Service
 @Transactional(readOnly = true)
 public class AiSearchService {
-    private static final Pattern REGION_PATTERN = Pattern.compile("([가-힣]+구)\\s+([가-힣]+동)");
-    private static final Pattern DISTRICT_PATTERN = Pattern.compile("([가-힣]+구)");
     private final SggMasterRepository sggRepository;
     private final DongMasterRepository dongRepository;
     private final FastApiService fastApiService;
@@ -35,7 +32,7 @@ public class AiSearchService {
     }
 
     public PriceComparisonResponse search(String question) {
-        Matcher matcher = REGION_PATTERN.matcher(question);
+        Matcher matcher = RegionQuestionPatterns.FULL_REGION.matcher(question);
         String[] names = new String[4];
         int i = 0;
         while (matcher.find() && i < 4) { names[i++] = matcher.group(1); names[i++] = matcher.group(2); }
@@ -48,13 +45,13 @@ public class AiSearchService {
         long bAvg = compare.region2().avgThingAmt() == null ? 0 : compare.region2().avgThingAmt();
         String higher = aAvg >= bAvg ? a.label : b.label;
         String lower = aAvg >= bAvg ? b.label : a.label;
-        PriceFacts facts = new PriceFacts(a.label, b.label, aAvg, bAvg, "원", higher, lower, Math.abs(aAvg - bAvg));
+        PriceFacts facts = new PriceFacts(a.label, b.label, aAvg, bAvg, "만원", higher, lower, Math.abs(aAvg - bAvg));
         return explanationService.explain(new PriceComparisonRequest("main-search", question, facts,
                 java.util.List.of(higher + " 가격이 높음"), java.util.List.of(lower + " 가격이 높음")));
     }
 
     private PriceComparisonResponse searchDistricts(String question) {
-        Matcher matcher = DISTRICT_PATTERN.matcher(question);
+        Matcher matcher = RegionQuestionPatterns.DISTRICT.matcher(question);
         String[] names = new String[2];
         int count = 0;
         while (matcher.find() && count < names.length) names[count++] = matcher.group(1);
@@ -68,7 +65,7 @@ public class AiSearchService {
         long bAvg = districtAverage(b.code());
         String higher = aAvg >= bAvg ? a.name() : b.name();
         String lower = aAvg >= bAvg ? b.name() : a.name();
-        PriceFacts facts = new PriceFacts(a.name(), b.name(), aAvg, bAvg, "원", higher, lower,
+        PriceFacts facts = new PriceFacts(a.name(), b.name(), aAvg, bAvg, "만원", higher, lower,
                 Math.abs(aAvg - bAvg));
         return explanationService.explain(new PriceComparisonRequest("district-comparison-search", question, facts,
                 java.util.List.of(higher + " 평균 가격이 높음"), java.util.List.of("조회된 실거래 데이터 기준")));
