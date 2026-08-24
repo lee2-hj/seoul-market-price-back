@@ -81,11 +81,11 @@ public record AptMktResponse(
     ){}
 
     public record AreaRatioDto(
-            @JsonProperty("exclusive_area")
-            String exclusiveArea,
+            @JsonProperty("pyeong_grp")
+            String pyeongGrp,
 
-            @JsonProperty("pyeong")
-            Integer pyeong,
+            @JsonProperty("deal_count")
+            Integer dealCount,
 
             @JsonProperty("share_percentage")
             Double sharePercentage
