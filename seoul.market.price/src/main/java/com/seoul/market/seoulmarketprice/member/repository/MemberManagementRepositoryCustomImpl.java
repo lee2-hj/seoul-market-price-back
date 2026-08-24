@@ -34,9 +34,17 @@ public class MemberManagementRepositoryCustomImpl implements MemberManagementRep
     }
     public Optional<Member> findActiveByIdForPasswordReset(Long id) { return locked(member.id.eq(id).and(active())); }
     public Optional<Member> findActiveById(Long id) {
-        return Optional.ofNullable(queryFactory.selectFrom(member).where(member.id.eq(id), active()).fetchOne());
+        return Optional.ofNullable(queryFactory.selectFrom(member)
+                .leftJoin(member.preferredSgg).fetchJoin()
+                .where(member.id.eq(id), active()).fetchOne());
     }
-    public Optional<Member> findActiveByIdForUpdate(Long id) { return locked(member.id.eq(id).and(active())); }
+    public Optional<Member> findActiveByIdForUpdate(Long id) {
+        return Optional.ofNullable(queryFactory.selectFrom(member)
+                .leftJoin(member.preferredSgg).fetchJoin()
+                .where(member.id.eq(id), active())
+                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
+                .fetchOne());
+    }
     public Optional<Member> findActiveByIdForWithdrawal(Long id) { return locked(member.id.eq(id).and(active())); }
 
     private boolean exists(BooleanExpression condition) {

@@ -8,29 +8,35 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Service
 public class NaturalLanguageSearchService {
-    private static final Pattern FULL_REGION = Pattern.compile("[가-힣]+구\\s+[가-힣]+동");
-    private static final Pattern DONG = Pattern.compile("([가-힣]+동)(?!구)");
     private final QuestionIntentClassifier classifier;
     private final AiSearchService comparisonService;
     private final SingleRegionSearchService singleRegionService;
     private final DistrictSummarySearchService districtSummaryService;
+    private final DistrictRankingSearchService districtRankingService;
     private final TopBottomSearchService topBottomService;
+    private final RankingSearchService rankingSearchService;
+    private final TradeTrendSearchService tradeTrendSearchService;
     private final LocationMasterService locationService;
 
     public NaturalLanguageSearchService(QuestionIntentClassifier classifier, AiSearchService comparisonService,
                                         SingleRegionSearchService singleRegionService,
                                         DistrictSummarySearchService districtSummaryService,
+                                        DistrictRankingSearchService districtRankingService,
                                         TopBottomSearchService topBottomService,
+                                        RankingSearchService rankingSearchService,
+                                        TradeTrendSearchService tradeTrendSearchService,
                                         LocationMasterService locationService) {
         this.classifier = classifier;
         this.comparisonService = comparisonService;
         this.singleRegionService = singleRegionService;
         this.districtSummaryService = districtSummaryService;
+        this.districtRankingService = districtRankingService;
         this.topBottomService = topBottomService;
+        this.rankingSearchService = rankingSearchService;
+        this.tradeTrendSearchService = tradeTrendSearchService;
         this.locationService = locationService;
     }
 
@@ -44,7 +50,10 @@ public class NaturalLanguageSearchService {
                 case PRICE_COMPARISON -> comparisonService.search(normalizedQuestion);
                 case SINGLE_REGION -> singleRegionService.search(normalizedQuestion);
                 case DISTRICT_SUMMARY -> districtSummaryService.search(normalizedQuestion);
+                case DISTRICT_RANKING -> districtRankingService.search(normalizedQuestion);
                 case TOP_BOTTOM -> topBottomService.search(normalizedQuestion);
+                case RANKING_SEARCH -> rankingSearchService.search(normalizedQuestion);
+                case TRADE_TREND -> tradeTrendSearchService.search(normalizedQuestion);
             };
             return NaturalSearchResponse.success(intent.name(), result);
         } catch (IllegalArgumentException exception) {
@@ -56,7 +65,7 @@ public class NaturalLanguageSearchService {
     }
 
     private String resolveDongOnlyQuestion(String question) {
-        if (FULL_REGION.matcher(question).find()) return question;
+        if (RegionQuestionPatterns.FULL_REGION.matcher(question).find()) return question;
         List<String> dongs = dongNames(question);
         if (dongs.isEmpty()) return question;
         List<DongRegionResponse> selected = new ArrayList<>();
@@ -67,7 +76,8 @@ public class NaturalLanguageSearchService {
         }
         if (selected.size() == 1) {
             DongRegionResponse region = selected.get(0);
-            return region.sggName() + " " + region.dongName() + " 가격 알려줘";
+            // 동 이름만으로 들어온 질문도 순위·기간 등 원래 검색 조건을 보존한다.
+            return region.sggName() + " " + question;
         }
         DongRegionResponse first = selected.get(0), second = selected.get(1);
         return first.sggName() + " " + first.dongName() + "과 " + second.sggName() + " "
@@ -89,7 +99,7 @@ public class NaturalLanguageSearchService {
     }
 
     private List<String> dongNames(String question) {
-        Matcher matcher = DONG.matcher(question);
+        Matcher matcher = RegionQuestionPatterns.DONG.matcher(question);
         List<String> names = new ArrayList<>();
         while (matcher.find() && names.size() < 2) names.add(matcher.group(1));
         return names;
