@@ -51,12 +51,6 @@ public record RttRespopnse(
         List<Top5ByVolumeDto> top5ByVolume
 ) {
     public record BiweeklyTrendDto(
-            @JsonProperty("year_month")
-            String yearMonth,
-
-            @JsonProperty("half")
-            String half,
-
             @JsonProperty("period_label")
             String periodLabel,
 

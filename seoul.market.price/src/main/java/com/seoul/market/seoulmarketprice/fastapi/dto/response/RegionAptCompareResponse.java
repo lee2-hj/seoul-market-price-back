@@ -1,18 +1,37 @@
 package com.seoul.market.seoulmarketprice.fastapi.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public record RegionAptCompareResponse(
         AptGroupDto aptGroup1,
         AptGroupDto aptGroup2
 ) {
     public record AptGroupDto(
-            String apt_name,
-            Long avg_deal_price,
-            Long avg_pyeong_price,
-            Integer avg_pyeong,
-            Integer latest_trade_pyeong,
-            Integer deal_count,
-            Integer total_households,
-            Integer build_year,
-            String use_approval_date
+            @JsonProperty("apt_name")
+            String aptName,
+
+            @JsonProperty("avg_deal_price")
+            Long avgDealPrice,
+
+            @JsonProperty("avg_pyeong_price")
+            Long avgPyeongPrice,
+
+            @JsonProperty("avg_pyeong")
+            Integer avgPyeong,
+
+            @JsonProperty("latest_trade_pyeong")
+            Integer latestTradePyeong,
+
+            @JsonProperty("deal_count")
+            Integer dealCount,
+
+            @JsonProperty("total_households")
+            Integer totalHouseholds,
+
+            @JsonProperty("build_year")
+            Integer buildYear,
+
+            @JsonProperty("use_approval_date")
+            String useApprovalDate
     ){}
 }
