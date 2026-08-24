@@ -121,4 +121,14 @@ public class FastApiService {
                 .retrieve()
                 .body(RegionAptCompareResponse.class);
     }
+
+    public MainPageResponse getMainpageInfo(@Valid MainPageRequest request) {
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/v1/dashboard")
+                        .queryParam("cgg_cd", request.guCode())
+                        .build())
+                .retrieve()
+                .body(MainPageResponse.class);
+    }
 }

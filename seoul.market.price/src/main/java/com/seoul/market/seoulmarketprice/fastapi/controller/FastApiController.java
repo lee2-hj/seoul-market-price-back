@@ -82,4 +82,12 @@ public class FastApiController {
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
+
+    @Operation(summary = "메인 페이지", description = "메인 페이지 api")
+    @GetMapping("/mainpage")
+    public ResponseEntity<MainPageResponse> mainpageInfo(@Valid @ModelAttribute MainPageRequest request){
+        MainPageResponse response = fastApiService.getMainpageInfo(request);
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
 }
