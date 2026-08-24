@@ -23,7 +23,7 @@ public class ElasticSearchService {
     // index.max_result_window(기본값 10000)가 사실상의 상한이다. 이 인덱스는
     // 그 설정을 따로 늘리지 않았으므로, 그 값을 그대로 써서 실질적으로 제한이 없도록 한다.
     private static final int SEARCH_SIZE = 10000;
-    private static final List<String> SOURCE_FIELDS = List.of("apt_name", "mno", "sno");
+    private static final List<String> SOURCE_FIELDS = List.of("apt_name", "mno", "sno", "dong_cd", "dong_nm", "sgg_cd", "sgg_nm");
 
     private final ElasticsearchClient elasticsearchClient;
 
