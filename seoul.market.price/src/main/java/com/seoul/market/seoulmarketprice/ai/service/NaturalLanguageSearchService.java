@@ -4,13 +4,18 @@ import com.seoul.market.seoulmarketprice.ai.dto.*;
 import com.seoul.market.seoulmarketprice.location.dto.DongRegionResponse;
 import com.seoul.market.seoulmarketprice.location.service.LocationMasterService;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class NaturalLanguageSearchService {
+    private static final Logger log = LoggerFactory.getLogger(NaturalLanguageSearchService.class);
+    private static final Pattern NEAREST_PLACE = Pattern.compile("^\\s*(.+?)(?:에서|으로부터)\\s*(?:가장\\s*)?가까운\\s*아파트");
     private final QuestionIntentClassifier classifier;
     private final AiSearchService comparisonService;
     private final SingleRegionSearchService singleRegionService;
@@ -20,6 +25,8 @@ public class NaturalLanguageSearchService {
     private final RankingSearchService rankingSearchService;
     private final TradeTrendSearchService tradeTrendSearchService;
     private final LocationMasterService locationService;
+    private final QuestionAnalysisService questionAnalysisService;
+    private final NearestApartmentPriceSearchService nearestApartmentPriceSearchService;
 
     public NaturalLanguageSearchService(QuestionIntentClassifier classifier, AiSearchService comparisonService,
                                         SingleRegionSearchService singleRegionService,
@@ -28,7 +35,9 @@ public class NaturalLanguageSearchService {
                                         TopBottomSearchService topBottomService,
                                         RankingSearchService rankingSearchService,
                                         TradeTrendSearchService tradeTrendSearchService,
-                                        LocationMasterService locationService) {
+                                        LocationMasterService locationService,
+                                        QuestionAnalysisService questionAnalysisService,
+                                        NearestApartmentPriceSearchService nearestApartmentPriceSearchService) {
         this.classifier = classifier;
         this.comparisonService = comparisonService;
         this.singleRegionService = singleRegionService;
@@ -38,11 +47,22 @@ public class NaturalLanguageSearchService {
         this.rankingSearchService = rankingSearchService;
         this.tradeTrendSearchService = tradeTrendSearchService;
         this.locationService = locationService;
+        this.questionAnalysisService = questionAnalysisService;
+        this.nearestApartmentPriceSearchService = nearestApartmentPriceSearchService;
     }
 
     public NaturalSearchResponse search(String question) {
         try {
             classifier.validateScope(question);
+            QuestionAnalysisResponse analysis = analyze(question);
+            if (analysis == null || !"NEAREST_APARTMENT_PRICE".equals(analysis.intent())) {
+                QuestionAnalysisResponse fallback = analyzeNearestLocally(question);
+                if (fallback != null) analysis = fallback;
+            }
+            if (analysis != null && "NEAREST_APARTMENT_PRICE".equals(analysis.intent())) {
+                return NaturalSearchResponse.success(analysis.intent(),
+                        nearestApartmentPriceSearchService.search(analysis));
+            }
             String normalizedQuestion = resolveDongOnlyQuestion(question);
             if (normalizedQuestion == null) return buildClarification(question);
             QuestionIntentClassifier.Intent intent = classifier.classify(normalizedQuestion);
@@ -62,6 +82,29 @@ public class NaturalLanguageSearchService {
             return NaturalSearchResponse.error("AI 검색을 처리할 수 없습니다. 잠시 후 다시 시도해주세요.",
                     NaturalSearchErrorCode.AI_UNAVAILABLE);
         }
+    }
+
+    private QuestionAnalysisResponse analyze(String question) {
+        try {
+            return questionAnalysisService.analyze(question);
+        } catch (RuntimeException exception) {
+            log.warn("구조화 질문 분석 실패, 기존 검색 분류기로 대체합니다: {}", exception.getMessage());
+            return null;
+        }
+    }
+
+    private QuestionAnalysisResponse analyzeNearestLocally(String question) {
+        if (question == null || !question.contains("가격")) return null;
+        Matcher matcher = NEAREST_PLACE.matcher(question);
+        if (!matcher.find()) return null;
+        String placeName = matcher.group(1).trim();
+        if (placeName.isBlank()) return null;
+        String placeType = placeName.endsWith("역") || placeName.endsWith("입구") ? "STATION" : "UNKNOWN";
+        return new QuestionAnalysisResponse("NEAREST_APARTMENT_PRICE", List.of(),
+                new QuestionAnalysisResponse.AnalyzedPlace(placeName, placeType), "APARTMENT",
+                null, null, 1, null, List.of("LATEST_PRICE"),
+                List.of("RESOLVE_PLACE", "SEARCH_NEARBY_APARTMENTS", "CALCULATE_DISTANCE",
+                        "GET_APARTMENT_PRICE"), List.of());
     }
 
     private String resolveDongOnlyQuestion(String question) {
