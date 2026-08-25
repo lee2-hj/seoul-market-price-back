@@ -26,7 +26,8 @@ class NaturalLanguageSearchServiceTradeVolumeTest {
                 mock(AiSearchService.class), mock(SingleRegionSearchService.class),
                 mock(DistrictSummarySearchService.class), mock(DistrictRankingSearchService.class),
                 mock(TopBottomSearchService.class),
-                rankingService, mock(TradeTrendSearchService.class), mock(LocationMasterService.class));
+                rankingService, mock(TradeTrendSearchService.class), mock(LocationMasterService.class),
+                mock(QuestionAnalysisService.class), mock(NearestApartmentPriceSearchService.class));
 
         NaturalSearchResponse response = service.search("강남구에서 거래량이 많은 아파트 상위 2개 알려줘");
 
