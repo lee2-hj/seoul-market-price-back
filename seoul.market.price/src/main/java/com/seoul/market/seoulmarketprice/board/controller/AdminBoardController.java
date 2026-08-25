@@ -44,7 +44,7 @@ public class AdminBoardController {
     /** 공지사항을 포함한 관리자 게시판 첨부파일 업무를 처리한다. */
     private final AttachmentService attachmentService;
 
-    /** 비공개 게시글을 포함한 관리자용 게시판 목록을 조회한다. */
+    /** 비공개 게시글을 포함한 관리자용 게시판 목록을 조회한다 */
     @Operation(summary = "관리자 게시판 목록 조회")
     @GetMapping
     public ResponseEntity<AdminBoardPageResponse> getBoards(
