@@ -24,7 +24,8 @@ class NaturalLanguageSearchServicePriceRankingTest {
                 mock(AiSearchService.class), mock(SingleRegionSearchService.class),
                 mock(DistrictSummarySearchService.class), mock(DistrictRankingSearchService.class),
                 mock(TopBottomSearchService.class),
-                rankingService, mock(TradeTrendSearchService.class), mock(LocationMasterService.class));
+                rankingService, mock(TradeTrendSearchService.class), mock(LocationMasterService.class),
+                mock(QuestionAnalysisService.class), mock(NearestApartmentPriceSearchService.class));
 
         var response = service.search("비싼 아파트 상위 5개 알려줘");
 

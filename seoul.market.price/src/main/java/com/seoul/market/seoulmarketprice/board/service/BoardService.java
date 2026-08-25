@@ -8,6 +8,8 @@ import com.seoul.market.seoulmarketprice.board.dto.request.NoticeCreateRequest;
 import com.seoul.market.seoulmarketprice.board.dto.response.BoardDetailResponse;
 import com.seoul.market.seoulmarketprice.board.dto.response.BoardListResponse;
 import com.seoul.market.seoulmarketprice.board.dto.response.BoardPageResponse;
+import com.seoul.market.seoulmarketprice.board.dto.response.AdminBoardListResponse;
+import com.seoul.market.seoulmarketprice.board.dto.response.AdminBoardPageResponse;
 import com.seoul.market.seoulmarketprice.board.entity.Board;
 import com.seoul.market.seoulmarketprice.board.exception.BoardAccessDeniedException;
 import com.seoul.market.seoulmarketprice.board.exception.BoardNotFoundException;
@@ -162,6 +164,21 @@ public class BoardService {
         }
     }
 
+    /** 관리자가 비공개 게시글까지 확인할 수 있는 목록을 조회한다. */
+    public AdminBoardPageResponse getAdminBoards(BoardSearchCondition condition) {
+        validatePage(condition.getPage(), condition.getSize());
+        condition.setKeyword(normalizeKeyword(condition.getKeyword()));
+
+        PageRequest pageable = PageRequest.of(condition.getPage(), condition.getSize());
+        Page<Board> result = boardQueryRepository.findAdminPage(condition, pageable);
+
+        return new AdminBoardPageResponse(
+                result.getContent().stream().map(this::toAdminListResponse).toList(),
+                result.getNumber(), result.getSize(), result.getTotalElements(),
+                result.getTotalPages(), result.isFirst(), result.isLast()
+        );
+    }
+
     /** 첨부파일 변경 전에 활성 게시글의 작성자 본인인지 확인한다. */
     public void requireOwner(Long id, Long userId) {
         requireOwner(findActive(id), userId);
@@ -234,6 +251,14 @@ public class BoardService {
                 board.getViewCount(),
                 board.isPinned(),
                 board.getCreatedAt()
+        );
+    }
+
+    private AdminBoardListResponse toAdminListResponse(Board board) {
+        return new AdminBoardListResponse(
+                board.getId(), board.getId(), board.getPostType(), board.getTitle(),
+                board.getWriterUserId(), board.getWriterName(), board.getMemberId(),
+                board.getViewCount(), board.isVisible(), board.isPinned(), board.getCreatedAt()
         );
     }
 
