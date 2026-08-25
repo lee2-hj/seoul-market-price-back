@@ -10,12 +10,10 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Service
 public class NaturalLanguageSearchService {
     private static final Logger log = LoggerFactory.getLogger(NaturalLanguageSearchService.class);
-    private static final Pattern NEAREST_PLACE = Pattern.compile("^\\s*(.+?)(?:에서|으로부터)\\s*(?:가장\\s*)?가까운\\s*아파트");
     private final QuestionIntentClassifier classifier;
     private final AiSearchService comparisonService;
     private final SingleRegionSearchService singleRegionService;
@@ -55,13 +53,13 @@ public class NaturalLanguageSearchService {
         try {
             classifier.validateScope(question);
             QuestionAnalysisResponse analysis = analyze(question);
-            if (analysis == null || !"NEAREST_APARTMENT_PRICE".equals(analysis.intent())) {
-                QuestionAnalysisResponse fallback = analyzeNearestLocally(question);
-                if (fallback != null) analysis = fallback;
-            }
             if (analysis != null && "NEAREST_APARTMENT_PRICE".equals(analysis.intent())) {
                 return NaturalSearchResponse.success(analysis.intent(),
                         nearestApartmentPriceSearchService.search(analysis));
+            }
+            if (analysis != null && "APARTMENT_RANKING".equals(analysis.intent())) {
+                Object result = rankingSearchService.searchStructured(question, analysis);
+                return NaturalSearchResponse.success(analysis.intent(), result, interpretation(analysis));
             }
             String normalizedQuestion = resolveDongOnlyQuestion(question);
             if (normalizedQuestion == null) return buildClarification(question);
@@ -84,6 +82,18 @@ public class NaturalLanguageSearchService {
         }
     }
 
+    private SearchInterpretation interpretation(QuestionAnalysisResponse analysis) {
+        if (analysis.ambiguousConcept() == null || analysis.ambiguousConcept().isBlank()) return null;
+        QuestionAnalysisResponse.MetricCandidate applied = analysis.metricCandidates() == null ? null
+                : analysis.metricCandidates().stream()
+                .filter(candidate -> "TRADE_COUNT".equals(candidate.metric()))
+                .max(java.util.Comparator.comparingDouble(QuestionAnalysisResponse.MetricCandidate::confidence))
+                .orElse(null);
+        if (applied == null) return null;
+        return new SearchInterpretation(analysis.ambiguousConcept(), "거래 건수",
+                applied.reason(), applied.confidence(), true);
+    }
+
     private QuestionAnalysisResponse analyze(String question) {
         try {
             return questionAnalysisService.analyze(question);
@@ -93,19 +103,6 @@ public class NaturalLanguageSearchService {
         }
     }
 
-    private QuestionAnalysisResponse analyzeNearestLocally(String question) {
-        if (question == null || !question.contains("가격")) return null;
-        Matcher matcher = NEAREST_PLACE.matcher(question);
-        if (!matcher.find()) return null;
-        String placeName = matcher.group(1).trim();
-        if (placeName.isBlank()) return null;
-        String placeType = placeName.endsWith("역") || placeName.endsWith("입구") ? "STATION" : "UNKNOWN";
-        return new QuestionAnalysisResponse("NEAREST_APARTMENT_PRICE", List.of(),
-                new QuestionAnalysisResponse.AnalyzedPlace(placeName, placeType), "APARTMENT",
-                null, null, 1, null, List.of("LATEST_PRICE"),
-                List.of("RESOLVE_PLACE", "SEARCH_NEARBY_APARTMENTS", "CALCULATE_DISTANCE",
-                        "GET_APARTMENT_PRICE"), List.of());
-    }
 
     private String resolveDongOnlyQuestion(String question) {
         if (RegionQuestionPatterns.FULL_REGION.matcher(question).find()) return question;

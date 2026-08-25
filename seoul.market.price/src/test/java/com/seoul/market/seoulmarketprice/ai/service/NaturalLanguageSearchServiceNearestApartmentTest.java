@@ -37,27 +37,4 @@ class NaturalLanguageSearchServiceNearestApartmentTest {
         assertThat(response.result()).isEqualTo(expected);
     }
 
-    @Test
-    void fallsBackLocallyWhenDeployedAnalyzerDoesNotHaveEndpoint() {
-        QuestionAnalysisService analyzer = mock(QuestionAnalysisService.class);
-        NearestApartmentPriceSearchService nearest = mock(NearestApartmentPriceSearchService.class);
-        when(analyzer.analyze("홍대입구에서 가장 가까운 아파트 가격 알려줘"))
-                .thenThrow(new IllegalStateException("404 Not Found"));
-        when(nearest.search(org.mockito.ArgumentMatchers.any())).thenReturn(
-                new PriceComparisonResponse("로컬 보조 분석 성공", List.of(), List.of()));
-        NaturalLanguageSearchService service = new NaturalLanguageSearchService(
-                new QuestionIntentClassifier(new AiQuestionProperties(List.of("아파트", "가격"))),
-                mock(AiSearchService.class), mock(SingleRegionSearchService.class),
-                mock(DistrictSummarySearchService.class), mock(DistrictRankingSearchService.class),
-                mock(TopBottomSearchService.class), mock(RankingSearchService.class),
-                mock(TradeTrendSearchService.class), mock(LocationMasterService.class), analyzer, nearest);
-
-        var response = service.search("홍대입구에서 가장 가까운 아파트 가격 알려줘");
-
-        assertThat(response.status().name()).isEqualTo("SUCCESS");
-        assertThat(response.intent()).isEqualTo("NEAREST_APARTMENT_PRICE");
-        org.mockito.Mockito.verify(nearest).search(org.mockito.ArgumentMatchers.argThat(value ->
-                value.referencePlace().name().equals("홍대입구")
-                        && value.referencePlace().type().equals("STATION")));
-    }
 }
