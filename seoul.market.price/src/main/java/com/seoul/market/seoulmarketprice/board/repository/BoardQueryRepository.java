@@ -58,6 +58,31 @@ public class BoardQueryRepository {
         return new PageImpl<>(content, pageable, total == null ? 0 : total);
     }
 
+    /** 관리자용으로 비공개 게시글을 포함한 활성 게시글 목록을 조회한다. */
+    public Page<Board> findAdminPage(BoardSearchCondition condition, Pageable pageable) {
+        BooleanExpression search = searchCondition(condition.getSearchType(), condition.getKeyword());
+
+        List<Board> content = queryFactory
+                .selectFrom(board)
+                .leftJoin(board.user).fetchJoin()
+                .leftJoin(board.member).fetchJoin()
+                .where(board.deletedAt.isNull(), search)
+                .orderBy(board.pinned.desc(), board.createdAt.desc(), board.id.desc())
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+
+        Long total = queryFactory
+                .select(board.count())
+                .from(board)
+                .leftJoin(board.user)
+                .leftJoin(board.member)
+                .where(board.deletedAt.isNull(), search)
+                .fetchOne();
+
+        return new PageImpl<>(content, pageable, total == null ? 0 : total);
+    }
+
     /** 공개 상태이며 삭제되지 않은 게시글 상세를 조회한다. */
     public Optional<Board> findPublicById(Long id) {
         return Optional.ofNullable(queryFactory

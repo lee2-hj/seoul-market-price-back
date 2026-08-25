@@ -3,6 +3,7 @@ package com.seoul.market.seoulmarketprice.ai.service;
 import com.seoul.market.seoulmarketprice.ai.dto.*;
 import com.seoul.market.seoulmarketprice.location.dto.DongRegionResponse;
 import com.seoul.market.seoulmarketprice.location.service.LocationMasterService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +26,9 @@ public class NaturalLanguageSearchService {
     private final LocationMasterService locationService;
     private final QuestionAnalysisService questionAnalysisService;
     private final NearestApartmentPriceSearchService nearestApartmentPriceSearchService;
+    private final NearbyApartmentRankingSearchService nearbyApartmentRankingSearchService;
 
+    @Autowired
     public NaturalLanguageSearchService(QuestionIntentClassifier classifier, AiSearchService comparisonService,
                                         SingleRegionSearchService singleRegionService,
                                         DistrictSummarySearchService districtSummaryService,
@@ -35,7 +38,8 @@ public class NaturalLanguageSearchService {
                                         TradeTrendSearchService tradeTrendSearchService,
                                         LocationMasterService locationService,
                                         QuestionAnalysisService questionAnalysisService,
-                                        NearestApartmentPriceSearchService nearestApartmentPriceSearchService) {
+                                        NearestApartmentPriceSearchService nearestApartmentPriceSearchService,
+                                        NearbyApartmentRankingSearchService nearbyApartmentRankingSearchService) {
         this.classifier = classifier;
         this.comparisonService = comparisonService;
         this.singleRegionService = singleRegionService;
@@ -47,22 +51,54 @@ public class NaturalLanguageSearchService {
         this.locationService = locationService;
         this.questionAnalysisService = questionAnalysisService;
         this.nearestApartmentPriceSearchService = nearestApartmentPriceSearchService;
+        this.nearbyApartmentRankingSearchService = nearbyApartmentRankingSearchService;
+    }
+
+    /** 기존 단위 테스트와의 생성자 호환을 위한 보조 생성자. 애플리케이션에서는 주입 생성자를 사용한다. */
+    NaturalLanguageSearchService(QuestionIntentClassifier classifier, AiSearchService comparisonService,
+                                 SingleRegionSearchService singleRegionService,
+                                 DistrictSummarySearchService districtSummaryService,
+                                 DistrictRankingSearchService districtRankingService,
+                                 TopBottomSearchService topBottomService,
+                                 RankingSearchService rankingSearchService,
+                                 TradeTrendSearchService tradeTrendSearchService,
+                                 LocationMasterService locationService,
+                                 QuestionAnalysisService questionAnalysisService,
+                                 NearestApartmentPriceSearchService nearestApartmentPriceSearchService) {
+        this(classifier, comparisonService, singleRegionService, districtSummaryService, districtRankingService,
+                topBottomService, rankingSearchService, tradeTrendSearchService, locationService,
+                questionAnalysisService, nearestApartmentPriceSearchService, null);
     }
 
     public NaturalSearchResponse search(String question) {
         try {
             classifier.validateScope(question);
             QuestionAnalysisResponse analysis = analyze(question);
+            if (isNearbyApartmentRanking(analysis)) {
+                if (nearbyApartmentRankingSearchService == null) {
+                    throw new IllegalStateException("주변 아파트 순위 서비스를 초기화할 수 없습니다.");
+                }
+                return NaturalSearchResponse.success(analysis.intent(),
+                        nearbyApartmentRankingSearchService.search(analysis));
+            }
+            String normalizedQuestion = resolveDongOnlyQuestion(question);
+            if (normalizedQuestion == null) {
+                String intent = analysis != null && "APARTMENT_RANKING".equals(analysis.intent())
+                        ? "APARTMENT_RANKING" : null;
+                return buildClarification(question, intent);
+            }
             if (analysis != null && "NEAREST_APARTMENT_PRICE".equals(analysis.intent())) {
                 return NaturalSearchResponse.success(analysis.intent(),
                         nearestApartmentPriceSearchService.search(analysis));
             }
             if (analysis != null && "APARTMENT_RANKING".equals(analysis.intent())) {
-                Object result = rankingSearchService.searchStructured(question, analysis);
-                return NaturalSearchResponse.success(analysis.intent(), result, interpretation(analysis));
+                if (hasAmbiguousConcept(analysis)) {
+                    Object result = rankingSearchService.searchStructured(normalizedQuestion, analysis);
+                    return NaturalSearchResponse.success(analysis.intent(), result, interpretation(analysis));
+                }
+                return NaturalSearchResponse.success(analysis.intent(),
+                        rankingSearchService.search(normalizedQuestion));
             }
-            String normalizedQuestion = resolveDongOnlyQuestion(question);
-            if (normalizedQuestion == null) return buildClarification(question);
             QuestionIntentClassifier.Intent intent = classifier.classify(normalizedQuestion);
             Object result = switch (intent) {
                 case PRICE_COMPARISON -> comparisonService.search(normalizedQuestion);
@@ -82,6 +118,16 @@ public class NaturalLanguageSearchService {
         }
     }
 
+    private boolean hasAmbiguousConcept(QuestionAnalysisResponse analysis) {
+        return analysis.ambiguousConcept() != null && !analysis.ambiguousConcept().isBlank();
+    }
+
+    private boolean isNearbyApartmentRanking(QuestionAnalysisResponse analysis) {
+        if (analysis == null || analysis.referencePlace() == null) return false;
+        return "NEARBY_APARTMENT_RANKING".equals(analysis.intent())
+                || "APARTMENT_RANKING".equals(analysis.intent());
+    }
+
     private SearchInterpretation interpretation(QuestionAnalysisResponse analysis) {
         if (analysis.ambiguousConcept() == null || analysis.ambiguousConcept().isBlank()) return null;
         QuestionAnalysisResponse.MetricCandidate applied = analysis.metricCandidates() == null ? null
@@ -90,8 +136,17 @@ public class NaturalLanguageSearchService {
                 .max(java.util.Comparator.comparingDouble(QuestionAnalysisResponse.MetricCandidate::confidence))
                 .orElse(null);
         if (applied == null) return null;
-        return new SearchInterpretation(analysis.ambiguousConcept(), "거래 건수",
+        return new SearchInterpretation(conceptLabel(analysis.ambiguousConcept()), "거래 건수",
                 applied.reason(), applied.confidence(), true);
+    }
+
+    private String conceptLabel(String concept) {
+        return switch (concept) {
+            case "POPULARITY" -> "인기";
+            case "PREFERENCE" -> "선호";
+            case "DISLIKE" -> "비선호";
+            default -> concept;
+        };
     }
 
     private QuestionAnalysisResponse analyze(String question) {
@@ -111,7 +166,10 @@ public class NaturalLanguageSearchService {
         List<DongRegionResponse> selected = new ArrayList<>();
         for (String dong : dongs) {
             List<DongRegionResponse> candidates = locationService.resolveDong(dong);
-            if (candidates.size() != 1) return null;
+            if (candidates.isEmpty()) {
+                throw new IllegalArgumentException(dong + "을(를) 찾을 수 없습니다.");
+            }
+            if (candidates.size() > 1) return null;
             selected.add(candidates.get(0));
         }
         if (selected.size() == 1) {
@@ -125,6 +183,10 @@ public class NaturalLanguageSearchService {
     }
 
     private NaturalSearchResponse buildClarification(String question) {
+        return buildClarification(question, null);
+    }
+
+    private NaturalSearchResponse buildClarification(String question, String requestedIntent) {
         List<String> dongs = dongNames(question);
         List<NaturalRegionCandidate> candidates = new ArrayList<>();
         for (int slot = 0; slot < dongs.size(); slot++) {
@@ -133,7 +195,9 @@ public class NaturalLanguageSearchService {
                         candidate.sggCode(), candidate.dongName(), candidate.dongCode()));
             }
         }
-        return NaturalSearchResponse.clarification(dongs.size() > 1 ? "PRICE_COMPARISON" : "SINGLE_REGION",
+        String intent = requestedIntent != null ? requestedIntent
+                : dongs.size() > 1 ? "PRICE_COMPARISON" : "SINGLE_REGION";
+        return NaturalSearchResponse.clarification(intent,
                 "같은 이름의 동이 여러 자치구에 있습니다. 지역을 선택해주세요.",
                 List.of("sgg"), candidates);
     }

@@ -7,6 +7,8 @@ import com.seoul.market.seoulmarketprice.attachment.service.AttachmentService;
 import com.seoul.market.seoulmarketprice.board.dto.request.AdminBoardUpdateRequest;
 import com.seoul.market.seoulmarketprice.board.dto.request.NoticeCreateRequest;
 import com.seoul.market.seoulmarketprice.board.dto.response.BoardDetailResponse;
+import com.seoul.market.seoulmarketprice.board.dto.response.AdminBoardPageResponse;
+import com.seoul.market.seoulmarketprice.board.dto.condition.BoardSearchCondition;
 import com.seoul.market.seoulmarketprice.board.service.BoardService;
 import com.seoul.market.seoulmarketprice.security.principal.CustomUserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -40,6 +43,16 @@ public class AdminBoardController {
     private final BoardService boardService;
     /** 공지사항을 포함한 관리자 게시판 첨부파일 업무를 처리한다. */
     private final AttachmentService attachmentService;
+
+    /** 비공개 게시글을 포함한 관리자용 게시판 목록을 조회한다. */
+    @Operation(summary = "관리자 게시판 목록 조회")
+    @GetMapping
+    public ResponseEntity<AdminBoardPageResponse> getBoards(
+            @Valid @ParameterObject @org.springframework.web.bind.annotation.ModelAttribute
+            BoardSearchCondition condition
+    ) {
+        return ResponseEntity.ok(boardService.getAdminBoards(condition));
+    }
 
     /** 관리자 명의의 공지사항을 새로 등록한다. */
     @Operation(summary = "공지사항 작성")

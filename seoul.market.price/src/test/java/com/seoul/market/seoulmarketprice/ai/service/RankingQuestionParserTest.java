@@ -47,6 +47,15 @@ class RankingQuestionParserTest {
     }
 
     @Test
+    void parsesOneHundredEokMinimumPrice() {
+        var query = parser.parse("강남구 100억 이상 아파트");
+
+        assertEquals(RankingMetric.PRICE, query.metric());
+        assertEquals(new BigDecimal("10000000000"), query.minPrice());
+        assertEquals(null, query.maxPrice());
+    }
+
+    @Test
     void treatsExpensiveAsDescendingRatherThanMatchingIts싼Syllable() {
         var query = parser.parse("강동구에서 비싼 아파트 상위 5개 알려줘");
 
