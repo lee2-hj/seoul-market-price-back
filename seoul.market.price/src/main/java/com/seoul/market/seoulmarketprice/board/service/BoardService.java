@@ -257,7 +257,7 @@ public class BoardService {
     private AdminBoardListResponse toAdminListResponse(Board board) {
         return new AdminBoardListResponse(
                 board.getId(), board.getId(), board.getPostType(), board.getTitle(),
-                board.getWriterUserId(), board.getWriterName(), board.getMemberId(),
+                board.getContent(), board.getWriterUserId(), board.getWriterName(), board.getMemberId(),
                 board.getViewCount(), board.isVisible(), board.isPinned(), board.getCreatedAt()
         );
     }

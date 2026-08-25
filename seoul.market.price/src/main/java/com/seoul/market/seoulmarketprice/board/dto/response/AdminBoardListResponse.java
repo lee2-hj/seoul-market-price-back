@@ -9,6 +9,7 @@ public record AdminBoardListResponse(
         Long boardId,
         PostType postType,
         String title,
+        String content,
         String userId,
         String writerName,
         Long memberId,
