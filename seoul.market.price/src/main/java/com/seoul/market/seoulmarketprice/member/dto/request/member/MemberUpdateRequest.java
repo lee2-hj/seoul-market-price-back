@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /** 일반 회원이 선택적으로 변경할 수 있는 계정·연락처·주소 정보 요청이다. */
 public record MemberUpdateRequest(
@@ -36,8 +37,19 @@ public record MemberUpdateRequest(
 
         /** 변경할 동·호수 등의 상세 주소. */
         @Size(max = 255, message = "상세 주소는 255자 이하여야 합니다.")
-        String addressDetail
+        String addressDetail,
+
+        @JsonProperty("sgg_cd")
+        @Size(max = 10)
+        String sggCd
 ) {
+    public MemberUpdateRequest(
+            String password, String phone, String identityVerificationId,
+            String email, String zipcode, String address, String addressDetail
+    ) {
+        this(password, phone, identityVerificationId, email, zipcode, address, addressDetail, null);
+    }
+
     /** 휴대전화 번호를 변경하려면 해당 번호로 완료한 본인인증 결과가 필요하다. */
     @AssertTrue(message = "휴대전화 번호 변경 시 본인인증 아이디는 필수입니다.")
     public boolean isPhoneVerificationProvided() {
@@ -53,6 +65,7 @@ public record MemberUpdateRequest(
                 || email != null
                 || zipcode != null
                 || address != null
-                || addressDetail != null;
+                || addressDetail != null
+                || sggCd != null;
     }
 }
