@@ -254,13 +254,15 @@ public class SecurityConfig {
 
                 // Access Token 인증 필터를 등록한다.
                 .addFilterBefore(
-                        aiSearchRateLimitFilter,
-                        JwtAuthenticationFilter.class
-                )
-                .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
+                )
+
+                .addFilterBefore(
+                        aiSearchRateLimitFilter,
+                        UsernamePasswordAuthenticationFilter.class
                 );
+
 
         return http.build();
     }
