@@ -17,6 +17,7 @@ import com.seoul.market.seoulmarketprice.qna.exception.QnaNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.validation.BindException;
@@ -209,9 +210,9 @@ public class GlobalExceptionHandler {
                 );
     }
 
-    /** fastApi 호출 시 응답으로 내려온 오류 상태코드를 그대로 전달한다. */
+    /** fastApi 호출 시 응답으로 내려온 상태코드와 본문을 그대로 전달한다. */
     @ExceptionHandler(RestClientResponseException.class)
-    public ResponseEntity<ErrorResponse> handleFastApiResponseError(
+    public ResponseEntity<byte[]> handleFastApiResponseError(
             RestClientResponseException exception
     ) {
 
@@ -220,14 +221,22 @@ public class GlobalExceptionHandler {
             status = HttpStatus.INTERNAL_SERVER_ERROR;
         }
 
-        return ResponseEntity
-                .status(status)
-                .body(
-                        new ErrorResponse(
-                                "FASTAPI-001",
-                                "fastApi 호출 중 오류가 발생하였습니다."
-                        )
-                );
+        log.error(
+                "fastApi 호출 중 오류 응답을 받았습니다. status={}, body={}",
+                exception.getStatusCode(),
+                exception.getResponseBodyAsString(),
+                exception
+        );
+
+        ResponseEntity.BodyBuilder responseBuilder = ResponseEntity.status(status);
+        MediaType contentType = exception.getResponseHeaders() != null
+                ? exception.getResponseHeaders().getContentType()
+                : null;
+        if (contentType != null) {
+            responseBuilder.contentType(contentType);
+        }
+
+        return responseBuilder.body(exception.getResponseBodyAsByteArray());
     }
 
     /** fastApi 서버와 통신하지 못한 네트워크 오류를 발생 원인에 맞는 상태코드로 변환한다. */
