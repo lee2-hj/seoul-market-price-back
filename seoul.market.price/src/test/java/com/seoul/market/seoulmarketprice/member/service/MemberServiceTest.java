@@ -6,6 +6,7 @@ import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCreateR
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberIdCheckRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberWithdrawalRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberUpdateRequest;
+import com.seoul.market.seoulmarketprice.member.dto.request.member.LocationConsentUpdateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberCreateResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberCheckResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberIdCheckResponse;
@@ -224,6 +225,21 @@ class MemberServiceTest {
         assertThat(member.getPassword()).isEqualTo("encoded-new-password");
         verify(passwordEncoder).encode("new-password123!");
         verify(passwordEncoder, never()).matches(any(), any());
+    }
+
+    @Test
+    void agreeToLocationServiceStoresConsent() {
+        Member member = localMember();
+        ReflectionTestUtils.setField(member, "isLocationAgreed", (byte) 0);
+        when(memberManagementRepository.findActiveByIdForUpdate(1L))
+                .thenReturn(Optional.of(member));
+
+        var response = memberService.agreeToLocationService(
+                1L, new LocationConsentUpdateRequest(true)
+        );
+
+        assertThat(member.getIsLocationAgreed()).isEqualTo((byte) 1);
+        assertThat(response.isLocationAgreed()).isTrue();
     }
 
     @Test

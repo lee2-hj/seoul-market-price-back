@@ -1,5 +1,6 @@
 package com.seoul.market.seoulmarketprice.member.dto.response.member;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import com.seoul.market.seoulmarketprice.auth.entity.UserType;
 import com.seoul.market.seoulmarketprice.member.service.DistrictPreferenceResolver;
@@ -41,6 +42,7 @@ public record MemberResponse(
         String preferredDistrict,
         /** 사용자가 선택한 선호 행정동. */
         String myDong,
+        @JsonProperty("isLocationAgreed") boolean isLocationAgreed,
         /** 선호 위치의 위도. */
         BigDecimal latitude,
         /** 선호 위치의 경도. */
@@ -75,6 +77,7 @@ public record MemberResponse(
                         member.getAddress()
                 ),
                 member.getMyDong(),
+                Byte.valueOf((byte) 1).equals(member.getIsLocationAgreed()),
                 member.getLatitude(),
                 member.getLongitude(),
                 member.getCreated_at(),

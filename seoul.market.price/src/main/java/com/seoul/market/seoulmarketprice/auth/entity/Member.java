@@ -430,4 +430,8 @@ public class Member {
         }
         this.myGu = sggCd;
     }
+
+    public void agreeToLocationService() {
+        this.isLocationAgreed = 1;
+    }
 }

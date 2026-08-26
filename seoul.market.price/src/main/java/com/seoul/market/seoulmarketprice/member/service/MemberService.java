@@ -6,6 +6,7 @@ import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCreateR
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberIdCheckRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberWithdrawalRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberUpdateRequest;
+import com.seoul.market.seoulmarketprice.member.dto.request.member.LocationConsentUpdateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberCheckResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberCreateResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberResponse;
@@ -146,6 +147,17 @@ public class MemberService {
         Member member = memberManagementRepository.findActiveByIdForUpdate(memberId)
                 .orElseThrow(MemberNotFoundException::new);
         member.clearMyGu();
+    }
+
+    @Transactional
+    public MemberResponse agreeToLocationService(
+            Long memberId,
+            LocationConsentUpdateRequest request
+    ) {
+        Member member = memberManagementRepository.findActiveByIdForUpdate(memberId)
+                .orElseThrow(MemberNotFoundException::new);
+        member.agreeToLocationService();
+        return MemberResponse.from(member);
     }
 
     private void verifyPhoneChange(Member member, MemberUpdateRequest request) {
