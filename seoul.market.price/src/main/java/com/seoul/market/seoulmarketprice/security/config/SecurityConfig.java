@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -40,15 +41,17 @@ public class SecurityConfig {
 
     private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     /**
      * 인증/인가 실패 응답 본문을 JSON으로 작성할 때 사용한다.
      */
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             UrlBasedCorsConfigurationSource corsConfigurationSource,
+            ObjectMapper objectMapper,
             JwtAuthenticationFilter jwtAuthenticationFilter,
             AiSearchRateLimitFilter aiSearchRateLimitFilter,
             CustomOAuth2UserService customOAuth2UserService,
