@@ -106,6 +106,14 @@ public class MemberService {
         return MemberResponse.from(member);
     }
 
+    /** 현재 회원의 선호 자치구만 삭제한다. */
+    @Transactional
+    public void clearMyGu(Long memberId) {
+        Member member = memberManagementRepository.findActiveByIdForUpdate(memberId)
+                .orElseThrow(MemberNotFoundException::new);
+        member.clearMyGu();
+    }
+
     private void verifyPhoneChange(Member member, MemberUpdateRequest request) {
         PhoneVerificationConfirmResponse verification = phoneVerificationService.confirm(
                 new PhoneVerificationConfirmRequest(request.identityVerificationId())

@@ -411,4 +411,16 @@ public class Member {
             this.addressDetail = addressDetail;
         }
     }
+
+    public void changeAdminEditableProfile(String zipcode, String address, String addressDetail, String preferredRegion) {
+        if (zipcode != null) this.zipcode = zipcode;
+        if (address != null) this.address = address;
+        if (addressDetail != null) this.addressDetail = addressDetail;
+        if (preferredRegion != null) this.myGu = preferredRegion;
+    }
+
+    /** 사용자가 설정한 선호 자치구만 삭제한다. */
+    public void clearMyGu() {
+        this.myGu = null;
+    }
 }
