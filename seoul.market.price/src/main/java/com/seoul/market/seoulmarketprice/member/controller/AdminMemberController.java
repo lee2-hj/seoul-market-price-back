@@ -2,6 +2,7 @@ package com.seoul.market.seoulmarketprice.member.controller;
 
 import com.seoul.market.seoulmarketprice.member.dto.request.admin.AdminMemberUpdateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminMemberPasswordResetResponse;
+import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminMemberDetailResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminMemberPageResponse;
 import com.seoul.market.seoulmarketprice.member.service.AdminMemberService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,6 +34,11 @@ public class AdminMemberController {
             @RequestParam(defaultValue = "20") int size
     ) {
         return ResponseEntity.ok(adminMemberService.getMembers(page, size));
+    }
+
+    @GetMapping("/{memberId}")
+    public ResponseEntity<AdminMemberDetailResponse> getMember(@PathVariable Long memberId) {
+        return ResponseEntity.ok(adminMemberService.getMember(memberId));
     }
 
     @PatchMapping("/{memberId}")

@@ -5,6 +5,7 @@ import com.seoul.market.seoulmarketprice.member.dto.request.admin.AdminMemberUpd
 import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminMemberListResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminMemberPageResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminMemberPasswordResetResponse;
+import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminMemberDetailResponse;
 import com.seoul.market.seoulmarketprice.member.exception.MemberNotFoundException;
 import com.seoul.market.seoulmarketprice.member.repository.MemberManagementRepository;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +48,12 @@ public class AdminMemberService {
                 members.isFirst(),
                 members.isLast()
         );
+    }
+
+    public AdminMemberDetailResponse getMember(Long memberId) {
+        Member member = memberManagementRepository.findActiveById(memberId)
+                .orElseThrow(MemberNotFoundException::new);
+        return AdminMemberDetailResponse.from(member);
     }
 
     @Transactional
