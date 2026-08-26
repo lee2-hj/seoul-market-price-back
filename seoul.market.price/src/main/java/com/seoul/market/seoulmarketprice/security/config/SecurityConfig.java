@@ -1,6 +1,7 @@
 package com.seoul.market.seoulmarketprice.security.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.seoul.market.seoulmarketprice.ai.filter.AiSearchRateLimitFilter;
 import com.seoul.market.seoulmarketprice.common.dto.ErrorResponse;
 import com.seoul.market.seoulmarketprice.security.jwt.JwtAuthenticationFilter;
 import com.seoul.market.seoulmarketprice.security.oauth2.CustomOAuth2UserService;
@@ -49,6 +50,7 @@ public class SecurityConfig {
             HttpSecurity http,
             UrlBasedCorsConfigurationSource corsConfigurationSource,
             JwtAuthenticationFilter jwtAuthenticationFilter,
+            AiSearchRateLimitFilter aiSearchRateLimitFilter,
             CustomOAuth2UserService customOAuth2UserService,
             OAuth2SuccessHandler oauth2SuccessHandler,
             @Value("${app.admin.creation-public:false}")
@@ -147,6 +149,10 @@ public class SecurityConfig {
                                 "/v3/api-docs/**"
                         ).permitAll();
 
+                    // 메인 AI 검색은 비로그인 사용자에게도 공개하되, IP별 요청 제한 필터를 적용한다.
+                    auth.requestMatchers(HttpMethod.POST, "/api/ai/search-natural")
+                            .permitAll();
+
                     /*
                      * 개발 환경에서는 최초 관리자 생성을 위해 임시 공개한다.
                      * 운영 환경에서 app.admin.creation-public=false로 설정하면
@@ -244,6 +250,10 @@ public class SecurityConfig {
                 )
 
                 // Access Token 인증 필터를 등록한다.
+                .addFilterBefore(
+                        aiSearchRateLimitFilter,
+                        JwtAuthenticationFilter.class
+                )
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
