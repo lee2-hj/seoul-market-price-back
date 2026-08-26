@@ -23,6 +23,10 @@ ext {
 }
 
 dependencies {
+    // 프로젝트 전체에서 사용하는 Jackson 2(ObjectMapper) 버전을 명시적으로 통일한다.
+    implementation platform('com.fasterxml.jackson:jackson-bom:2.18.3')
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+
     // S3 호환 MinIO에 게시판 첨부파일을 저장하고 presigned URL을 발급한다.
     implementation 'io.minio:minio:9.0.1'
     implementation 'org.apache.parquet:parquet-avro:1.16.0'
