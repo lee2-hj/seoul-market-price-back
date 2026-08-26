@@ -245,7 +245,7 @@ public class Member {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "my_gu",
-            referencedColumnName = "id",
+            referencedColumnName = "sgg_cd",
             insertable = false,
             updatable = false,
             foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT)
