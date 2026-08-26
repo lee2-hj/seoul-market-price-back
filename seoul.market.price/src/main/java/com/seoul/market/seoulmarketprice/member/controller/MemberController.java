@@ -162,6 +162,16 @@ public class MemberController {
         return ResponseEntity.ok(memberService.updateMember(principal.memberId(), request));
     }
 
+    /** 현재 로그인한 회원의 선호 자치구만 삭제한다. */
+    @Operation(summary = "현재 로그인한 회원의 선호지역 삭제")
+    @DeleteMapping("/me/preferred-region")
+    public ResponseEntity<Void> clearMyGu(
+            @AuthenticationPrincipal CustomUserPrincipal principal
+    ) {
+        memberService.clearMyGu(principal.memberId());
+        return ResponseEntity.noContent().build();
+    }
+
     /** 현재 비밀번호를 재확인한 뒤 로그인 회원을 소프트 삭제한다. */
     @Operation(summary = "현재 로그인한 일반 회원 탈퇴")
     @DeleteMapping("/me")
