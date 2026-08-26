@@ -245,7 +245,7 @@ public class Member {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "my_gu",
-            referencedColumnName = "id",
+            referencedColumnName = "sgg_cd",
             insertable = false,
             updatable = false,
             foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT)
@@ -422,5 +422,12 @@ public class Member {
     /** 사용자가 설정한 선호 자치구만 삭제한다. */
     public void clearMyGu() {
         this.myGu = null;
+    }
+
+    public void changeMyGu(String sggCd) {
+        if (sggCd == null || sggCd.isBlank()) {
+            throw new IllegalArgumentException("선호 자치구 코드는 비어 있을 수 없습니다.");
+        }
+        this.myGu = sggCd;
     }
 }
