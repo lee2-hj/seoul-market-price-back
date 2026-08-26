@@ -26,8 +26,8 @@ class DistrictPreferenceResolverTest {
     }
 
     @Test
-    void defaultsToJungGuWhenNoSeoulDistrictExists() {
-        assertThat(DistrictPreferenceResolver.resolve(null, null)).isEqualTo("중구");
-        assertThat(DistrictPreferenceResolver.resolve("", "경기도 수원시")).isEqualTo("중구");
+    void returnsNoDistrictWhenNoSeoulDistrictExists() {
+        assertThat(DistrictPreferenceResolver.resolve(null, null)).isNull();
+        assertThat(DistrictPreferenceResolver.resolve("", "경기도 수원시")).isNull();
     }
 }
