@@ -5,6 +5,7 @@ import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCreateR
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberIdCheckRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberIdFindRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberUpdateRequest;
+import com.seoul.market.seoulmarketprice.member.dto.request.member.LocationConsentUpdateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberWithdrawalRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.PasswordResetCompleteRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.PasswordResetVerifyRequest;
@@ -160,6 +161,17 @@ public class MemberController {
             @Valid @RequestBody MemberUpdateRequest request
     ) {
         return ResponseEntity.ok(memberService.updateMember(principal.memberId(), request));
+    }
+
+    @Operation(summary = "위치 기반 서비스 이용 동의")
+    @PatchMapping("/me/location-consent")
+    public ResponseEntity<MemberResponse> agreeToLocationService(
+            @AuthenticationPrincipal CustomUserPrincipal principal,
+            @Valid @RequestBody LocationConsentUpdateRequest request
+    ) {
+        return ResponseEntity.ok(
+                memberService.agreeToLocationService(principal.memberId(), request)
+        );
     }
 
     /** 현재 로그인한 회원의 선호 자치구만 삭제한다. */
