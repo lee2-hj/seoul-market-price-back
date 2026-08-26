@@ -423,4 +423,11 @@ public class Member {
     public void clearMyGu() {
         this.myGu = null;
     }
+
+    public void changeMyGu(String sggCd) {
+        if (sggCd == null || sggCd.isBlank()) {
+            throw new IllegalArgumentException("선호 자치구 코드는 비어 있을 수 없습니다.");
+        }
+        this.myGu = sggCd;
+    }
 }

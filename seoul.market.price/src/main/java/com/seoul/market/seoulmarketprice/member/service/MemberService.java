@@ -14,11 +14,12 @@ import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberWithdr
 import com.seoul.market.seoulmarketprice.member.exception.DuplicateMemberException;
 import com.seoul.market.seoulmarketprice.member.exception.MemberNotFoundException;
 import com.seoul.market.seoulmarketprice.member.repository.MemberManagementRepository;
+import com.seoul.market.seoulmarketprice.location.repository.SggMasterRepository;
 import com.seoul.market.seoulmarketprice.phoneverification.dto.request.PhoneVerificationConfirmRequest;
 import com.seoul.market.seoulmarketprice.phoneverification.dto.response.PhoneVerificationConfirmResponse;
 import com.seoul.market.seoulmarketprice.phoneverification.service.PhoneVerificationService;
 import com.seoul.market.seoulmarketprice.token.service.RefreshTokenService;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,7 +39,6 @@ import java.time.Instant;
  * </p>
  */
 @Service
-@RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class MemberService {
 
@@ -55,6 +55,8 @@ public class MemberService {
      */
     private final MemberManagementRepository memberManagementRepository;
 
+    private final SggMasterRepository sggMasterRepository;
+
     /**
      * 회원 비밀번호를 BCrypt 해시로 변환한다.
      */
@@ -64,6 +66,30 @@ public class MemberService {
 
     /** 회원 탈퇴 시 모든 로그인 기기의 Refresh Token을 폐기한다. */
     private final RefreshTokenService refreshTokenService;
+
+    @Autowired
+    public MemberService(
+            MemberManagementRepository memberManagementRepository,
+            SggMasterRepository sggMasterRepository,
+            PasswordEncoder passwordEncoder,
+            PhoneVerificationService phoneVerificationService,
+            RefreshTokenService refreshTokenService
+    ) {
+        this.memberManagementRepository = memberManagementRepository;
+        this.sggMasterRepository = sggMasterRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.phoneVerificationService = phoneVerificationService;
+        this.refreshTokenService = refreshTokenService;
+    }
+
+    public MemberService(
+            MemberManagementRepository memberManagementRepository,
+            PasswordEncoder passwordEncoder,
+            PhoneVerificationService phoneVerificationService,
+            RefreshTokenService refreshTokenService
+    ) {
+        this(memberManagementRepository, null, passwordEncoder, phoneVerificationService, refreshTokenService);
+    }
 
     /** 탈퇴하지 않은 현재 회원의 화면 표시 정보를 조회한다. */
     public MemberResponse getMember(Long memberId) {
@@ -97,6 +123,14 @@ public class MemberService {
                 request.address(),
                 request.addressDetail()
         );
+
+        if (request.sggCd() != null) {
+            String sggCd = request.sggCd().trim();
+            if (sggCd.isBlank() || !sggMasterRepository.existsBySggCode(sggCd)) {
+                throw new IllegalArgumentException("존재하지 않는 자치구 코드입니다.");
+            }
+            member.changeMyGu(sggCd);
+        }
 
         try {
             memberManagementRepository.flush();
