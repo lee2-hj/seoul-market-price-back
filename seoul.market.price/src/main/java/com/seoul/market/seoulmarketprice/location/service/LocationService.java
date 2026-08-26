@@ -37,7 +37,12 @@ public class LocationService {
                 || "서울".equals(region.region1DepthName()))) {
             throw new IllegalArgumentException("현재 위치가 서울 지역이 아닙니다.");
         }
-        return new CurrentDistrictResponse(region.region2DepthName());
+        String regionCode = region.code();
+        if (regionCode == null || !regionCode.matches("\\d{5,}")) {
+            throw new IllegalArgumentException("Current location region code is invalid.");
+        }
+        String sggCd = regionCode.substring(0, 5);
+        return new CurrentDistrictResponse(region.region2DepthName(), sggCd);
     }
 
     private void validateCoordinates(double latitude, double longitude) {

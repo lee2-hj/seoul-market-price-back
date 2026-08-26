@@ -8,7 +8,8 @@ public record KakaoRegionResponse(List<Document> documents) {
     public record Document(
             @JsonProperty("region_type") String regionType,
             @JsonProperty("region_1depth_name") String region1DepthName,
-            @JsonProperty("region_2depth_name") String region2DepthName
-    ) {
+            @JsonProperty("region_2depth_name") String region2DepthName,
+            @JsonProperty("code") String code
+        ) {
     }
 }

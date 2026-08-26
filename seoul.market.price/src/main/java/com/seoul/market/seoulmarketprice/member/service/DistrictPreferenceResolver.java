@@ -4,7 +4,6 @@ import java.util.List;
 
 /** 회원 정보에서 헤더에 표시할 서울 자치구를 우선순위대로 결정한다. */
 public final class DistrictPreferenceResolver {
-    private static final String DEFAULT_DISTRICT = "중구";
     private static final List<String> SEOUL_DISTRICTS = List.of(
             "강남구", "강동구", "강북구", "강서구", "관악구",
             "광진구", "구로구", "금천구", "노원구", "도봉구",
@@ -25,9 +24,9 @@ public final class DistrictPreferenceResolver {
             return SEOUL_DISTRICTS.stream()
                     .filter(address::contains)
                     .findFirst()
-                    .orElse(DEFAULT_DISTRICT);
+                    .orElse(null);
         }
-        return DEFAULT_DISTRICT;
+        return null;
     }
 
     private static String normalizeDistrict(String value) {
