@@ -4,6 +4,7 @@
 *.properties
 .env
 .env.local
+.env.prod
 !.env.example
 !application-example.yml
 
