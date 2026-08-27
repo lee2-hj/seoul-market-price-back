@@ -45,7 +45,7 @@ class TradeVolumeRankingSearchServiceTest {
     }
 
     @Test
-    void returnsTopApartmentsAcrossSeoulWhenRegionIsOmitted() {
+    void returnsTopApartmentsAcrossSeoulWhenUserExplicitlyRequestsIt() {
         SggMasterRepository sggRepository = mock(SggMasterRepository.class);
         LocationMasterService locationService = mock(LocationMasterService.class);
         FastApiService fastApiService = mock(FastApiService.class);
@@ -60,7 +60,7 @@ class TradeVolumeRankingSearchServiceTest {
         TradeVolumeRankingSearchService service = new TradeVolumeRankingSearchService(
                 parser, sggRepository, locationService, fastApiService);
 
-        var result = service.search("거래량 상위 5개 아파트 알려줘");
+        var result = service.search("서울 전체 거래량 상위 5개 아파트 알려줘");
 
         assertEquals("서울 전체", result.regionName());
         assertEquals("종로구", result.items().get(0).regionName());

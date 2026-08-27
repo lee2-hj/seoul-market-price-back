@@ -26,6 +26,7 @@ public class TradeVolumeRankingSearchService {
     private final SggMasterRepository sggRepository;
     private final LocationMasterService locationService;
     private final FastApiService fastApiService;
+    private final RankingRegionResolver regionResolver;
 
     public TradeVolumeRankingSearchService(RankingQuestionParser questionParser,
                                            SggMasterRepository sggRepository,
@@ -35,6 +36,7 @@ public class TradeVolumeRankingSearchService {
         this.sggRepository = sggRepository;
         this.locationService = locationService;
         this.fastApiService = fastApiService;
+        this.regionResolver = new RankingRegionResolver(sggRepository, locationService);
     }
 
     public TradeVolumeRankingResponse search(String question) {
@@ -120,7 +122,7 @@ public class TradeVolumeRankingSearchService {
         return new RankingCriteria("거래 건수", "건", period, minimumTradeCount, "높은 순");
     }
 
-    private Region resolveRegion(String question) {
+    private Region resolveRegionLegacy(String question) {
         Matcher fullRegion = RegionQuestionPatterns.FULL_REGION.matcher(question);
         if (fullRegion.find()) {
             SggMaster sgg = findSgg(fullRegion.group(1));
@@ -143,6 +145,12 @@ public class TradeVolumeRankingSearchService {
     private SggMaster findSgg(String sggName) {
         return sggRepository.findBySggName(sggName)
                 .orElseThrow(() -> new IllegalArgumentException(sggName + "을 찾지 못했습니다."));
+    }
+
+    private Region resolveRegion(String question) {
+        RankingRegionResolver.ResolvedRegion resolved = regionResolver.resolve(question);
+        if (resolved.allSeoul()) return null;
+        return new Region(resolved.sggCode(), resolved.dongCode(), resolved.name());
     }
 
     private record Region(String sggCode, String dongCode, String name) {}

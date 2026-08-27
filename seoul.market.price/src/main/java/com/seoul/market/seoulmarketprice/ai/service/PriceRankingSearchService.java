@@ -31,6 +31,7 @@ public class PriceRankingSearchService {
     private final SggMasterRepository sggRepository;
     private final LocationMasterService locationService;
     private final FastApiService fastApiService;
+    private final RankingRegionResolver regionResolver;
     private final ConcurrentHashMap<CacheKey, CachedResponse> cache = new ConcurrentHashMap<>();
 
     public PriceRankingSearchService(RankingQuestionParser questionParser, SggMasterRepository sggRepository,
@@ -39,6 +40,7 @@ public class PriceRankingSearchService {
         this.sggRepository = sggRepository;
         this.locationService = locationService;
         this.fastApiService = fastApiService;
+        this.regionResolver = new RankingRegionResolver(sggRepository, locationService);
     }
 
     public PriceRankingResponse search(String question) {
@@ -125,7 +127,7 @@ public class PriceRankingSearchService {
         return question.contains("평당") || question.contains("평단") || question.contains("pyeong");
     }
 
-    private Region resolveRegion(String question) {
+    private Region resolveRegionLegacy(String question) {
         Matcher fullRegion = RegionQuestionPatterns.FULL_REGION.matcher(question);
         if (fullRegion.find()) {
             SggMaster sgg = findSgg(fullRegion.group(1));
@@ -145,6 +147,12 @@ public class PriceRankingSearchService {
     private SggMaster findSgg(String name) {
         return sggRepository.findBySggName(name)
                 .orElseThrow(() -> new IllegalArgumentException(name + "을 찾지 못했습니다."));
+    }
+
+    private Region resolveRegion(String question) {
+        RankingRegionResolver.ResolvedRegion resolved = regionResolver.resolve(question);
+        if (resolved.allSeoul()) return null;
+        return new Region(resolved.sggCode(), resolved.dongCode(), resolved.name());
     }
 
     private record Region(String sggCode, String dongCode, String name) {}
