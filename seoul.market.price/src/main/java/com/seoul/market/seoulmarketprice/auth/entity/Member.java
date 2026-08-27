@@ -1,5 +1,11 @@
 package com.seoul.market.seoulmarketprice.auth.entity;
 
+import com.seoul.market.seoulmarketprice.auth.crypto.CiEncryptionConverter;
+import com.seoul.market.seoulmarketprice.auth.crypto.MemberDataCrypto;
+import com.seoul.market.seoulmarketprice.auth.crypto.NameEncryptionConverter;
+import com.seoul.market.seoulmarketprice.auth.crypto.PhoneEncryptionConverter;
+import com.seoul.market.seoulmarketprice.auth.crypto.UserIdEncryptionConverter;
+import com.seoul.market.seoulmarketprice.location.entity.SggMaster;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -7,6 +13,8 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.math.BigDecimal;
+import java.util.UUID;
 
 /**
  * 회원 엔티티.
@@ -35,7 +43,14 @@ public class Member {
             String address,
             String addressDetail,
             String phone,
-            String email
+            String email,
+            Byte isTermsAgreed,
+            Byte is_location_agreed,
+            Byte is_privacy_agreed,
+            String myGu,
+            String myDong,
+            BigDecimal latitude,
+            BigDecimal longitude
     ) {
         Member member = new Member();
 
@@ -49,6 +64,13 @@ public class Member {
         member.phone = phone;
         member.email = email;
         member.userType = UserType.LOCAL;
+        member.isTermsAgreed = isTermsAgreed;
+        member.isLocationAgreed = is_location_agreed;
+        member.isPrivacyAgreed = is_privacy_agreed;
+        member.myGu = myGu;
+        member.myDong = myDong;
+        member.latitude = latitude;
+        member.longitude = longitude;
 
         return member;
     }
@@ -111,8 +133,12 @@ public class Member {
      * 로그인에 사용하는 사용자 아이디.
      * id 길이가 google+21자 28개여서 length 20->50으로 늘림
      */
-    @Column(name = "user_id", nullable = false, unique = true, length = 50, comment = "로그인에 사용하는 유저 아이디")
+    @Convert(converter = UserIdEncryptionConverter.class)
+    @Column(name = "user_id", nullable = false, length = 512, comment = "로그인에 사용하는 유저 아이디")
     private String userId;
+
+    @Column(name = "user_id_hash", length = 43)
+    private String userIdHash;
 
     /**
      * 암호화된 비밀번호.
@@ -123,11 +149,19 @@ public class Member {
     @Column(name = "password", nullable = true, comment = "비밀번호")
     private String password;
 
+    /** 현재 로그인 세션의 Refresh Token SHA-256 해시값. */
+    @Column(name = "refresh_token_hash", length = 64)
+    private String refreshTokenHash;
+
     /**
      * 사용자 실명 또는 닉네임.
      */
-    @Column(name = "name", nullable = false, comment = "유저명")
+    @Convert(converter = NameEncryptionConverter.class)
+    @Column(name = "name", nullable = false, length = 512, comment = "유저명")
     private String name;
+
+    @Column(name = "name_hash", length = 43)
+    private String nameHash;
 
     /**
      * 배송지 우편번호.
@@ -153,8 +187,20 @@ public class Member {
      * 일반 회원은 필수이며,
      * 소셜 회원은 추가 정보 입력 전까지 null일 수 있다.
      */
-    @Column(name = "phone", nullable = true, comment = "휴대전화 번호")
+    @Convert(converter = PhoneEncryptionConverter.class)
+    @Column(name = "phone", nullable = true, length = 512, comment = "휴대전화 번호")
     private String phone;
+
+    @Column(name = "phone_hash", length = 43)
+    private String phoneHash;
+
+    /** PASS 본인인증 연계정보. 기존 회원의 점진적 전환을 위해 null을 허용한다. */
+    @Convert(converter = CiEncryptionConverter.class)
+    @Column(name = "ci", length = 512, comment = "PASS 본인인증 CI")
+    private String ci;
+
+    @Column(name = "ci_hash", length = 43)
+    private String ciHash;
 
     /**
      * 이메일 주소.
@@ -183,6 +229,41 @@ public class Member {
     @Column(name = "user_type", nullable = false, comment = "유저 가입 유형 0: 일반 사용자, 1: 소셜 로그인 사용자")
     private UserType userType;
 
+    @Column(name = "is_terms_agreed", nullable = true, columnDefinition = "TINYINT(1)", comment = "이용약관 동의 여부 0: 미동의, 1: 동의")
+    private Byte isTermsAgreed;
+
+    @Column(name = "is_location_agreed", nullable = true, columnDefinition = "TINYINT(1)", comment = "위치기반 서비스 이용약관 동의 여부 0: 미동의, 1: 동의")
+    private Byte isLocationAgreed;
+
+    @Column(name = "is_privacy_agreed", nullable = true, columnDefinition = "TINYINT(1)", comment = "개인정보 수집 및 이용동의 0: 미동의, 1: 동의")
+    private Byte isPrivacyAgreed;
+
+    /** 사용자가 가격 정보를 우선 확인하려는 서울시 자치구. */
+    @Column(name = "my_gu", length = 50, comment = "유저 선호 자치구")
+    private String myGu;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+            name = "my_gu",
+            referencedColumnName = "sgg_cd",
+            insertable = false,
+            updatable = false,
+            foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT)
+    )
+    private SggMaster preferredSgg;
+
+    /** 사용자가 선택한 자치구 안의 선호 행정동. */
+    @Column(name = "my_dong", length = 50, comment = "유저 선호 행정동")
+    private String myDong;
+
+    /** 사용자 선호 위치의 위도이며 소수점 이하 7자리까지 저장한다. */
+    @Column(name = "latitude", precision = 10, scale = 7, comment = "유저 선호 위치 위도")
+    private BigDecimal latitude;
+
+    /** 사용자 선호 위치의 경도이며 소수점 이하 7자리까지 저장한다. */
+    @Column(name = "longitude", precision = 10, scale = 7, comment = "유저 선호 위치 경도")
+    private BigDecimal longitude;
+
     @Column(updatable = false)
     private LocalDateTime created_at;
 
@@ -197,6 +278,7 @@ public class Member {
      */
     @PrePersist
     private void prePersist() {
+        updateSearchHashes();
         this.created_at = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
     }
 
@@ -205,7 +287,15 @@ public class Member {
      */
     @PreUpdate
     private void preUpdate() {
+        updateSearchHashes();
         this.updated_at = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+    }
+
+    private void updateSearchHashes() {
+        this.userIdHash = MemberDataCrypto.searchHash("userId", userId);
+        this.nameHash = MemberDataCrypto.searchHash("name", name);
+        this.phoneHash = MemberDataCrypto.searchHash("phone", phone);
+        this.ciHash = MemberDataCrypto.searchHash("ci", ci);
     }
 
     /**
@@ -228,5 +318,120 @@ public class Member {
 
     public boolean hasPassword() {
         return password != null && !password.isBlank();
+    }
+
+    public boolean hasCi() {
+        return ci != null && !ci.isBlank();
+    }
+
+    /** 회원이 소프트 삭제된 상태인지 확인한다. */
+    public boolean isDeleted() {
+        return deleted_at != null;
+    }
+
+    /** 회원을 소프트 삭제 상태로 전환한다. */
+    public void withdraw() {
+        LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+        String withdrawnMarker = "wd:" + id + ":" + UUID.randomUUID()
+                .toString()
+                .replace("-", "")
+                .substring(0, 16);
+
+        this.userId = withdrawnMarker;
+        this.ci = withdrawnMarker;
+        this.phone = withdrawnMarker;
+        this.deleted_at = now;
+        this.updated_at = now;
+    }
+
+    /** 최초 확인된 CI만 등록하며, 이미 등록된 CI는 다른 값으로 변경할 수 없다. */
+    public void registerCi(String verifiedCi) {
+        if (verifiedCi == null || verifiedCi.isBlank()) {
+            throw new IllegalArgumentException("본인인증 CI를 확인할 수 없습니다.");
+        }
+        if (hasCi() && !ci.equals(verifiedCi)) {
+            throw new IllegalArgumentException("기존 본인인증 정보와 일치하지 않습니다.");
+        }
+        this.ci = verifiedCi;
+    }
+
+    /** 일반 로그인 회원의 비밀번호를 새 BCrypt 값으로 교체한다. */
+    public void changePassword(String encodedPassword) {
+        if (!isLocalUser()) {
+            throw new IllegalStateException(
+                    "일반 로그인 회원만 비밀번호를 변경할 수 있습니다."
+            );
+        }
+        if (encodedPassword == null || encodedPassword.isBlank()) {
+            throw new IllegalArgumentException(
+                    "암호화된 비밀번호는 비어 있을 수 없습니다."
+            );
+        }
+        this.password = encodedPassword;
+    }
+
+    /** 새 로그인 또는 재발급 시 기존 Refresh Token 해시를 덮어쓴다. */
+    public void replaceRefreshTokenHash(String tokenHash) {
+        if (tokenHash == null || tokenHash.isBlank()) {
+            throw new IllegalArgumentException("Refresh Token 해시는 비어 있을 수 없습니다.");
+        }
+        this.refreshTokenHash = tokenHash;
+    }
+
+    /** 로그아웃·비밀번호 변경·탈퇴 시 저장된 Refresh Token을 무효화한다. */
+    public void clearRefreshTokenHash() {
+        this.refreshTokenHash = null;
+    }
+
+    /** 본인인증된 새 휴대전화 번호로 교체한다. */
+    public void changePhone(String phone) {
+        if (phone == null || phone.isBlank()) {
+            throw new IllegalArgumentException("휴대전화 번호는 비어 있을 수 없습니다.");
+        }
+        this.phone = phone;
+    }
+
+    /** 전달된 연락처·주소 값만 선택적으로 변경한다. */
+    public void changeContactAndAddress(
+            String email,
+            String zipcode,
+            String address,
+            String addressDetail
+    ) {
+        if (email != null) {
+            this.email = email;
+        }
+        if (zipcode != null) {
+            this.zipcode = zipcode;
+        }
+        if (address != null) {
+            this.address = address;
+        }
+        if (addressDetail != null) {
+            this.addressDetail = addressDetail;
+        }
+    }
+
+    public void changeAdminEditableProfile(String zipcode, String address, String addressDetail, String preferredRegion) {
+        if (zipcode != null) this.zipcode = zipcode;
+        if (address != null) this.address = address;
+        if (addressDetail != null) this.addressDetail = addressDetail;
+        if (preferredRegion != null) this.myGu = preferredRegion;
+    }
+
+    /** 사용자가 설정한 선호 자치구만 삭제한다. */
+    public void clearMyGu() {
+        this.myGu = null;
+    }
+
+    public void changeMyGu(String sggCd) {
+        if (sggCd == null || sggCd.isBlank()) {
+            throw new IllegalArgumentException("선호 자치구 코드는 비어 있을 수 없습니다.");
+        }
+        this.myGu = sggCd;
+    }
+
+    public void agreeToLocationService() {
+        this.isLocationAgreed = 1;
     }
 }

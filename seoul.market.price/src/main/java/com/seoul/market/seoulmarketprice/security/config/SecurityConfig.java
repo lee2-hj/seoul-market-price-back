@@ -1,14 +1,21 @@
 package com.seoul.market.seoulmarketprice.security.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.seoul.market.seoulmarketprice.ai.filter.AiSearchRateLimitFilter;
+import com.seoul.market.seoulmarketprice.common.dto.ErrorResponse;
 import com.seoul.market.seoulmarketprice.security.jwt.JwtAuthenticationFilter;
 import com.seoul.market.seoulmarketprice.security.oauth2.CustomOAuth2UserService;
 import com.seoul.market.seoulmarketprice.security.oauth2.OAuth2SuccessHandler;
+import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.http.converter.FormHttpMessageConverter;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -24,6 +31,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.client.RestClient;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.io.IOException;
+
 /**
  * Spring Security 설정.
  */
@@ -32,11 +41,19 @@ public class SecurityConfig {
 
     private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    /**
+     * 인증/인가 실패 응답 본문을 JSON으로 작성할 때 사용한다.
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             UrlBasedCorsConfigurationSource corsConfigurationSource,
+            ObjectMapper objectMapper,
             JwtAuthenticationFilter jwtAuthenticationFilter,
+            AiSearchRateLimitFilter aiSearchRateLimitFilter,
             CustomOAuth2UserService customOAuth2UserService,
             OAuth2SuccessHandler oauth2SuccessHandler,
             @Value("${app.admin.creation-public:false}")
@@ -52,7 +69,7 @@ public class SecurityConfig {
                         corsConfigurationSource
                 ))
 
-                // 서버에 인증 세션을 저장하지 않는다.
+                // 일반 JWT 인증에는 세션을 사용하지 않지만 OAuth2 인가 과정에는 필요 시 세션을 허용한다.
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
                                 SessionCreationPolicy.IF_REQUIRED
@@ -62,6 +79,38 @@ public class SecurityConfig {
                 // Spring 기본 로그인 방식을 사용하지 않는다.
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
+
+                /*
+                 * 인증/인가 실패 응답을 명시적으로 구분한다.
+                 *
+                 * AuthenticationEntryPoint/AccessDeniedHandler를 등록하지
+                 * 않으면 Spring Security는 로그인 여부와 무관하게 모든
+                 * 실패를 기본 Http403ForbiddenEntryPoint로 처리해
+                 * 토큰이 없거나 만료된 경우까지 403으로 응답한다.
+                 * 그러면 프론트엔드가 401 응답에만 반응하는 세션 만료
+                 * 처리(재로그인 유도)가 전혀 동작하지 않는다.
+                 *
+                 * - 인증 자체가 안 된 경우(토큰 없음/무효/만료): 401
+                 * - 인증은 됐지만 권한이 부족한 경우(USER가 ADMIN API 접근 등): 403
+                 */
+                .exceptionHandling(exceptionHandling -> exceptionHandling
+                        .authenticationEntryPoint((request, response, authException) ->
+                                writeErrorResponse(
+                                        response,
+                                        HttpStatus.UNAUTHORIZED,
+                                        "AUTH-001",
+                                        "로그인이 필요합니다."
+                                )
+                        )
+                        .accessDeniedHandler((request, response, accessDeniedException) ->
+                                writeErrorResponse(
+                                        response,
+                                        HttpStatus.FORBIDDEN,
+                                        "AUTH-002",
+                                        "접근 권한이 없습니다."
+                                )
+                        )
+                )
 
                 // 요청별 접근 권한을 설정한다.
                 .authorizeHttpRequests(auth -> {
@@ -73,7 +122,16 @@ public class SecurityConfig {
                                 "/api/admin/auth/reissue",
                                 "/api/admin/auth/logout",
                                 "/api/members",
+                                "/api/members/signup",
                                 "/api/members/check-user-id",
+                                "/api/members/check-member",
+                                "/api/members/check-id",
+                                "/api/members/find-id",
+                                "/api/members/password-reset/**",
+                                "/api/location/current-district",
+                                // 로그인 전 회원가입 화면에서도 지역 목록을 조회할 수 있도록 공개한다.
+                                "/api/location/sggs",
+                                "/api/location/dongs",
 
                                 // 회원가입 화면(로그인 전)에서 호출하는
                                 // 휴대폰 PASS 본인인증 결과 확인 API
@@ -82,11 +140,21 @@ public class SecurityConfig {
                                 "/oauth2/**",
                                 "/login/oauth2/**",
 
+                                // fastApi 호출 API는 로그인 없이도 접근할 수 있도록 공개한다.
+                                "/fastApi/**",
+
+                                // 엘라스틱서치 검색 API는 로그인 없이도 접근할 수 있도록 공개한다.
+                                "/elasticSearch/**",
+
                                 // Swagger UI 및 OpenAPI 명세 조회는 인증 없이 접근 허용
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**"
                         ).permitAll();
+
+                    // 메인 AI 검색은 비로그인 사용자에게도 공개하되, IP별 요청 제한 필터를 적용한다.
+                    auth.requestMatchers(HttpMethod.POST, "/api/ai/search-natural")
+                            .permitAll();
 
                     /*
                      * 개발 환경에서는 최초 관리자 생성을 위해 임시 공개한다.
@@ -99,6 +167,36 @@ public class SecurityConfig {
                                 "/api/admins"
                         ).permitAll();
                     }
+
+                    auth.requestMatchers(HttpMethod.GET, "/api/qnas/me")
+                            .hasRole("USER");
+                    auth.requestMatchers(HttpMethod.GET, "/api/comments/me")
+                            .hasRole("USER");
+                    // 공개 Q&A와 그 하위 첨부파일 조회 경로를 비로그인 사용자에게 허용한다.
+                    auth.requestMatchers(HttpMethod.GET, "/api/qnas", "/api/qnas/**")
+                            .permitAll();
+                    auth.requestMatchers(HttpMethod.POST, "/api/qnas")
+                            .hasRole("USER");
+                    auth.requestMatchers(HttpMethod.PATCH, "/api/qnas/**")
+                            .hasRole("USER");
+                    auth.requestMatchers(HttpMethod.DELETE, "/api/qnas/**")
+                            .hasRole("USER");
+                    auth.requestMatchers(HttpMethod.GET, "/api/boards", "/api/boards/**")
+                            .permitAll();
+                    auth.requestMatchers(HttpMethod.GET, "/api/reports", "/api/reports/**")
+                            .permitAll();
+                    auth.requestMatchers(HttpMethod.POST, "/api/reports", "/api/reports/**")
+                            .hasRole("USER");
+                    auth.requestMatchers(HttpMethod.DELETE, "/api/reports/**")
+                            .hasRole("USER");
+                    auth.requestMatchers(HttpMethod.GET, "/api/faqs", "/api/faqs/**")
+                            .permitAll();
+                    auth.requestMatchers(HttpMethod.POST, "/api/boards", "/api/boards/**")
+                            .hasRole("USER");
+                    auth.requestMatchers(HttpMethod.PATCH, "/api/boards/**")
+                            .hasRole("USER");
+                    auth.requestMatchers(HttpMethod.DELETE, "/api/boards/**")
+                            .hasRole("USER");
 
                     // 운영 환경의 관리자 생성 및 관리자 전용 API는 ADMIN 권한이 필요하다.
                     auth.requestMatchers(
@@ -158,9 +256,39 @@ public class SecurityConfig {
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
+                )
+
+                .addFilterBefore(
+                        aiSearchRateLimitFilter,
+                        UsernamePasswordAuthenticationFilter.class
                 );
 
+
         return http.build();
+    }
+
+    /**
+     * 인증/인가 실패 응답을 공통 ErrorResponse 형식의 JSON으로 작성한다.
+     *
+     * @param response HTTP 응답
+     * @param status   응답 상태 코드
+     * @param code     에러 코드
+     * @param message  에러 메시지
+     */
+    private void writeErrorResponse(
+            HttpServletResponse response,
+            HttpStatus status,
+            String code,
+            String message
+    ) throws IOException {
+        response.setStatus(status.value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding("UTF-8");
+
+        objectMapper.writeValue(
+                response.getWriter(),
+                new ErrorResponse(code, message)
+        );
     }
 
     /**

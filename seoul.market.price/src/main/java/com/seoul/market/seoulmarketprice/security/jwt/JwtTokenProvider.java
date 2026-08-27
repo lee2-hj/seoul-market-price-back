@@ -74,6 +74,11 @@ public class JwtTokenProvider {
      * 권한과 토큰 종류를 저장한다.
      * </p>
      *
+     * <p>
+     * 이름은 로그인 응답 본문으로만 전달하고
+     * Access Token에는 저장하지 않는다.
+     * </p>
+     *
      * @param principalId 사용자 또는 관리자 PK
      * @param userId      로그인 아이디
      * @param role        USER 또는 ADMIN

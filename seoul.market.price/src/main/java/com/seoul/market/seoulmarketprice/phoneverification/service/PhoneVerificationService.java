@@ -4,12 +4,14 @@ import com.seoul.market.seoulmarketprice.phoneverification.client.PortOneIdentit
 import com.seoul.market.seoulmarketprice.phoneverification.dto.portone.PortOneIdentityVerificationResponse;
 import com.seoul.market.seoulmarketprice.phoneverification.dto.request.PhoneVerificationConfirmRequest;
 import com.seoul.market.seoulmarketprice.phoneverification.dto.response.PhoneVerificationConfirmResponse;
+import com.seoul.market.seoulmarketprice.phoneverification.dto.response.MembershipStatus;
+import com.seoul.market.seoulmarketprice.member.repository.MemberManagementRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
- * 회원가입 시 사용하는 휴대폰 PASS 본인인증(포트원 V2, NHN KCP 채널)
+ * 회원가입 시 사용하는 휴대폰 PASS 본인인증(포트원 V2, KG이니시스 채널)
  * 비즈니스 로직을 처리하는 서비스이다.
  */
 @Service
@@ -24,11 +26,14 @@ public class PhoneVerificationService {
     private static final String VERIFIED_STATUS = "VERIFIED";
 
     private final PortOneIdentityVerificationClient portOneIdentityVerificationClient;
+    private final MemberManagementRepository memberManagementRepository;
 
     public PhoneVerificationService(
-            PortOneIdentityVerificationClient portOneIdentityVerificationClient
+            PortOneIdentityVerificationClient portOneIdentityVerificationClient,
+            MemberManagementRepository memberManagementRepository
     ) {
         this.portOneIdentityVerificationClient = portOneIdentityVerificationClient;
+        this.memberManagementRepository = memberManagementRepository;
     }
 
     /**
@@ -83,6 +88,8 @@ public class PhoneVerificationService {
                 verifiedCustomer == null
                         || verifiedCustomer.name() == null
                         || verifiedCustomer.phoneNumber() == null
+                        || verifiedCustomer.ci() == null
+                        || verifiedCustomer.ci().isBlank()
         ) {
             throw new IllegalStateException(
                     "본인인증은 완료되었지만 인증된 회원 정보를 확인할 수 없습니다."
@@ -94,12 +101,27 @@ public class PhoneVerificationService {
                 request.identityVerificationId()
         );
 
+        MembershipStatus membershipStatus = resolveMembershipStatus(verifiedCustomer.ci());
+
         return new PhoneVerificationConfirmResponse(
                 true,
                 verifiedCustomer.name(),
                 verifiedCustomer.phoneNumber(),
                 verifiedCustomer.birthDate(),
-                verifiedCustomer.gender()
+                verifiedCustomer.gender(),
+                membershipStatus,
+                membershipStatus != MembershipStatus.ACTIVE,
+                response.verifiedAt(),
+                verifiedCustomer.ci()
         );
+    }
+
+    private MembershipStatus resolveMembershipStatus(String ci) {
+        if (memberManagementRepository.existsActiveByCi(ci)) {
+            return MembershipStatus.ACTIVE;
+        }
+        return memberManagementRepository.existsAnyByCi(ci)
+                ? MembershipStatus.WITHDRAWN
+                : MembershipStatus.NEW;
     }
 }

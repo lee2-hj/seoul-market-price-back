@@ -48,17 +48,19 @@ public class AuthController {
     private final JwtProperties jwtProperties;
 
     /**
-     * Access Token을 브라우저 쿠키에 직접 심어주기 위한 쿠키를 생성한다.
+     * Access Token을 브라우저 쿠키에 심어주기 위한 쿠키를 생성한다.
      *
      * <p>
-     * Refresh Token과 달리 프론트엔드에서 Authorization 헤더 구성에
-     * 사용할 수 있어야 하므로 HttpOnly를 적용하지 않는다.
+     * Access Token은 응답 본문으로도 함께 전달되므로,
+     * 프론트엔드는 쿠키를 직접 읽지 않고 응답 본문의 값을
+     * Authorization 헤더 구성에 사용한다. 따라서 Refresh Token과
+     * 동일하게 HttpOnly를 적용해 JavaScript로 쿠키를 읽지 못하게 한다.
      * </p>
      */
     private ResponseCookie createAccessTokenCookie(String accessToken) {
         return ResponseCookie
                 .from("accessToken", accessToken)
-                .httpOnly(false)
+                .httpOnly(true)
                 .secure(jwtProperties.cookieSecure())
                 .path("/")
                 .maxAge(
@@ -186,7 +188,7 @@ public class AuthController {
         ResponseCookie deleteAccessCookie =
                 ResponseCookie
                         .from("accessToken", "")
-                        .httpOnly(false)
+                        .httpOnly(true)
                         .secure(jwtProperties.cookieSecure())
                         .path("/")
                         .maxAge(0)

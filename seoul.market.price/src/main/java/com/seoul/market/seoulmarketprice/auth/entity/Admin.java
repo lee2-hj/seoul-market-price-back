@@ -15,7 +15,7 @@ import java.time.temporal.ChronoUnit;
  * 관리자 정보를 저장하는 엔티티이다.
  *
  * <p>
- * DB의 {@code tb_admin} 테이블과 매핑된다.
+ * DB의 {@code tb_member} 테이블과 매핑된다.
  * </p>
  *
  * <p>
@@ -31,7 +31,7 @@ import java.time.temporal.ChronoUnit;
  */
 @Entity
 @Getter
-@Table(name = "tb_admin")
+@Table(name = "tb_member")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
 public class Admin {
@@ -40,7 +40,7 @@ public class Admin {
      * 관리자 고유번호(PK).
      *
      * <p>
-     * tb_admin 테이블의 기본키이며,
+     * tb_member 테이블의 기본키이며,
      * DB에서 AUTO_INCREMENT 방식으로 자동 생성된다.
      * </p>
      */
@@ -57,7 +57,7 @@ public class Admin {
      * 중복될 수 없다.
      * </p>
      */
-    @Column(name = "admin_id", nullable = false, unique = true, length = 30, comment = "관리자 로그인 아이디")
+    @Column(name = "user_id", nullable = false, unique = true, length = 50, comment = "관리자 로그인 아이디")
     private String adminId;
 
     /**
@@ -70,6 +70,10 @@ public class Admin {
      */
     @Column(name = "password", nullable = false, comment = "비밀번호")
     private String password;
+
+    /** 현재 로그인 세션의 Refresh Token SHA-256 해시값. */
+    @Column(name = "refresh_token_hash", length = 64)
+    private String refreshTokenHash;
 
     /**
      * 관리자 이름.
@@ -125,5 +129,18 @@ public class Admin {
 
     public boolean hasPassword() {
         return password != null && !password.isBlank();
+    }
+
+    /** 새 로그인 또는 재발급 시 기존 Refresh Token 해시를 덮어쓴다. */
+    public void replaceRefreshTokenHash(String tokenHash) {
+        if (tokenHash == null || tokenHash.isBlank()) {
+            throw new IllegalArgumentException("Refresh Token 해시는 비어 있을 수 없습니다.");
+        }
+        this.refreshTokenHash = tokenHash;
+    }
+
+    /** 로그아웃 시 현재 Refresh Token을 무효화한다. */
+    public void clearRefreshTokenHash() {
+        this.refreshTokenHash = null;
     }
 }

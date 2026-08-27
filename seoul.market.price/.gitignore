@@ -4,8 +4,8 @@
 *.properties
 .env
 .env.local
-!.env.example
-!application-example.yml
+.env.example
+application-example.yml
 
 # 🛠️ OS 및 기타 시스템 임시 파일
 .DS_Store

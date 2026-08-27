@@ -28,8 +28,8 @@ public class TokenHashService {
      *
      * <p>
      * 변환된 값은 64자리의 16진수 문자열이 된다.
-     * 따라서 tb_refresh_token.token_hash 컬럼의 길이를
-     * 64자로 설정했다.
+     * 따라서 회원·관리자 계정의 refresh_token_hash 컬럼 길이를
+     * 64자로 설정한다.
      * </p>
      *
      * @param token 해시로 변환할 Refresh Token 원문
@@ -79,5 +79,16 @@ public class TokenHashService {
                     exception
             );
         }
+    }
+
+    /** 원문 토큰의 해시와 계정에 저장된 해시를 상수 시간 방식으로 비교한다. */
+    public boolean matches(String rawToken, String storedHash) {
+        if (storedHash == null || storedHash.isBlank()) {
+            return false;
+        }
+        return MessageDigest.isEqual(
+                hash(rawToken).getBytes(StandardCharsets.UTF_8),
+                storedHash.getBytes(StandardCharsets.UTF_8)
+        );
     }
 }

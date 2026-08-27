@@ -2,6 +2,7 @@ package com.seoul.market.seoulmarketprice.security.jwt;
 
 import com.seoul.market.seoulmarketprice.auth.entity.Role;
 import com.seoul.market.seoulmarketprice.auth.repository.AdminRepository;
+import com.seoul.market.seoulmarketprice.auth.repository.MemberRepository;
 import com.seoul.market.seoulmarketprice.security.principal.CustomUserPrincipal;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -45,6 +46,9 @@ public class JwtAuthenticationFilter
      */
     private final AdminRepository adminRepository;
 
+    /** 삭제된 일반 회원의 기존 Access Token을 즉시 차단하는 활성 상태 조회 저장소. */
+    private final MemberRepository memberRepository;
+
     /**
      * 생성자 주입을 사용한다.
      *
@@ -53,10 +57,12 @@ public class JwtAuthenticationFilter
      */
     public JwtAuthenticationFilter(
             JwtTokenProvider jwtTokenProvider,
-            AdminRepository adminRepository
+            AdminRepository adminRepository,
+            MemberRepository memberRepository
     ) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.adminRepository = adminRepository;
+        this.memberRepository = memberRepository;
     }
 
     /**
@@ -95,28 +101,20 @@ public class JwtAuthenticationFilter
          */
         if (
                 accessToken != null
-                        && jwtTokenProvider
-                        .validateToken(accessToken)
-                        && jwtTokenProvider
-                        .isAccessToken(accessToken)
-                        && SecurityContextHolder
-                        .getContext()
-                        .getAuthentication() == null
+                        && jwtTokenProvider.validateToken(accessToken)
+                        && jwtTokenProvider.isAccessToken(accessToken)
         ) {
             // 일반 회원 또는 관리자 PK를 가져온다.
             Long principalId =
-                    jwtTokenProvider
-                            .getMemberId(accessToken);
+                    jwtTokenProvider.getMemberId(accessToken);
 
             // 로그인 아이디를 가져온다.
             String userId =
-                    jwtTokenProvider
-                            .getUserId(accessToken);
+                    jwtTokenProvider.getUserId(accessToken);
 
             // USER 또는 ADMIN 권한을 가져온다.
             Role role =
-                    jwtTokenProvider
-                            .getRole(accessToken);
+                    jwtTokenProvider.getRole(accessToken);
 
             /*
              * 삭제된 관리자의 기존 Access Token은
@@ -124,9 +122,15 @@ public class JwtAuthenticationFilter
              */
             if (
                     role == Role.ADMIN
-                            && !adminRepository
-                            .existsActiveById(principalId)
+                            && !adminRepository.existsActiveById(principalId)
             ) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            // 서명과 만료가 유효해도 탈퇴한 일반 회원의 Access Token은 인증하지 않는다.
+            if (role == Role.USER
+                    && !memberRepository.existsActiveById(principalId)) {
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -142,13 +146,12 @@ public class JwtAuthenticationFilter
                     );
 
             /*
-             * hasRole("ADMIN")은 내부적으로
-             * ROLE_ADMIN 권한을 확인한다.
+             * hasRole("ADMIN")은 내부적으로 ROLE_ADMIN 권한을 확인한다.
+             * "ROLE_" 접두사 중복을 방지하여 권한을 생성한다.
              */
+            String roleName = role.name().startsWith("ROLE_") ? role.name() : "ROLE_" + role.name();
             SimpleGrantedAuthority authority =
-                    new SimpleGrantedAuthority(
-                            "ROLE_" + role.name()
-                    );
+                    new SimpleGrantedAuthority(roleName);
 
             // Principal과 권한을 가진 인증 객체를 생성한다.
             UsernamePasswordAuthenticationToken authentication =
@@ -163,6 +166,7 @@ public class JwtAuthenticationFilter
                     .getContext()
                     .setAuthentication(authentication);
         }
+
 
         /*
          * 인증 여부와 관계없이 다음 필터로 요청을 전달한다.

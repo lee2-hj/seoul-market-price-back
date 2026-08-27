@@ -3,6 +3,7 @@
 *.yaml
 *.properties
 .env
+.env.local
 !.env.example
 !application-example.yml
 
@@ -16,6 +17,7 @@ HELP.md
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
 !**/src/main/**/build/
 !**/src/test/**/build/
 

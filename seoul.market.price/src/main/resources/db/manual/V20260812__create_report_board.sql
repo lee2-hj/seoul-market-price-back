@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS tb_report (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    category VARCHAR(30) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    target_property VARCHAR(200) NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    content LONGTEXT NOT NULL,
+    is_secret BOOLEAN NOT NULL DEFAULT FALSE,
+    admin_id BIGINT NULL,
+    admin_reply LONGTEXT NULL,
+    replied_at DATETIME NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NULL,
+    deleted_at DATETIME NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_report_user FOREIGN KEY (user_id) REFERENCES tb_user(id),
+    CONSTRAINT fk_report_admin FOREIGN KEY (admin_id) REFERENCES tb_member(id),
+    INDEX idx_report_created (deleted_at, created_at),
+    INDEX idx_report_user (user_id, deleted_at),
+    INDEX idx_report_category_status (category, status, deleted_at)
+);

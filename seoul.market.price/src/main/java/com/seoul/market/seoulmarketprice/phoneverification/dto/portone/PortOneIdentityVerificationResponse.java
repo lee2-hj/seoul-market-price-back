@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public record PortOneIdentityVerificationResponse(
         String status,
         String id,
+        String verifiedAt,
         VerifiedCustomer verifiedCustomer,
         Failure failure
 ) {

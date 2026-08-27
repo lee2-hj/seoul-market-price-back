@@ -1,17 +1,33 @@
 package com.seoul.market.seoulmarketprice.member.controller;
 
+import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCheckRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberCreateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberIdCheckRequest;
+import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberIdFindRequest;
+import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberUpdateRequest;
+import com.seoul.market.seoulmarketprice.member.dto.request.member.LocationConsentUpdateRequest;
+import com.seoul.market.seoulmarketprice.member.dto.request.member.MemberWithdrawalRequest;
+import com.seoul.market.seoulmarketprice.member.dto.request.member.PasswordResetCompleteRequest;
+import com.seoul.market.seoulmarketprice.member.dto.request.member.PasswordResetVerifyRequest;
+import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberCheckResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberCreateResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberIdCheckResponse;
+import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberIdFindResponse;
+import com.seoul.market.seoulmarketprice.member.dto.response.member.MemberWithdrawalResponse;
+import com.seoul.market.seoulmarketprice.member.dto.response.member.PasswordResetCompleteResponse;
+import com.seoul.market.seoulmarketprice.member.dto.response.member.PasswordResetVerifyResponse;
 import com.seoul.market.seoulmarketprice.member.service.MemberService;
+import com.seoul.market.seoulmarketprice.member.service.MemberIdFindService;
+import com.seoul.market.seoulmarketprice.member.service.PasswordResetService;
 import com.seoul.market.seoulmarketprice.security.principal.CustomUserPrincipal;
+import com.seoul.market.seoulmarketprice.security.jwt.RefreshTokenCookieManager;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -35,6 +51,13 @@ public class MemberController {
      */
     private final MemberService memberService;
 
+    private final MemberIdFindService memberIdFindService;
+
+    private final PasswordResetService passwordResetService;
+
+    /** 탈퇴 응답에서 Refresh Token 쿠키를 즉시 만료시킨다. */
+    private final RefreshTokenCookieManager refreshTokenCookieManager;
+
     /**
      * 아이디와 비밀번호를 사용하는 일반 회원을 생성한다.
      *
@@ -47,7 +70,7 @@ public class MemberController {
      * @return 생성된 회원의 고유번호, 아이디, 이름
      */
     @Operation(summary = "일반 회원가입")
-    @PostMapping
+    @PostMapping("/signup")
     public ResponseEntity<MemberCreateResponse> createMember(
             @Valid @RequestBody MemberCreateRequest request
     ) {
@@ -57,17 +80,58 @@ public class MemberController {
                 .body(response);
     }
 
+    @Operation(summary = "회원 등록여부 조회")
+    @GetMapping("/check-member")
+    public ResponseEntity<MemberCheckResponse> checkMember(
+            @ModelAttribute MemberCheckRequest request
+    ){
+        MemberCheckResponse response = memberService.checkMember(request);
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
     /**
      * 사용자 아이디의 중복 여부를 확인한다.
      */
     @Operation(summary = "아이디 중복 체크")
     @GetMapping("/check-id")
     public ResponseEntity<MemberIdCheckResponse> checkMemberId(
-            @RequestBody MemberIdCheckRequest request
+            @ModelAttribute MemberIdCheckRequest request
     ){
         MemberIdCheckResponse result = memberService.checkMemberId(request);
         return ResponseEntity
                 .status(HttpStatus.OK).body(result);
+    }
+
+    /** PASS 본인인증 결과를 서버에서 확인하고 일치하는 아이디를 마스킹해 반환한다. */
+    @Operation(
+            summary = "아이디 찾기",
+            description = "PASS 본인인증 식별자로 인증 결과를 확인한 뒤 "
+                    + "일치하는 일반 회원 아이디를 마스킹하여 반환한다."
+    )
+    @PostMapping("/find-id")
+    public ResponseEntity<MemberIdFindResponse> findMemberId(
+            @Valid @RequestBody MemberIdFindRequest request
+    ) {
+        return ResponseEntity.ok(memberIdFindService.find(request));
+    }
+
+    /** PASS 인증자와 아이디의 회원 정보가 일치하면 단기 재설정 토큰을 발급한다. */
+    @Operation(summary = "비밀번호 재설정 본인 확인")
+    @PostMapping("/password-reset/verify")
+    public ResponseEntity<PasswordResetVerifyResponse> verifyPasswordReset(
+            @Valid @RequestBody PasswordResetVerifyRequest request
+    ) {
+        return ResponseEntity.ok(passwordResetService.verify(request));
+    }
+
+    /** 단기 재설정 토큰을 검증한 뒤 새 비밀번호를 적용한다. */
+    @Operation(summary = "비밀번호 재설정 완료")
+    @PostMapping("/password-reset/complete")
+    public ResponseEntity<PasswordResetCompleteResponse> completePasswordReset(
+            @Valid @RequestBody PasswordResetCompleteRequest request
+    ) {
+        return ResponseEntity.ok(passwordResetService.complete(request));
     }
     /**
      * Access Token으로 인증된 현재 회원의 기본 정보를 조회한다.
@@ -89,7 +153,52 @@ public class MemberController {
         return ResponseEntity.ok(memberService.getMember(principal.memberId()));
     }
 
-//    @Operation(summary = "회원 정보 수정")
-//    @PatchMapping("/me")
-//    public ResponseEntity
+    /** 현재 로그인한 회원이 전달한 항목만 선택적으로 변경한다. */
+    @Operation(summary = "현재 로그인한 회원 수정")
+    @PatchMapping("/me")
+    public ResponseEntity<MemberResponse> updateMe(
+            @AuthenticationPrincipal CustomUserPrincipal principal,
+            @Valid @RequestBody MemberUpdateRequest request
+    ) {
+        return ResponseEntity.ok(memberService.updateMember(principal.memberId(), request));
+    }
+
+    @Operation(summary = "위치 기반 서비스 이용 동의")
+    @PatchMapping("/me/location-consent")
+    public ResponseEntity<MemberResponse> agreeToLocationService(
+            @AuthenticationPrincipal CustomUserPrincipal principal,
+            @Valid @RequestBody LocationConsentUpdateRequest request
+    ) {
+        return ResponseEntity.ok(
+                memberService.agreeToLocationService(principal.memberId(), request)
+        );
+    }
+
+    /** 현재 로그인한 회원의 선호 자치구만 삭제한다. */
+    @Operation(summary = "현재 로그인한 회원의 선호지역 삭제")
+    @DeleteMapping("/me/preferred-region")
+    public ResponseEntity<Void> clearMyGu(
+            @AuthenticationPrincipal CustomUserPrincipal principal
+    ) {
+        memberService.clearMyGu(principal.memberId());
+        return ResponseEntity.noContent().build();
+    }
+
+    /** 현재 비밀번호를 재확인한 뒤 로그인 회원을 소프트 삭제한다. */
+    @Operation(summary = "현재 로그인한 일반 회원 탈퇴")
+    @DeleteMapping("/me")
+    public ResponseEntity<MemberWithdrawalResponse> withdraw(
+            @AuthenticationPrincipal CustomUserPrincipal principal,
+            @Valid @RequestBody MemberWithdrawalRequest request
+    ) {
+        MemberWithdrawalResponse response = memberService.withdraw(
+                principal.memberId(), request
+        );
+        return ResponseEntity.ok()
+                .header(
+                        HttpHeaders.SET_COOKIE,
+                        refreshTokenCookieManager.deleteRefreshTokenCookie().toString()
+                )
+                .body(response);
+    }
 }

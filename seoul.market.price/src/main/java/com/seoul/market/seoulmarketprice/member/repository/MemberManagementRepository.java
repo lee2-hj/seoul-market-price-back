@@ -12,7 +12,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * 두 Repository 모두 {@link Member} 엔티티와 {@code tb_user} 테이블을 사용한다.
  * </p>
  */
-public interface MemberManagementRepository extends JpaRepository<Member, Long> {
+public interface MemberManagementRepository extends JpaRepository<Member, Long>, MemberManagementRepositoryCustom {
 
     /**
      * 동일한 사용자 아이디가 존재하는지 확인한다.
@@ -33,7 +33,16 @@ public interface MemberManagementRepository extends JpaRepository<Member, Long> 
      * @param userId 확인할 사용자 아이디
      * @return 동일한 아이디가 존재하면 true
      */
-    boolean existsByUserId(String userId);
 
-    boolean existsByPhone(String phoneNumber);
+    /**
+     * PASS에서 확인한 이름과 전화번호로 탈퇴하지 않은 일반 회원을 조회한다.
+     * 기존 전화번호 데이터에 포함된 하이픈과 공백은 조회 시 제거한다.
+     */
+    /** CI 확인 및 최초 연결을 원자적으로 처리하기 위해 회원 행을 잠가 조회한다. */
+
+    /** 재설정 완료 시 동시 요청을 직렬화하기 위해 회원 행을 잠가 조회한다. */
+
+    /** 현재 회원 정보 조회에 사용할 활성 회원을 PK로 조회한다. */
+
+    /** 중복 탈퇴 요청을 직렬화하도록 회원 행을 쓰기 잠금으로 조회한다. */
 }
