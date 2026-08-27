@@ -2,8 +2,9 @@
 *.yml
 *.yaml
 *.properties
-.env
+.env.prod
 .env.local
+.env.
 !.env.example
 !application-example.yml
 
@@ -15,6 +16,7 @@ Thumbs.db
 # 기본 생성된 설정 (아래는 기존 내용 그대로)
 HELP.md
 .gradle
+default.conf
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !gradle/wrapper/gradle-wrapper.properties
