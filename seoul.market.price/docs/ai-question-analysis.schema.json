@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "QuestionAnalysisResponse",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "intent", "regions", "referencePlace", "target", "metric", "direction",
+    "limit", "period", "requestedMetrics", "toolPlan", "missingFields",
+    "ambiguousConcept", "metricCandidates", "requiresClarification"
+  ],
+  "properties": {
+    "intent": {"type": ["string", "null"], "pattern": "^[A-Z][A-Z0-9_]*$"},
+    "regions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "type"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "type": {"type": "string", "enum": ["CITY", "DISTRICT", "DONG"]}
+        }
+      }
+    },
+    "referencePlace": {
+      "anyOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "type"],
+          "properties": {
+            "name": {"type": "string", "minLength": 1},
+            "type": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]*$"}
+          }
+        }
+      ]
+    },
+    "target": {"type": ["string", "null"], "pattern": "^[A-Z][A-Z0-9_]*$"},
+    "metric": {"type": ["string", "null"], "pattern": "^[A-Z][A-Z0-9_]*$"},
+    "direction": {"type": ["string", "null"], "enum": ["ASC", "DESC", null]},
+    "limit": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10},
+    "period": {"type": ["string", "null"]},
+    "requestedMetrics": {"type": "array", "items": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]*$"}},
+    "toolPlan": {"type": "array", "items": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]*$"}},
+    "missingFields": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "ambiguousConcept": {"type": ["string", "null"], "pattern": "^[A-Z][A-Z0-9_]*$"},
+    "metricCandidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["metric", "confidence", "reason"],
+        "properties": {
+          "metric": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]*$"},
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+          "reason": {"type": "string"}
+        }
+      }
+    },
+    "requiresClarification": {"type": "boolean"}
+  }
+}

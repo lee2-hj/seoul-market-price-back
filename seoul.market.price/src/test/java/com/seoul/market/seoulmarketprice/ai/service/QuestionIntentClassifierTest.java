@@ -39,6 +39,13 @@ class QuestionIntentClassifierTest {
     }
 
     @Test
+    void classifiesSeoulWideAverageAsCitySummary() {
+        assertEquals(CITY_SUMMARY, classifier.classify("서울시 아파트 전체 평균 가격 알려줘"));
+        assertEquals(CITY_SUMMARY, classifier.classify("서울 전체 평균 평당가 알려줘"));
+        assertEquals(DISTRICT_SUMMARY, classifier.classify("서울 강남구 평균 가격 알려줘"));
+    }
+
+    @Test
     void classifiesFlexibleTopBottomExpressions() {
         assertEquals(TOP_BOTTOM, classifier.classify("노원구에서 가장 평단가가 높은 동은 어디야?"));
         assertEquals(TOP_BOTTOM, classifier.classify("강남구에서 평단가가 가장 낮은 동 알려줘"));
