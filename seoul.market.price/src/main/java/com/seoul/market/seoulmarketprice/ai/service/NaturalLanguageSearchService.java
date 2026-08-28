@@ -19,6 +19,7 @@ public class NaturalLanguageSearchService {
     private final AiSearchService comparisonService;
     private final SingleRegionSearchService singleRegionService;
     private final DistrictSummarySearchService districtSummaryService;
+    private final CitySummarySearchService citySummarySearchService;
     private final DistrictRankingSearchService districtRankingService;
     private final TopBottomSearchService topBottomService;
     private final RankingSearchService rankingSearchService;
@@ -32,6 +33,7 @@ public class NaturalLanguageSearchService {
     public NaturalLanguageSearchService(QuestionIntentClassifier classifier, AiSearchService comparisonService,
                                         SingleRegionSearchService singleRegionService,
                                         DistrictSummarySearchService districtSummaryService,
+                                        CitySummarySearchService citySummarySearchService,
                                         DistrictRankingSearchService districtRankingService,
                                         TopBottomSearchService topBottomService,
                                         RankingSearchService rankingSearchService,
@@ -44,6 +46,7 @@ public class NaturalLanguageSearchService {
         this.comparisonService = comparisonService;
         this.singleRegionService = singleRegionService;
         this.districtSummaryService = districtSummaryService;
+        this.citySummarySearchService = citySummarySearchService;
         this.districtRankingService = districtRankingService;
         this.topBottomService = topBottomService;
         this.rankingSearchService = rankingSearchService;
@@ -65,8 +68,8 @@ public class NaturalLanguageSearchService {
                                  LocationMasterService locationService,
                                  QuestionAnalysisService questionAnalysisService,
                                  NearestApartmentPriceSearchService nearestApartmentPriceSearchService) {
-        this(classifier, comparisonService, singleRegionService, districtSummaryService, districtRankingService,
-                topBottomService, rankingSearchService, tradeTrendSearchService, locationService,
+        this(classifier, comparisonService, singleRegionService, districtSummaryService, null,
+                districtRankingService, topBottomService, rankingSearchService, tradeTrendSearchService, locationService,
                 questionAnalysisService, nearestApartmentPriceSearchService, null);
     }
 
@@ -104,6 +107,7 @@ public class NaturalLanguageSearchService {
                 case PRICE_COMPARISON -> comparisonService.search(normalizedQuestion);
                 case SINGLE_REGION -> singleRegionService.search(normalizedQuestion);
                 case DISTRICT_SUMMARY -> districtSummaryService.search(normalizedQuestion);
+                case CITY_SUMMARY -> citySummarySearchService.search(normalizedQuestion);
                 case DISTRICT_RANKING -> districtRankingService.search(normalizedQuestion);
                 case TOP_BOTTOM -> topBottomService.search(normalizedQuestion);
                 case RANKING_SEARCH -> rankingSearchService.search(normalizedQuestion);

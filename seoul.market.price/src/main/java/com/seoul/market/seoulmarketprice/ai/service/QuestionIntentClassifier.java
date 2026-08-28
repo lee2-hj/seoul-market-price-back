@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class QuestionIntentClassifier {
-    public enum Intent { PRICE_COMPARISON, SINGLE_REGION, DISTRICT_SUMMARY, DISTRICT_RANKING, TOP_BOTTOM, RANKING_SEARCH, TRADE_TREND }
+    public enum Intent { PRICE_COMPARISON, SINGLE_REGION, DISTRICT_SUMMARY, CITY_SUMMARY, DISTRICT_RANKING, TOP_BOTTOM, RANKING_SEARCH, TRADE_TREND }
     private final AiQuestionProperties properties;
 
     public QuestionIntentClassifier(AiQuestionProperties properties) {
@@ -22,6 +22,9 @@ public class QuestionIntentClassifier {
         validateScope(question);
         if (question.contains("자치구") && (question.contains("평단가") || question.contains("평당가"))) {
             return Intent.DISTRICT_RANKING;
+        }
+        if (isCitySummaryRequest(question)) {
+            return Intent.CITY_SUMMARY;
         }
         if (question.contains("거래 동향") || question.contains("거래 추이") || question.contains("거래가 늘") || question.contains("거래가 줄")) {
             return Intent.TRADE_TREND;
@@ -49,5 +52,12 @@ public class QuestionIntentClassifier {
             return Intent.DISTRICT_SUMMARY;
         }
         throw new IllegalArgumentException("지역을 찾지 못했습니다. 자치구와 동을 함께 입력해주세요.");
+    }
+
+    private boolean isCitySummaryRequest(String question) {
+        boolean mentionsSeoul = question.contains("서울");
+        boolean requestsAverage = question.contains("평균") || question.contains("평균가");
+        boolean hasDistrict = RegionQuestionPatterns.DISTRICT.matcher(question).find();
+        return mentionsSeoul && requestsAverage && !hasDistrict;
     }
 }
