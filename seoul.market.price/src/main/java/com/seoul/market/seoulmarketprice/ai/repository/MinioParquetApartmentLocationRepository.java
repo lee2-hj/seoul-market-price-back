@@ -7,6 +7,7 @@ import io.minio.ListObjectsArgs;
 import io.minio.MinioClient;
 import io.minio.Result;
 import io.minio.messages.Item;
+import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.parquet.avro.AvroParquetReader;
 import org.apache.parquet.hadoop.ParquetReader;
@@ -70,6 +71,14 @@ public class MinioParquetApartmentLocationRepository implements ApartmentLocatio
                 .toList();
     }
 
+    @Override
+    public List<ApartmentLocation> findByRegion(String sggCode, String dongCode) {
+        return locations().stream()
+                .filter(item -> sggCode.equals(item.sggCode()))
+                .filter(item -> dongCode == null || dongCode.equals(item.dongCode()))
+                .toList();
+    }
+
     private List<ApartmentLocation> locations() {
         Cache current = cache;
         long now = System.currentTimeMillis();
@@ -105,7 +114,8 @@ public class MinioParquetApartmentLocationRepository implements ApartmentLocatio
             }
             Map<String, ApartmentAccumulator> unique = new LinkedHashMap<>();
             for (ApartmentLocation location : loaded) {
-                unique.computeIfAbsent(location.apartmentId(), ignored -> new ApartmentAccumulator(location))
+                unique.computeIfAbsent(location.apartmentId() + "-" + areaKey(location.exclusiveAreaM2()),
+                                ignored -> new ApartmentAccumulator(location))
                         .add(location);
             }
             List<ApartmentLocation> locations = unique.values().stream()
@@ -146,7 +156,12 @@ public class MinioParquetApartmentLocationRepository implements ApartmentLocatio
         try (ParquetReader<GenericRecord> reader = AvroParquetReader
                 .<GenericRecord>builder(new ByteArrayInputFile(bytes)).build()) {
             GenericRecord row;
+            boolean schemaValidated = false;
             while ((row = reader.read()) != null) {
+                if (!schemaValidated) {
+                    validateSchema(row.getSchema(), objectName);
+                    schemaValidated = true;
+                }
                 Double latitude = number(row, "latitude");
                 Double longitude = number(row, "longitude");
                 String cggCode = text(row, "cgg_cd");
@@ -161,7 +176,7 @@ public class MinioParquetApartmentLocationRepository implements ApartmentLocatio
                 result.add(new ApartmentLocation(apartmentId, apartmentName, address,
                         cggCode, dongCode, latitude, longitude,
                         longNumber(row, "total_thing_amt"), integerNumber(row, "deal_cnt"),
-                        longNumber(row, "total_pyeong_amt"), text(row, "deal_date"),
+                        longNumber(row, "total_pyeong_amt"), numberAny(row, "area", "exclusive_area_m2", "exclusive_area", "exclu_use_ar"), text(row, "deal_date"),
                         text(row, "base_date")));
             }
         }
@@ -209,6 +224,40 @@ public class MinioParquetApartmentLocationRepository implements ApartmentLocatio
         return value instanceof Number number ? number.doubleValue() : null;
     }
 
+    private Double numberAny(GenericRecord row, String... fields) {
+        for (String field : fields) {
+            if (row.getSchema().getField(field) == null) continue;
+            Double value = number(row, field);
+            if (value != null) return value;
+        }
+        return null;
+    }
+
+    private void validateSchema(Schema schema, String objectName) {
+        requireField(schema, "cgg_cd", objectName);
+        requireField(schema, "stdg_cd", objectName);
+        requireField(schema, "bldg_nm", objectName);
+        requireField(schema, "latitude", objectName);
+        requireField(schema, "longitude", objectName);
+        requireField(schema, "deal_cnt", objectName);
+        requireField(schema, "total_thing_amt", objectName);
+        requireAnyField(schema, objectName, "area", "exclusive_area_m2", "exclusive_area", "exclu_use_ar");
+    }
+
+    private void requireField(Schema schema, String fieldName, String objectName) {
+        if (schema.getField(fieldName) == null) {
+            throw new IllegalStateException("Parquet 필수 컬럼이 없습니다: " + fieldName + " (" + objectName + ")");
+        }
+    }
+
+    private void requireAnyField(Schema schema, String objectName, String... fieldNames) {
+        for (String fieldName : fieldNames) {
+            if (schema.getField(fieldName) != null) return;
+        }
+        throw new IllegalStateException("Parquet 전용면적 컬럼이 없습니다: " + String.join(", ", fieldNames)
+                + " (" + objectName + ")");
+    }
+
     private Long longNumber(GenericRecord row, String field) {
         Object value = row.get(field);
         return value instanceof Number number ? number.longValue() : null;
@@ -221,6 +270,10 @@ public class MinioParquetApartmentLocationRepository implements ApartmentLocatio
 
     private String nullToEmpty(String value) {
         return value == null ? "" : value;
+    }
+
+    private String areaKey(Double area) {
+        return area == null ? "unknown" : String.format(java.util.Locale.ROOT, "%.2f", area);
     }
 
     private record Cache(String partition, List<ApartmentLocation> locations, long loadedAtMillis) {}
@@ -257,11 +310,12 @@ public class MinioParquetApartmentLocationRepository implements ApartmentLocatio
 
         private ApartmentLocation toLocation() {
             Long pyeong = dealCount < 1 ? null : Math.round((double) weightedPyeongAmount / dealCount);
+            Long averageTradeAmount = dealCount < 1 ? null : Math.round((double) totalTradeAmount / dealCount);
             return new ApartmentLocation(representative.apartmentId(), representative.apartmentName(),
                     representative.address(), representative.sggCode(), representative.dongCode(),
                     representative.latitude(), representative.longitude(),
-                    dealCount < 1 ? null : totalTradeAmount, dealCount < 1 ? null : dealCount,
-                    pyeong, latestDealDate, baseDate);
+                    averageTradeAmount, dealCount < 1 ? null : dealCount,
+                    pyeong, representative.exclusiveAreaM2(), latestDealDate, baseDate);
         }
     }
 

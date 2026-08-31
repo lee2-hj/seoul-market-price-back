@@ -21,4 +21,7 @@ public class DisabledApartmentLocationRepository implements ApartmentLocationRep
     @Override public List<ApartmentLocation> findCandidates(double latitude, double longitude, int radiusMeters) {
         return List.of();
     }
+    @Override public List<ApartmentLocation> findByRegion(String sggCode, String dongCode) {
+        return List.of();
+    }
 }

@@ -28,6 +28,9 @@ public class RankingQuestionParser {
     private static final Pattern EOK_RANGE = Pattern.compile("(\\d+(?:\\.\\d+)?)\\s*억\\s*(?:~|-|부터)\\s*(\\d+(?:\\.\\d+)?)\\s*억");
     private static final Pattern EOK_MAX = Pattern.compile("(\\d+(?:\\.\\d+)?)\\s*억\\s*(?:이하|미만)");
     private static final Pattern EOK_MIN = Pattern.compile("(\\d+(?:\\.\\d+)?)\\s*억\\s*(?:이상|초과)");
+    private static final Pattern EOK_BAND = Pattern.compile("(\\d+(?:\\.\\d+)?)\\s*억대");
+    private static final Pattern PYEONG_RANGE = Pattern.compile("(\\d+(?:\\.\\d+)?)\\s*(?:~|-|`|부터|에서)\\s*(\\d+(?:\\.\\d+)?)\\s*평(?:대)?");
+    private static final Pattern PYEONG = Pattern.compile("(\\d+(?:\\.\\d+)?)\\s*평(?:대)?");
 
     private final Clock clock;
 
@@ -47,6 +50,7 @@ public class RankingQuestionParser {
         RankingMetric metric = metric(question);
         LocalDate today = LocalDate.now(clock);
         PriceRange priceRange = priceRange(question);
+        AreaRange areaRange = areaRange(question);
 
         return new RankingSearchQuery(
                 RankingTarget.APARTMENT,
@@ -57,10 +61,25 @@ public class RankingQuestionParser {
                 today,
                 priceRange.minPrice(),
                 priceRange.maxPrice(),
+                areaRange == null ? null : areaRange.minimumPyeong(),
+                areaRange == null ? null : areaRange.maximumPyeong(),
                 threshold(question, metric),
                 limit(question),
                 DEFAULT_MINIMUM_TRADE_COUNT
         );
+    }
+
+    /** Explicit ranges are preserved; a single pyeong value gets a ±1 pyeong tolerance. */
+    public AreaRange areaRange(String question) {
+        String normalized = question.replace('∼', '~').replace('–', '-').replace('—', '-');
+        Matcher rangeMatcher = PYEONG_RANGE.matcher(normalized);
+        if (rangeMatcher.find()) {
+            return new AreaRange(new BigDecimal(rangeMatcher.group(1)), new BigDecimal(rangeMatcher.group(2)));
+        }
+        Matcher matcher = PYEONG.matcher(normalized);
+        if (!matcher.find()) return null;
+        BigDecimal requested = new BigDecimal(matcher.group(1));
+        return new AreaRange(requested.subtract(BigDecimal.ONE), requested.add(BigDecimal.ONE));
     }
 
     private RankingMetric metric(String question) {
@@ -69,6 +88,7 @@ public class RankingQuestionParser {
         }
         if (containsAny(question, "거래량", "거래 많은", "거래가 많은")) return RankingMetric.TRADE_COUNT;
         if (containsAny(question, "인기", "조회수", "관심 등록")) return RankingMetric.POPULARITY;
+        if (EOK_BAND.matcher(question).find()) return RankingMetric.PRICE;
         if (containsAny(question, "가격대", "억 이하", "억 이상", "억 미만", "억 초과", "비싼", "비싸", "고가", "저렴", "싼", "평당가", "평단가")) {
             return RankingMetric.PRICE;
         }
@@ -117,6 +137,11 @@ public class RankingQuestionParser {
         if (max.find()) return new PriceRange(null, toWon(max.group(1)));
         Matcher min = EOK_MIN.matcher(question);
         if (min.find()) return new PriceRange(toWon(min.group(1)), null);
+        Matcher band = EOK_BAND.matcher(question);
+        if (band.find()) {
+            BigDecimal minimum = toWon(band.group(1));
+            return new PriceRange(minimum, minimum.add(EOK_IN_WON));
+        }
         return new PriceRange(null, null);
     }
 
@@ -132,4 +157,5 @@ public class RankingQuestionParser {
     }
 
     private record PriceRange(BigDecimal minPrice, BigDecimal maxPrice) {}
+    public record AreaRange(BigDecimal minimumPyeong, BigDecimal maximumPyeong) {}
 }

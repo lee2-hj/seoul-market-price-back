@@ -6,12 +6,53 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.client.ExpectedCount.once;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 class QuestionAnalysisServiceTest {
+    @Test
+    void marksMissingFieldsWhenRankingPlanIsIncomplete() {
+        RestClient.Builder builder = RestClient.builder().baseUrl("http://ai.test");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(once(), requestTo("http://ai.test/ai/analyze-question"))
+                .andRespond(withSuccess("""
+                        {"intent":"APARTMENT_RANKING", "regions":[], "metric":null}
+                        """, MediaType.APPLICATION_JSON));
+
+        var result = new QuestionAnalysisService(builder.build()).analyze("비싼 아파트 알려줘");
+
+        assertTrue(result.requiresClarification());
+        assertTrue(result.missingFields().contains("region"));
+        assertTrue(result.missingFields().contains("metric"));
+        server.verify();
+    }
+
+    @Test
+    void normalizesUnsafeModelOutputBeforeReturningIt() {
+        RestClient.Builder builder = RestClient.builder().baseUrl("http://ai.test");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(once(), requestTo("http://ai.test/ai/analyze-question"))
+                .andRespond(withSuccess("""
+                        {
+                          "intent":" APARTMENT_RANKING ", "limit":999,
+                          "metricCandidates":[{"metric":" trade_count ","confidence":4.2,"reason":" ranking "}, null],
+                          "missingFields":["", "metric"]
+                        }
+                        """, MediaType.APPLICATION_JSON));
+
+        var result = new QuestionAnalysisService(builder.build()).analyze("  거래량 많은 곳  ");
+
+        assertEquals("APARTMENT_RANKING", result.intent());
+        assertEquals(100, result.limit());
+        assertTrue(result.requiresClarification());
+        assertEquals(java.util.List.of("metric", "limit", "region"), result.missingFields());
+        assertEquals("TRADE_COUNT", result.metricCandidates().getFirst().metric());
+        assertEquals(1.0, result.metricCandidates().getFirst().confidence());
+        server.verify();
+    }
     @Test
     void callsFastApiAndReadsNearestApartmentToolPlan() {
         RestClient.Builder builder = RestClient.builder().baseUrl("http://ai.test");
