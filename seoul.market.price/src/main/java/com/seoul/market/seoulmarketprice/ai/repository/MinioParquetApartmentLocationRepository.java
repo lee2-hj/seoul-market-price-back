@@ -70,6 +70,14 @@ public class MinioParquetApartmentLocationRepository implements ApartmentLocatio
                 .toList();
     }
 
+    @Override
+    public List<ApartmentLocation> findByRegion(String sggCode, String dongCode) {
+        return locations().stream()
+                .filter(item -> sggCode.equals(item.sggCode()))
+                .filter(item -> dongCode == null || dongCode.equals(item.dongCode()))
+                .toList();
+    }
+
     private List<ApartmentLocation> locations() {
         Cache current = cache;
         long now = System.currentTimeMillis();
@@ -105,7 +113,8 @@ public class MinioParquetApartmentLocationRepository implements ApartmentLocatio
             }
             Map<String, ApartmentAccumulator> unique = new LinkedHashMap<>();
             for (ApartmentLocation location : loaded) {
-                unique.computeIfAbsent(location.apartmentId(), ignored -> new ApartmentAccumulator(location))
+                unique.computeIfAbsent(location.apartmentId() + "-" + areaKey(location.exclusiveAreaM2()),
+                                ignored -> new ApartmentAccumulator(location))
                         .add(location);
             }
             List<ApartmentLocation> locations = unique.values().stream()
@@ -161,7 +170,7 @@ public class MinioParquetApartmentLocationRepository implements ApartmentLocatio
                 result.add(new ApartmentLocation(apartmentId, apartmentName, address,
                         cggCode, dongCode, latitude, longitude,
                         longNumber(row, "total_thing_amt"), integerNumber(row, "deal_cnt"),
-                        longNumber(row, "total_pyeong_amt"), text(row, "deal_date"),
+                        longNumber(row, "total_pyeong_amt"), numberAny(row, "exclusive_area_m2", "exclusive_area", "exclu_use_ar"), text(row, "deal_date"),
                         text(row, "base_date")));
             }
         }
@@ -209,6 +218,15 @@ public class MinioParquetApartmentLocationRepository implements ApartmentLocatio
         return value instanceof Number number ? number.doubleValue() : null;
     }
 
+    private Double numberAny(GenericRecord row, String... fields) {
+        for (String field : fields) {
+            if (row.getSchema().getField(field) == null) continue;
+            Double value = number(row, field);
+            if (value != null) return value;
+        }
+        return null;
+    }
+
     private Long longNumber(GenericRecord row, String field) {
         Object value = row.get(field);
         return value instanceof Number number ? number.longValue() : null;
@@ -221,6 +239,10 @@ public class MinioParquetApartmentLocationRepository implements ApartmentLocatio
 
     private String nullToEmpty(String value) {
         return value == null ? "" : value;
+    }
+
+    private String areaKey(Double area) {
+        return area == null ? "unknown" : String.format(java.util.Locale.ROOT, "%.2f", area);
     }
 
     private record Cache(String partition, List<ApartmentLocation> locations, long loadedAtMillis) {}
@@ -261,7 +283,7 @@ public class MinioParquetApartmentLocationRepository implements ApartmentLocatio
                     representative.address(), representative.sggCode(), representative.dongCode(),
                     representative.latitude(), representative.longitude(),
                     dealCount < 1 ? null : totalTradeAmount, dealCount < 1 ? null : dealCount,
-                    pyeong, latestDealDate, baseDate);
+                    pyeong, representative.exclusiveAreaM2(), latestDealDate, baseDate);
         }
     }
 

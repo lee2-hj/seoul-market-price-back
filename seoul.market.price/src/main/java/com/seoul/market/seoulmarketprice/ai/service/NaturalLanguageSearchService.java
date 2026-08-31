@@ -28,6 +28,9 @@ public class NaturalLanguageSearchService {
     private final QuestionAnalysisService questionAnalysisService;
     private final NearestApartmentPriceSearchService nearestApartmentPriceSearchService;
     private final NearbyApartmentRankingSearchService nearbyApartmentRankingSearchService;
+    private final RagAnswerService ragAnswerService;
+    private final AiExecutionPlanMapper executionPlanMapper;
+    private final AiExecutionPlanValidator executionPlanValidator;
 
     @Autowired
     public NaturalLanguageSearchService(QuestionIntentClassifier classifier, AiSearchService comparisonService,
@@ -41,7 +44,10 @@ public class NaturalLanguageSearchService {
                                         LocationMasterService locationService,
                                         QuestionAnalysisService questionAnalysisService,
                                         NearestApartmentPriceSearchService nearestApartmentPriceSearchService,
-                                        NearbyApartmentRankingSearchService nearbyApartmentRankingSearchService) {
+                                        NearbyApartmentRankingSearchService nearbyApartmentRankingSearchService,
+                                        RagAnswerService ragAnswerService,
+                                        AiExecutionPlanMapper executionPlanMapper,
+                                        AiExecutionPlanValidator executionPlanValidator) {
         this.classifier = classifier;
         this.comparisonService = comparisonService;
         this.singleRegionService = singleRegionService;
@@ -55,6 +61,9 @@ public class NaturalLanguageSearchService {
         this.questionAnalysisService = questionAnalysisService;
         this.nearestApartmentPriceSearchService = nearestApartmentPriceSearchService;
         this.nearbyApartmentRankingSearchService = nearbyApartmentRankingSearchService;
+        this.ragAnswerService = ragAnswerService;
+        this.executionPlanMapper = executionPlanMapper;
+        this.executionPlanValidator = executionPlanValidator;
     }
 
     /** 기존 단위 테스트와의 생성자 호환을 위한 보조 생성자. 애플리케이션에서는 주입 생성자를 사용한다. */
@@ -70,13 +79,14 @@ public class NaturalLanguageSearchService {
                                  NearestApartmentPriceSearchService nearestApartmentPriceSearchService) {
         this(classifier, comparisonService, singleRegionService, districtSummaryService, null,
                 districtRankingService, topBottomService, rankingSearchService, tradeTrendSearchService, locationService,
-                questionAnalysisService, nearestApartmentPriceSearchService, null);
+                questionAnalysisService, nearestApartmentPriceSearchService, null, null, null, null);
     }
 
     public NaturalSearchResponse search(String question) {
         try {
             classifier.validateScope(question);
             QuestionAnalysisResponse analysis = analyze(question);
+            validateExecutionPlan(question, analysis);
             if (isNearbyApartmentRanking(analysis)) {
                 if (nearbyApartmentRankingSearchService == null) {
                     throw new IllegalStateException("주변 아파트 순위 서비스를 초기화할 수 없습니다.");
@@ -95,14 +105,23 @@ public class NaturalLanguageSearchService {
                         nearestApartmentPriceSearchService.search(analysis));
             }
             if (analysis != null && "APARTMENT_RANKING".equals(analysis.intent())) {
-                if (hasAmbiguousConcept(analysis)) {
+                if (hasAmbiguousConcept(analysis) || hasStructuredFilters(analysis)) {
                     Object result = rankingSearchService.searchStructured(normalizedQuestion, analysis);
                     return NaturalSearchResponse.success(analysis.intent(), result, interpretation(analysis));
                 }
                 return NaturalSearchResponse.success(analysis.intent(),
                         rankingSearchService.search(normalizedQuestion));
             }
-            QuestionIntentClassifier.Intent intent = classifier.classify(normalizedQuestion);
+            QuestionIntentClassifier.Intent intent;
+            try {
+                intent = classifier.classify(normalizedQuestion);
+            } catch (IllegalArgumentException exception) {
+                String ragAnswer = ragAnswerService == null ? null : ragAnswerService.answerIfSupported(question);
+                if (ragAnswer != null) {
+                    return NaturalSearchResponse.success("RAG_FAQ", new RagAnswerResponse(ragAnswer));
+                }
+                throw exception;
+            }
             Object result = switch (intent) {
                 case PRICE_COMPARISON -> comparisonService.search(normalizedQuestion);
                 case SINGLE_REGION -> singleRegionService.search(normalizedQuestion);
@@ -117,13 +136,20 @@ public class NaturalLanguageSearchService {
         } catch (IllegalArgumentException exception) {
             return NaturalSearchResponse.error(exception.getMessage(), errorCode(exception.getMessage()));
         } catch (Exception exception) {
-            return NaturalSearchResponse.error("AI 검색을 처리할 수 없습니다. 잠시 후 다시 시도해주세요.",
+            log.error("Natural AI search failed. question={}", question, exception);
+            return NaturalSearchResponse.error("아파트 조회 데이터를 연결하지 못했습니다. 데이터 서버 상태를 확인한 뒤 다시 시도해주세요.",
                     NaturalSearchErrorCode.AI_UNAVAILABLE);
         }
     }
 
     private boolean hasAmbiguousConcept(QuestionAnalysisResponse analysis) {
         return analysis.ambiguousConcept() != null && !analysis.ambiguousConcept().isBlank();
+    }
+
+    private boolean hasStructuredFilters(QuestionAnalysisResponse analysis) {
+        QuestionAnalysisResponse.SearchFilters filters = analysis.filters();
+        return filters != null && (filters.minPyeong() != null || filters.maxPyeong() != null
+                || filters.minPriceWon() != null || filters.maxPriceWon() != null);
     }
 
     private boolean isNearbyApartmentRanking(QuestionAnalysisResponse analysis) {
@@ -160,6 +186,14 @@ public class NaturalLanguageSearchService {
             log.warn("구조화 질문 분석 실패, 기존 검색 분류기로 대체합니다: {}", exception.getMessage());
             return null;
         }
+    }
+
+    private void validateExecutionPlan(String question, QuestionAnalysisResponse analysis) {
+        if (analysis == null || executionPlanMapper == null || executionPlanValidator == null) return;
+        AiExecutionPlan plan = executionPlanMapper.map(analysis);
+        executionPlanValidator.validate(plan);
+        log.info("AI execution plan: question={}, intent={}, scope={}, filters={}, sort={}, tools={}",
+                question, plan.intent(), plan.scope(), plan.filters(), plan.sort(), plan.toolPlan());
     }
 
 

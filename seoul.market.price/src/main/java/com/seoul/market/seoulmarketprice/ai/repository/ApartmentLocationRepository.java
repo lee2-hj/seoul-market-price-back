@@ -7,4 +7,7 @@ public interface ApartmentLocationRepository {
     boolean isAvailable();
     String datasetLocation();
     List<ApartmentLocation> findCandidates(double latitude, double longitude, int radiusMeters);
+    default List<ApartmentLocation> findByRegion(String sggCode, String dongCode) {
+        return List.of();
+    }
 }

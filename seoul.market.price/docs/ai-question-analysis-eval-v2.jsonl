@@ -1,0 +1,50 @@
+{"caseId":"natural-v2-001","category":"PRICE_COMPARISON","question":"마포구 서교동과 성동구 성수동 가격 비교해줘","expected":{"intent":"PRICE_COMPARISON","target":"REGION","metric":"AVERAGE_PRICE","regions":[{"name":"마포구 서교동","type":"DONG"},{"name":"성동구 성수동","type":"DONG"}]}}
+{"caseId":"natural-v2-002","category":"PRICE_COMPARISON","question":"강남구와 송파구 아파트 평균 가격 비교해줘","expected":{"intent":"PRICE_COMPARISON","target":"REGION","metric":"AVERAGE_PRICE","regions":[{"name":"강남구","type":"DISTRICT"},{"name":"송파구","type":"DISTRICT"}]}}
+{"caseId":"natural-v2-003","category":"PRICE_COMPARISON","question":"노원구와 도봉구 평당가 차이 알려줘","expected":{"intent":"PRICE_COMPARISON","metric":"AVERAGE_PYEONG_PRICE","target":"REGION"}}
+{"caseId":"natural-v2-004","category":"PRICE_COMPARISON","question":"서초구 반포동이랑 강남구 대치동 중 어디가 더 비싸?","expected":{"intent":"PRICE_COMPARISON","direction":"DESC","target":"REGION"}}
+{"caseId":"natural-v2-005","category":"PRICE_COMPARISON","question":"성북구와 동대문구 거래가 비교","expected":{"intent":"PRICE_COMPARISON","metric":"AVERAGE_PRICE"}}
+{"caseId":"natural-v2-006","category":"PRICE_COMPARISON","question":"강동구와 광진구 중 평단가 낮은 곳 알려줘","expected":{"intent":"PRICE_COMPARISON","metric":"AVERAGE_PYEONG_PRICE","direction":"ASC"}}
+{"caseId":"natural-v2-007","category":"SINGLE_REGION","question":"마포구 서교동 평균 가격 알려줘","expected":{"intent":"SINGLE_REGION","target":"REGION","metric":"AVERAGE_PRICE","regions":[{"name":"마포구","type":"DISTRICT"},{"name":"서교동","type":"DONG"}]}}
+{"caseId":"natural-v2-008","category":"SINGLE_REGION","question":"강북구 수유동 평당가 얼마야?","expected":{"intent":"SINGLE_REGION","metric":"AVERAGE_PYEONG_PRICE","target":"REGION"}}
+{"caseId":"natural-v2-009","category":"SINGLE_REGION","question":"강동구 아파트 평균가 알려줘","expected":{"intent":"SINGLE_REGION","metric":"AVERAGE_PRICE","regions":[{"name":"강동구","type":"DISTRICT"}]}}
+{"caseId":"natural-v2-010","category":"SINGLE_REGION","question":"송파구 잠실동 가격 알려줘","expected":{"intent":"SINGLE_REGION","metric":"AVERAGE_PRICE"}}
+{"caseId":"natural-v2-011","category":"SINGLE_REGION","question":"서초구 평균 평당 가격 알려줘","expected":{"intent":"SINGLE_REGION","metric":"AVERAGE_PYEONG_PRICE"}}
+{"caseId":"natural-v2-012","category":"SINGLE_REGION","question":"용산구 아파트 시세 알려줘","expected":{"intent":"SINGLE_REGION","metric":"AVERAGE_PRICE"}}
+{"caseId":"natural-v2-013","category":"APARTMENT_RANKING","question":"강남구에서 제일 싼 아파트 뭐야","expected":{"intent":"APARTMENT_RANKING","target":"APARTMENT","metric":"AVERAGE_PRICE","direction":"ASC"}}
+{"caseId":"natural-v2-014","category":"APARTMENT_RANKING","question":"강남에서 제일 싼 아파트 뭐야","expected":{"intent":"APARTMENT_RANKING","target":"APARTMENT","metric":"AVERAGE_PRICE","direction":"ASC","regions":[{"name":"강남","type":"UNKNOWN"}]}}
+{"caseId":"natural-v2-015","category":"APARTMENT_RANKING","question":"강남구 비싼 아파트 상위 5개 알려줘","expected":{"intent":"APARTMENT_RANKING","target":"APARTMENT","metric":"AVERAGE_PRICE","direction":"DESC","limit":5}}
+{"caseId":"natural-v2-016","category":"APARTMENT_RANKING","question":"송파구 평당가 낮은 아파트 3개","expected":{"intent":"APARTMENT_RANKING","target":"APARTMENT","metric":"AVERAGE_PYEONG_PRICE","direction":"ASC","limit":3}}
+{"caseId":"natural-v2-017","category":"APARTMENT_RANKING","question":"강남구 100억 이상 아파트 알려줘","expected":{"intent":"APARTMENT_RANKING","target":"APARTMENT","metric":"AVERAGE_PRICE"}}
+{"caseId":"natural-v2-018","category":"APARTMENT_RANKING","question":"마포구 고가 아파트 top 5","expected":{"intent":"APARTMENT_RANKING","target":"APARTMENT","metric":"AVERAGE_PRICE","direction":"DESC","limit":5}}
+{"caseId":"natural-v2-019","category":"APARTMENT_RANKING","question":"서울 전체에서 가장 싼 아파트 5개 알려줘","expected":{"intent":"APARTMENT_RANKING","target":"APARTMENT","metric":"AVERAGE_PRICE","direction":"ASC","limit":5}}
+{"caseId":"natural-v2-020","category":"APARTMENT_RANKING","question":"성동구 성수동 평균 거래가 높은 아파트 알려줘","expected":{"intent":"APARTMENT_RANKING","target":"APARTMENT","metric":"AVERAGE_PRICE","direction":"DESC"}}
+{"caseId":"natural-v2-021","category":"TRADE_VOLUME","question":"강남구 거래량 많은 아파트 상위 5개","expected":{"intent":"APARTMENT_RANKING","target":"APARTMENT","metric":"TRADE_COUNT","direction":"DESC","limit":5}}
+{"caseId":"natural-v2-022","category":"TRADE_VOLUME","question":"마포구에서 거래가 가장 활발한 아파트 알려줘","expected":{"intent":"APARTMENT_RANKING","target":"APARTMENT","metric":"TRADE_COUNT","direction":"DESC"}}
+{"caseId":"natural-v2-023","category":"TRADE_VOLUME","question":"서울 전체 거래량 상위 아파트 3개","expected":{"intent":"APARTMENT_RANKING","target":"APARTMENT","metric":"TRADE_COUNT","direction":"DESC","limit":3}}
+{"caseId":"natural-v2-024","category":"TRADE_VOLUME","question":"서초구 거래 적은 아파트 알려줘","expected":{"intent":"APARTMENT_RANKING","target":"APARTMENT","metric":"TRADE_COUNT","direction":"ASC"}}
+{"caseId":"natural-v2-025","category":"TRADE_VOLUME","question":"수유동 거래량 많은 아파트","expected":{"intent":"APARTMENT_RANKING","target":"APARTMENT","metric":"TRADE_COUNT","direction":"DESC"}}
+{"caseId":"natural-v2-026","category":"PLACE_NEARBY","question":"홍대입구역에서 가장 가까운 아파트 가격 알려줘","expected":{"intent":"NEAREST_APARTMENT_PRICE","referencePlace":{"name":"홍대입구역","type":"STATION"},"target":"APARTMENT","metric":"AVERAGE_PRICE","direction":"ASC","limit":1}}
+{"caseId":"natural-v2-027","category":"PLACE_NEARBY","question":"홍대입구 비싼 아파트 상위 5개 알려줘","expected":{"intent":"NEARBY_APARTMENT_RANKING","referencePlace":{"name":"홍대입구","type":"STATION"},"target":"APARTMENT","metric":"AVERAGE_PRICE","direction":"DESC","limit":5}}
+{"caseId":"natural-v2-028","category":"PLACE_NEARBY","question":"잠실역 근처에서 싼 아파트 알려줘","expected":{"intent":"NEARBY_APARTMENT_RANKING","referencePlace":{"name":"잠실역","type":"STATION"},"target":"APARTMENT","metric":"AVERAGE_PRICE","direction":"ASC"}}
+{"caseId":"natural-v2-029","category":"PLACE_NEARBY","question":"서울역 주변 아파트 평균 거래가 높은 곳 3개","expected":{"intent":"NEARBY_APARTMENT_RANKING","referencePlace":{"name":"서울역","type":"STATION"},"target":"APARTMENT","metric":"AVERAGE_PRICE","direction":"DESC","limit":3}}
+{"caseId":"natural-v2-030","category":"PLACE_NEARBY","question":"여의도역에서 제일 가까운 아파트 알려줘","expected":{"intent":"NEAREST_APARTMENT_PRICE","referencePlace":{"name":"여의도역","type":"STATION"},"target":"APARTMENT","direction":"ASC","limit":1}}
+{"caseId":"natural-v2-031","category":"PLACE_NEARBY","question":"강남역 근처 비싼 아파트 알려줘","expected":{"intent":"NEARBY_APARTMENT_RANKING","referencePlace":{"name":"강남역","type":"STATION"},"target":"APARTMENT","metric":"AVERAGE_PRICE","direction":"DESC"}}
+{"caseId":"natural-v2-032","category":"AMBIGUOUS","question":"강동구에서 가장 인기있는 아파트는 어디야?","expected":{"intent":"APARTMENT_RANKING","target":"APARTMENT","ambiguousConcept":"POPULARITY","metricCandidates":[{"metric":"TRADE_COUNT"}]}}
+{"caseId":"natural-v2-033","category":"AMBIGUOUS","question":"수유동 인기있는 아파트 찾아줘","expected":{"intent":"APARTMENT_RANKING","target":"APARTMENT","ambiguousConcept":"POPULARITY","metricCandidates":[{"metric":"TRADE_COUNT"}]}}
+{"caseId":"natural-v2-034","category":"AMBIGUOUS","question":"마포구에서 선호하는 아파트 알려줘","expected":{"intent":"APARTMENT_RANKING","target":"APARTMENT","ambiguousConcept":"PREFERENCE"}}
+{"caseId":"natural-v2-035","category":"AMBIGUOUS","question":"강남구에서 사람들이 싫어하는 아파트가 뭐야?","expected":{"intent":"APARTMENT_RANKING","target":"APARTMENT","ambiguousConcept":"DISLIKE"}}
+{"caseId":"natural-v2-036","category":"AMBIGUOUS","question":"성동구 핫한 아파트 알려줘","expected":{"intent":"APARTMENT_RANKING","target":"APARTMENT","ambiguousConcept":"POPULARITY"}}
+{"caseId":"natural-v2-037","category":"TREND","question":"강남구 아파트 가격 최근 추세 알려줘","expected":{"intent":"TRADE_TREND","target":"REGION","metric":"CHANGE_RATE"}}
+{"caseId":"natural-v2-038","category":"TREND","question":"마포구 거래량 최근 3개월 변화 알려줘","expected":{"intent":"TRADE_TREND","target":"REGION","metric":"TRADE_COUNT","period":"최근 3개월"}}
+{"caseId":"natural-v2-039","category":"TOP_BOTTOM","question":"노원구에서 평당가 가장 높은 동은 어디야?","expected":{"intent":"DISTRICT_RANKING","target":"REGION","metric":"AVERAGE_PYEONG_PRICE","direction":"DESC"}}
+{"caseId":"natural-v2-040","category":"TOP_BOTTOM","question":"강동구에서 평당가 낮은 동 5개 알려줘","expected":{"intent":"DISTRICT_RANKING","target":"REGION","metric":"AVERAGE_PYEONG_PRICE","direction":"ASC","limit":5}}
+{"caseId":"natural-v2-041","category":"TOP_BOTTOM","question":"서울에서 평당가 높은 자치구 5개 알려줘","expected":{"intent":"DISTRICT_RANKING","target":"REGION","metric":"AVERAGE_PYEONG_PRICE","direction":"DESC","limit":5}}
+{"caseId":"natural-v2-042","category":"TREND","question":"송파구 집값 상승률 알려줘","expected":{"intent":"TRADE_TREND","target":"REGION","metric":"CHANGE_RATE","direction":"DESC"}}
+{"caseId":"natural-v2-043","category":"REGION_NORMALIZATION","question":"강암에서 제일 싼 아파트 알려줘","expected":{"intent":"APARTMENT_RANKING","target":"APARTMENT","metric":"AVERAGE_PRICE","direction":"ASC"}}
+{"caseId":"natural-v2-044","category":"REGION_NORMALIZATION","question":"서교동 성수동 가격 비교해줘","expected":{"intent":"PRICE_COMPARISON","target":"REGION","metric":"AVERAGE_PRICE"}}
+{"caseId":"natural-v2-045","category":"REGION_NORMALIZATION","question":"중복동 인기있는 아파트 알려줘","expected":{"intent":"APARTMENT_RANKING","target":"APARTMENT","ambiguousConcept":"POPULARITY"}}
+{"caseId":"natural-v2-046","category":"UNSUPPORTED","question":"오늘 서울 날씨 알려줘","expected":{"intent":"UNSUPPORTED"}}
+{"caseId":"natural-v2-047","category":"UNSUPPORTED","question":"맛집 추천해줘","expected":{"intent":"UNSUPPORTED"}}
+{"caseId":"natural-v2-048","category":"UNSUPPORTED","question":"너의 이름은?","expected":{"intent":"UNSUPPORTED"}}
+{"caseId":"natural-v2-049","category":"UNSUPPORTED","question":"비트코인 가격 알려줘","expected":{"intent":"UNSUPPORTED"}}
+{"caseId":"natural-v2-050","category":"UNSUPPORTED","question":"내일 주식 오를까?","expected":{"intent":"UNSUPPORTED"}}
