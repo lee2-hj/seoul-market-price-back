@@ -8,7 +8,7 @@ import java.util.Set;
 @Component
 public class AiExecutionPlanValidator {
     private static final Set<String> SUPPORTED = Set.of("PRICE_COMPARISON", "SINGLE_REGION", "DISTRICT_RANKING",
-            "APARTMENT_RANKING", "NEARBY_APARTMENT_RANKING", "NEAREST_APARTMENT_PRICE", "TRADE_VOLUME", "TRADE_TREND");
+            "APARTMENT_RANKING", "APARTMENT_DETAIL", "NEARBY_APARTMENT_RANKING", "NEAREST_APARTMENT_PRICE", "TRADE_VOLUME", "TRADE_TREND");
 
     public void validate(AiExecutionPlan plan) {
         if (!SUPPORTED.contains(plan.intent())) return;

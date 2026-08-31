@@ -32,9 +32,10 @@ public class QuestionAnalysisService {
         List<QuestionAnalysisResponse.AnalyzedRegion> regions = normalizeRegions(r.regions());
         QuestionAnalysisResponse.AnalyzedPlace place = normalizePlace(r.referencePlace());
         QuestionAnalysisResponse.SearchFilters filters = normalizeFilters(r.filters(), missing);
-        validateRequiredFields(r.intent(), regions, place, r.metric(), missing);
+        String apartmentName = clean(r.apartmentName());
+        validateRequiredFields(r.intent(), regions, place, r.metric(), apartmentName, missing);
         clarify = clarify || !missing.isEmpty();
-        return new QuestionAnalysisResponse(canonical(r.intent()), regions, place, canonical(r.target()), canonical(r.metric()), canonical(r.direction()), limit, clean(r.period()), canonicalStrings(r.requestedMetrics()), canonicalStrings(r.toolPlan()), missing, canonical(r.ambiguousConcept()), candidates, filters, clarify);
+        return new QuestionAnalysisResponse(canonical(r.intent()), regions, place, canonical(r.target()), apartmentName, canonical(r.metric()), canonical(r.direction()), limit, clean(r.period()), canonicalStrings(r.requestedMetrics()), canonicalStrings(r.toolPlan()), missing, canonical(r.ambiguousConcept()), candidates, filters, clarify);
     }
     private String clean(String v) { return v == null || v.isBlank() ? null : v.trim(); }
     private List<String> cleanStrings(List<String> values) { return values == null ? List.of() : values.stream().filter(v -> v != null && !v.isBlank()).map(String::trim).toList(); }
@@ -65,7 +66,8 @@ public class QuestionAnalysisService {
         return value;
     }
     private void validateRequiredFields(String intent, List<QuestionAnalysisResponse.AnalyzedRegion> regions,
-                                        QuestionAnalysisResponse.AnalyzedPlace place, String metric, List<String> missing) {
+                                        QuestionAnalysisResponse.AnalyzedPlace place, String metric,
+                                        String apartmentName, List<String> missing) {
         String normalized = canonical(intent);
         if (normalized == null) { if (!missing.contains("intent")) missing.add("intent"); return; }
         if ((normalized.contains("RANKING") || normalized.contains("SUMMARY")) && regions.isEmpty()
@@ -77,6 +79,9 @@ public class QuestionAnalysisService {
         }
         if (normalized.contains("RANKING") && clean(metric) == null && !missing.contains("metric")) {
             missing.add("metric");
+        }
+        if ("APARTMENT_DETAIL".equals(normalized) && apartmentName == null && !missing.contains("apartmentName")) {
+            missing.add("apartmentName");
         }
     }
 }

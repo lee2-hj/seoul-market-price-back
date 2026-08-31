@@ -31,6 +31,7 @@ public class NaturalLanguageSearchService {
     private final RagAnswerService ragAnswerService;
     private final AiExecutionPlanMapper executionPlanMapper;
     private final AiExecutionPlanValidator executionPlanValidator;
+    private final ApartmentDetailSearchService apartmentDetailSearchService;
 
     @Autowired
     public NaturalLanguageSearchService(QuestionIntentClassifier classifier, AiSearchService comparisonService,
@@ -47,7 +48,8 @@ public class NaturalLanguageSearchService {
                                         NearbyApartmentRankingSearchService nearbyApartmentRankingSearchService,
                                         RagAnswerService ragAnswerService,
                                         AiExecutionPlanMapper executionPlanMapper,
-                                        AiExecutionPlanValidator executionPlanValidator) {
+                                        AiExecutionPlanValidator executionPlanValidator,
+                                        ApartmentDetailSearchService apartmentDetailSearchService) {
         this.classifier = classifier;
         this.comparisonService = comparisonService;
         this.singleRegionService = singleRegionService;
@@ -64,6 +66,7 @@ public class NaturalLanguageSearchService {
         this.ragAnswerService = ragAnswerService;
         this.executionPlanMapper = executionPlanMapper;
         this.executionPlanValidator = executionPlanValidator;
+        this.apartmentDetailSearchService = apartmentDetailSearchService;
     }
 
     /** 기존 단위 테스트와의 생성자 호환을 위한 보조 생성자. 애플리케이션에서는 주입 생성자를 사용한다. */
@@ -79,14 +82,19 @@ public class NaturalLanguageSearchService {
                                  NearestApartmentPriceSearchService nearestApartmentPriceSearchService) {
         this(classifier, comparisonService, singleRegionService, districtSummaryService, null,
                 districtRankingService, topBottomService, rankingSearchService, tradeTrendSearchService, locationService,
-                questionAnalysisService, nearestApartmentPriceSearchService, null, null, null, null);
+                questionAnalysisService, nearestApartmentPriceSearchService, null, null, null, null, null);
     }
 
     public NaturalSearchResponse search(String question) {
         try {
-            classifier.validateScope(question);
             QuestionAnalysisResponse analysis = analyze(question);
             validateExecutionPlan(question, analysis);
+            if (analysis != null && "APARTMENT_DETAIL".equals(analysis.intent())) {
+                if (apartmentDetailSearchService == null) {
+                    throw new IllegalStateException("단지 상세 조회 서비스를 초기화할 수 없습니다.");
+                }
+                return NaturalSearchResponse.success(analysis.intent(), apartmentDetailSearchService.search(analysis));
+            }
             if (isNearbyApartmentRanking(analysis)) {
                 if (nearbyApartmentRankingSearchService == null) {
                     throw new IllegalStateException("주변 아파트 순위 서비스를 초기화할 수 없습니다.");
