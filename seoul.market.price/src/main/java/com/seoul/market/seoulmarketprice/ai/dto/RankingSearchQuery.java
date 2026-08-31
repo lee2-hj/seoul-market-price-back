@@ -17,6 +17,8 @@ public record RankingSearchQuery(
         LocalDate to,
         BigDecimal minPrice,
         BigDecimal maxPrice,
+        BigDecimal minPyeong,
+        BigDecimal maxPyeong,
         BigDecimal threshold,
         int limit,
         int minimumTradeCount
@@ -33,6 +35,9 @@ public record RankingSearchQuery(
         if (minimumTradeCount < 0) throw new IllegalArgumentException("최소 거래량은 음수일 수 없습니다.");
         if (minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0) {
             throw new IllegalArgumentException("최소 가격은 최대 가격보다 클 수 없습니다.");
+        }
+        if (minPyeong != null && maxPyeong != null && minPyeong.compareTo(maxPyeong) > 0) {
+            throw new IllegalArgumentException("최소 평형이 최대 평형보다 클 수 없습니다.");
         }
     }
 }

@@ -56,6 +56,28 @@ class RankingQuestionParserTest {
     }
 
     @Test
+    void parsesEokBandAndPyeongCondition() {
+        var query = parser.parse("강동구 30평 5억대 아파트 알려줘");
+        var area = parser.areaRange("강동구 30평 5억대 아파트 알려줘");
+
+        assertEquals(RankingMetric.PRICE, query.metric());
+        assertEquals(new BigDecimal("500000000"), query.minPrice());
+        assertEquals(new BigDecimal("600000000"), query.maxPrice());
+        assertEquals(new BigDecimal("29"), area.minimumPyeong());
+        assertEquals(new BigDecimal("31"), area.maximumPyeong());
+    }
+
+    @Test
+    void preservesExplicitPyeongRangesWithCommonSeparators() {
+        var tilde = parser.areaRange("강동구 암사동 30~40평대 5억대 아파트 찾아줘");
+        var backtick = parser.areaRange("강동구 암사동 30`40평대 5억대 아파트 찾아줘");
+
+        assertEquals(new BigDecimal("30"), tilde.minimumPyeong());
+        assertEquals(new BigDecimal("40"), tilde.maximumPyeong());
+        assertEquals(tilde, backtick);
+    }
+
+    @Test
     void treatsExpensiveAsDescendingRatherThanMatchingIts싼Syllable() {
         var query = parser.parse("강동구에서 비싼 아파트 상위 5개 알려줘");
 
