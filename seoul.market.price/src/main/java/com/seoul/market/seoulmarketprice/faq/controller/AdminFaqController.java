@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -36,8 +37,9 @@ public class AdminFaqController {
     /** 비노출 항목을 포함한 활성 FAQ 목록을 조회한다. */
     @Operation(summary = "관리자 FAQ 목록 조회")
     @GetMapping
-    public ResponseEntity<List<AdminFaqResponse>> getFaqs() {
-        return ResponseEntity.ok(faqService.getAdminFaqs());
+    public ResponseEntity<List<AdminFaqResponse>> getFaqs(
+            @RequestParam(required = false) String keyword) {
+        return ResponseEntity.ok(faqService.getAdminFaqs(keyword));
     }
 
     /** 관리자가 선택한 활성 FAQ 상세를 조회한다. */

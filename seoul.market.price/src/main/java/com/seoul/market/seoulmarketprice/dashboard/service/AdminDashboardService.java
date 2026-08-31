@@ -4,6 +4,7 @@ import com.seoul.market.seoulmarketprice.auth.repository.MemberRepository;
 import com.seoul.market.seoulmarketprice.board.repository.BoardRepository;
 import com.seoul.market.seoulmarketprice.dashboard.dto.AdminDashboardSummaryResponse;
 import com.seoul.market.seoulmarketprice.qna.repository.QnaRepository;
+import com.seoul.market.seoulmarketprice.pageview.service.PageViewService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,7 @@ public class AdminDashboardService {
     private final MemberRepository memberRepository;
     private final BoardRepository boardRepository;
     private final QnaRepository qnaRepository;
+    private final PageViewService pageViewService;
 
     public AdminDashboardSummaryResponse getSummary() {
         OffsetDateTime generatedAt = OffsetDateTime.now(SEOUL_ZONE);
@@ -37,6 +39,7 @@ public class AdminDashboardService {
         long todayBoardPostCount = boardRepository.countActivePostsCreatedBetween(from, to);
         long totalQnaPostCount = qnaRepository.countActivePosts();
         long todayQnaPostCount = qnaRepository.countActivePostsCreatedBetween(from, to);
+        long todayPageViewCount = pageViewService.getTodayPageViewCount();
 
         return new AdminDashboardSummaryResponse(
                 totalUserCount,
@@ -46,6 +49,7 @@ public class AdminDashboardService {
                 totalQnaPostCount,
                 todayQnaPostCount,
                 todayBoardPostCount + todayQnaPostCount,
+                todayPageViewCount,
                 baseDate,
                 generatedAt
         );
