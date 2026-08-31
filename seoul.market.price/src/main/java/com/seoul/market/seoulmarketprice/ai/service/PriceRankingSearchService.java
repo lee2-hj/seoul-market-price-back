@@ -8,6 +8,8 @@ import com.seoul.market.seoulmarketprice.ai.dto.SortDirection;
 import com.seoul.market.seoulmarketprice.fastapi.dto.request.TopAndBottomRequest;
 import com.seoul.market.seoulmarketprice.fastapi.dto.response.TopAndBottomResponse;
 import com.seoul.market.seoulmarketprice.fastapi.service.FastApiService;
+import com.seoul.market.seoulmarketprice.ai.repository.ApartmentLocation;
+import com.seoul.market.seoulmarketprice.ai.repository.ApartmentLocationRepository;
 import com.seoul.market.seoulmarketprice.location.dto.DongRegionResponse;
 import com.seoul.market.seoulmarketprice.location.entity.SggMaster;
 import com.seoul.market.seoulmarketprice.location.repository.SggMasterRepository;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,15 +34,18 @@ public class PriceRankingSearchService {
     private final SggMasterRepository sggRepository;
     private final LocationMasterService locationService;
     private final FastApiService fastApiService;
+    private final ApartmentLocationRepository apartmentLocationRepository;
     private final RankingRegionResolver regionResolver;
     private final ConcurrentHashMap<CacheKey, CachedResponse> cache = new ConcurrentHashMap<>();
 
     public PriceRankingSearchService(RankingQuestionParser questionParser, SggMasterRepository sggRepository,
-                                     LocationMasterService locationService, FastApiService fastApiService) {
+                                     LocationMasterService locationService, FastApiService fastApiService,
+                                     ApartmentLocationRepository apartmentLocationRepository) {
         this.questionParser = questionParser;
         this.sggRepository = sggRepository;
         this.locationService = locationService;
         this.fastApiService = fastApiService;
+        this.apartmentLocationRepository = apartmentLocationRepository;
         this.regionResolver = new RankingRegionResolver(sggRepository, locationService);
     }
 
@@ -57,11 +63,56 @@ public class PriceRankingSearchService {
 
         String metricType = pyeongMetric(question) ? "pyeong" : "thing_amt";
         Region region = resolveRegion(question);
+        RankingQuestionParser.AreaRange areaRange = query.minPyeong() == null && query.maxPyeong() == null
+                ? questionParser.areaRange(question)
+                : new RankingQuestionParser.AreaRange(query.minPyeong(), query.maxPyeong());
+        if (areaRange != null) {
+            return searchByArea(region, areaRange, query);
+        }
         List<Candidate> candidates = region == null
                 ? allSeoulCandidates(metricType, query.direction())
                 : regionCandidates(region, metricType, query.direction());
         return toResponse(region == null ? "서울 전체" : region.name(), metricType, candidates,
-                query.direction(), query.limit(), query.minimumTradeCount());
+                query);
+    }
+
+    private PriceRankingResponse searchByArea(Region region, RankingQuestionParser.AreaRange areaRange,
+                                               RankingSearchQuery query) {
+        if (!apartmentLocationRepository.isAvailable()) {
+            throw new IllegalArgumentException("전용면적 조건 검색용 Parquet 데이터셋에 연결할 수 없습니다.");
+        }
+        List<ApartmentLocation> source = region == null
+                ? locationService.getSggs().stream().flatMap(sgg -> apartmentLocationRepository
+                        .findByRegion(sgg.sggCd(), null).stream()).toList()
+                : apartmentLocationRepository.findByRegion(region.sggCode(), region.dongCode());
+        List<Candidate> candidates = source.stream()
+                .filter(item -> item.exclusiveAreaM2() != null && item.averageTradeAmount() != null)
+                .filter(item -> matchesArea(item.exclusiveAreaM2(), areaRange))
+                .map(item -> new Candidate(item.address(), item.baseDate(), item.apartmentName(),
+                        item.averageTradeAmount(), item.dealCount() == null ? 0 : item.dealCount()))
+                .toList();
+        if (candidates.isEmpty()) {
+            throw new IllegalArgumentException("전용 " + formatPyeong(areaRange) + "평 조건의 아파트 거래 데이터를 찾을 수 없습니다.");
+        }
+        String regionName = (region == null ? "서울 전체" : region.name()) + " · 전용 "
+                + formatPyeong(areaRange) + "평" + priceConditionLabel(query);
+        return toResponse(regionName, "thing_amt", candidates, query);
+    }
+
+    private boolean matchesArea(double squareMeters, RankingQuestionParser.AreaRange range) {
+        BigDecimal pyeong = BigDecimal.valueOf(squareMeters / 3.305785);
+        return pyeong.compareTo(range.minimumPyeong()) >= 0 && pyeong.compareTo(range.maximumPyeong()) <= 0;
+    }
+
+    private String formatPyeong(RankingQuestionParser.AreaRange range) {
+        return range.minimumPyeong().stripTrailingZeros().toPlainString() + "~"
+                + range.maximumPyeong().stripTrailingZeros().toPlainString();
+    }
+
+    private String priceConditionLabel(RankingSearchQuery query) {
+        if (query.minPrice() == null || query.maxPrice() == null) return "";
+        return " · " + query.minPrice().divide(BigDecimal.valueOf(100_000_000)).stripTrailingZeros()
+                .toPlainString() + "억대";
     }
 
     private List<Candidate> allSeoulCandidates(String metricType, SortDirection direction) {
@@ -100,13 +151,15 @@ public class PriceRankingSearchService {
     }
 
     private PriceRankingResponse toResponse(String regionName, String metricType, List<Candidate> candidates,
-                                            SortDirection direction, int limit, int minimumTradeCount) {
+                                            RankingSearchQuery query) {
+        SortDirection direction = query.direction();
         Comparator<Candidate> comparator = Comparator.comparing(Candidate::metricValue,
                 Comparator.nullsLast(Comparator.naturalOrder()));
         if (direction == SortDirection.DESC) comparator = comparator.reversed();
         List<Candidate> sorted = candidates.stream()
-                .filter(item -> item.metricValue() != null && item.dealCount() >= minimumTradeCount)
-                .sorted(comparator).limit(limit).toList();
+                .filter(item -> item.metricValue() != null && item.dealCount() >= query.minimumTradeCount())
+                .filter(item -> matchesPriceRange(item.metricValue(), metricType, query))
+                .sorted(comparator).limit(query.limit()).toList();
         List<PriceRankingResponse.Item> items = java.util.stream.IntStream.range(0, sorted.size())
                 .mapToObj(index -> {
                     Candidate item = sorted.get(index);
@@ -118,9 +171,16 @@ public class PriceRankingSearchService {
                 metricType.equals("pyeong") ? "평균 평단가" : "평균 거래가",
                 metricType.equals("pyeong") ? "만원/평" : "만원",
                 baseDate == null ? "최근 집계 기간" : baseDate + " 기준",
-                minimumTradeCount,
+                query.minimumTradeCount(),
                 direction == SortDirection.ASC ? "낮은 순" : "높은 순");
         return new PriceRankingResponse(regionName, metricType, baseDate, criteria, items);
+    }
+
+    private boolean matchesPriceRange(Long value, String metricType, RankingSearchQuery query) {
+        if (!"thing_amt".equals(metricType)) return true;
+        BigDecimal amountWon = BigDecimal.valueOf(value).multiply(BigDecimal.valueOf(10_000));
+        return (query.minPrice() == null || amountWon.compareTo(query.minPrice()) >= 0)
+                && (query.maxPrice() == null || amountWon.compareTo(query.maxPrice()) < 0);
     }
 
     private boolean pyeongMetric(String question) {

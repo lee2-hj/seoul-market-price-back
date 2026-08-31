@@ -31,9 +31,10 @@ public class QuestionAnalysisService {
                 .map(c -> new QuestionAnalysisResponse.MetricCandidate(c.metric().trim().toUpperCase(Locale.ROOT), Math.max(0, Math.min(1, c.confidence())), c.reason() == null ? "" : c.reason().trim())).toList();
         List<QuestionAnalysisResponse.AnalyzedRegion> regions = normalizeRegions(r.regions());
         QuestionAnalysisResponse.AnalyzedPlace place = normalizePlace(r.referencePlace());
+        QuestionAnalysisResponse.SearchFilters filters = normalizeFilters(r.filters(), missing);
         validateRequiredFields(r.intent(), regions, place, r.metric(), missing);
         clarify = clarify || !missing.isEmpty();
-        return new QuestionAnalysisResponse(canonical(r.intent()), regions, place, canonical(r.target()), canonical(r.metric()), canonical(r.direction()), limit, clean(r.period()), canonicalStrings(r.requestedMetrics()), canonicalStrings(r.toolPlan()), missing, canonical(r.ambiguousConcept()), candidates, clarify);
+        return new QuestionAnalysisResponse(canonical(r.intent()), regions, place, canonical(r.target()), canonical(r.metric()), canonical(r.direction()), limit, clean(r.period()), canonicalStrings(r.requestedMetrics()), canonicalStrings(r.toolPlan()), missing, canonical(r.ambiguousConcept()), candidates, filters, clarify);
     }
     private String clean(String v) { return v == null || v.isBlank() ? null : v.trim(); }
     private List<String> cleanStrings(List<String> values) { return values == null ? List.of() : values.stream().filter(v -> v != null && !v.isBlank()).map(String::trim).toList(); }
@@ -48,6 +49,20 @@ public class QuestionAnalysisService {
     private QuestionAnalysisResponse.AnalyzedPlace normalizePlace(QuestionAnalysisResponse.AnalyzedPlace value) {
         if (value == null || clean(value.name()) == null) return null;
         return new QuestionAnalysisResponse.AnalyzedPlace(clean(value.name()), canonical(value.type()));
+    }
+    private QuestionAnalysisResponse.SearchFilters normalizeFilters(QuestionAnalysisResponse.SearchFilters value,
+                                                                     List<String> missing) {
+        if (value == null) return new QuestionAnalysisResponse.SearchFilters(null, null, null, null);
+        Double minPyeong = value.minPyeong(), maxPyeong = value.maxPyeong();
+        Long minPrice = value.minPriceWon(), maxPrice = value.maxPriceWon();
+        if ((minPyeong != null && minPyeong < 0) || (maxPyeong != null && maxPyeong < 0)
+                || (minPrice != null && minPrice < 0) || (maxPrice != null && maxPrice < 0)
+                || (minPyeong != null && maxPyeong != null && minPyeong > maxPyeong)
+                || (minPrice != null && maxPrice != null && minPrice > maxPrice)) {
+            missing.add("filters");
+            return new QuestionAnalysisResponse.SearchFilters(null, null, null, null);
+        }
+        return value;
     }
     private void validateRequiredFields(String intent, List<QuestionAnalysisResponse.AnalyzedRegion> regions,
                                         QuestionAnalysisResponse.AnalyzedPlace place, String metric, List<String> missing) {

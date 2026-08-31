@@ -36,16 +36,33 @@ public class RankingSearchService {
     }
 
     public Object searchStructured(String question, QuestionAnalysisResponse analysis) {
-        AmbiguousMetricResolver.Resolution resolution = ambiguousMetricResolver.resolve(analysis);
+        RankingMetric metric = analysis.ambiguousConcept() == null || analysis.ambiguousConcept().isBlank()
+                ? rankingMetric(analysis.metric()) : ambiguousMetricResolver.resolve(analysis).metric();
+        QuestionAnalysisResponse.SearchFilters filters = analysis.filters() == null
+                ? new QuestionAnalysisResponse.SearchFilters(null, null, null, null) : analysis.filters();
         java.time.LocalDate today = java.time.LocalDate.now();
-        RankingSearchQuery query = new RankingSearchQuery(RankingTarget.APARTMENT, resolution.metric(),
-                SortDirection.DESC, null, today.minusMonths(1), today, null, null, null,
+        RankingSearchQuery query = new RankingSearchQuery(RankingTarget.APARTMENT, metric,
+                direction(analysis.direction()), null, today.minusMonths(1), today,
+                decimal(filters.minPriceWon()), decimal(filters.maxPriceWon()),
+                decimal(filters.minPyeong()), decimal(filters.maxPyeong()), null,
                 analysis.limit() == null ? 1 : Math.min(analysis.limit(), 5), 3);
-        return switch (resolution.metric()) {
+        return switch (metric) {
             case TRADE_COUNT -> tradeVolumeService.search(question, query);
             case PRICE -> priceService.search(question, query);
             case CHANGE_RATE, POPULARITY -> throw new IllegalArgumentException(
                     "현재 데이터로 처리할 수 없는 순위 기준입니다.");
         };
+    }
+
+    private RankingMetric rankingMetric(String metric) {
+        return "TRADE_COUNT".equals(metric) ? RankingMetric.TRADE_COUNT : RankingMetric.PRICE;
+    }
+
+    private SortDirection direction(String direction) {
+        return "ASC".equals(direction) ? SortDirection.ASC : SortDirection.DESC;
+    }
+
+    private java.math.BigDecimal decimal(Number value) {
+        return value == null ? null : new java.math.BigDecimal(value.toString());
     }
 }
