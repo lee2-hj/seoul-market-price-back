@@ -8,6 +8,7 @@ public record QuestionAnalysisResponse(
         List<AnalyzedRegion> regions,
         AnalyzedPlace referencePlace,
         String target,
+        String apartmentName,
         String metric,
         String direction,
         Integer limit,
@@ -25,7 +26,7 @@ public record QuestionAnalysisResponse(
                                     List<String> requestedMetrics, List<String> toolPlan,
                                     List<String> missingFields, String ambiguousConcept,
                                     List<MetricCandidate> metricCandidates, Boolean requiresClarification) {
-        this(intent, regions, referencePlace, target, metric, direction, limit, period, requestedMetrics, toolPlan,
+        this(intent, regions, referencePlace, target, null, metric, direction, limit, period, requestedMetrics, toolPlan,
                 missingFields, ambiguousConcept, metricCandidates, new SearchFilters(null, null, null, null),
                 requiresClarification);
     }
@@ -34,7 +35,7 @@ public record QuestionAnalysisResponse(
                                     String target, String metric, String direction, Integer limit, String period,
                                     List<String> requestedMetrics, List<String> toolPlan,
                                     List<String> missingFields) {
-        this(intent, regions, referencePlace, target, metric, direction, limit, period,
+        this(intent, regions, referencePlace, target, null, metric, direction, limit, period,
                 requestedMetrics, toolPlan, missingFields, null, List.of(), new SearchFilters(null, null, null, null), false);
     }
 

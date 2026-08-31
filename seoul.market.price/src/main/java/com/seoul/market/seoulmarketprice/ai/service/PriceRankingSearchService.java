@@ -67,13 +67,39 @@ public class PriceRankingSearchService {
                 ? questionParser.areaRange(question)
                 : new RankingQuestionParser.AreaRange(query.minPyeong(), query.maxPyeong());
         if (areaRange != null) {
+            if (requestsSupplyArea(question)) {
+                throw new IllegalArgumentException("현재 데이터셋에는 공급면적이 없어 공급면적 기준 평형 검색은 지원하지 않습니다. 전용면적으로 질문해주세요.");
+            }
             return searchByArea(region, areaRange, query);
+        }
+        if (hasPriceCondition(query)) {
+            return searchByPriceDataset(region, query);
         }
         List<Candidate> candidates = region == null
                 ? allSeoulCandidates(metricType, query.direction())
                 : regionCandidates(region, metricType, query.direction());
         return toResponse(region == null ? "서울 전체" : region.name(), metricType, candidates,
                 query);
+    }
+
+    private PriceRankingResponse searchByPriceDataset(Region region, RankingSearchQuery query) {
+        if (!apartmentLocationRepository.isAvailable()) {
+            throw new IllegalArgumentException("가격대 조건 검색용 Parquet 데이터셋을 연결할 수 없습니다.");
+        }
+        List<ApartmentLocation> source = region == null
+                ? locationService.getSggs().stream().flatMap(sgg -> apartmentLocationRepository
+                        .findByRegion(sgg.sggCd(), null).stream()).toList()
+                : apartmentLocationRepository.findByRegion(region.sggCode(), region.dongCode());
+        List<Candidate> candidates = source.stream()
+                .filter(item -> item.averageTradeAmount() != null)
+                .map(item -> new Candidate(item.address(), item.baseDate(), item.apartmentName(),
+                        item.averageTradeAmount(), item.dealCount() == null ? 0 : item.dealCount()))
+                .toList();
+        if (candidates.isEmpty()) {
+            throw new IllegalArgumentException("입력한 지역의 아파트 거래 데이터를 찾을 수 없습니다.");
+        }
+        return toResponse((region == null ? "서울 전체" : region.name()) + priceConditionLabel(query),
+                "thing_amt", candidates, query);
     }
 
     private PriceRankingResponse searchByArea(Region region, RankingQuestionParser.AreaRange areaRange,
@@ -102,6 +128,14 @@ public class PriceRankingSearchService {
     private boolean matchesArea(double squareMeters, RankingQuestionParser.AreaRange range) {
         BigDecimal pyeong = BigDecimal.valueOf(squareMeters / 3.305785);
         return pyeong.compareTo(range.minimumPyeong()) >= 0 && pyeong.compareTo(range.maximumPyeong()) <= 0;
+    }
+
+    private boolean requestsSupplyArea(String question) {
+        return question.contains("공급면적") || question.contains("공급 평") || question.contains("공급평");
+    }
+
+    private boolean hasPriceCondition(RankingSearchQuery query) {
+        return query.minPrice() != null || query.maxPrice() != null;
     }
 
     private String formatPyeong(RankingQuestionParser.AreaRange range) {
@@ -157,7 +191,7 @@ public class PriceRankingSearchService {
                 Comparator.nullsLast(Comparator.naturalOrder()));
         if (direction == SortDirection.DESC) comparator = comparator.reversed();
         List<Candidate> sorted = candidates.stream()
-                .filter(item -> item.metricValue() != null && item.dealCount() >= query.minimumTradeCount())
+                .filter(item -> item.metricValue() != null)
                 .filter(item -> matchesPriceRange(item.metricValue(), metricType, query))
                 .sorted(comparator).limit(query.limit()).toList();
         List<PriceRankingResponse.Item> items = java.util.stream.IntStream.range(0, sorted.size())
@@ -171,7 +205,7 @@ public class PriceRankingSearchService {
                 metricType.equals("pyeong") ? "평균 평단가" : "평균 거래가",
                 metricType.equals("pyeong") ? "만원/평" : "만원",
                 baseDate == null ? "최근 집계 기간" : baseDate + " 기준",
-                query.minimumTradeCount(),
+                0,
                 direction == SortDirection.ASC ? "낮은 순" : "높은 순");
         return new PriceRankingResponse(regionName, metricType, baseDate, criteria, items);
     }
