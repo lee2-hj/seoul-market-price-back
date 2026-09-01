@@ -32,6 +32,9 @@ public class NaturalLanguageSearchService {
     private final AiExecutionPlanMapper executionPlanMapper;
     private final AiExecutionPlanValidator executionPlanValidator;
     private final ApartmentDetailSearchService apartmentDetailSearchService;
+    private final FilteredRegionSummarySearchService filteredRegionSummarySearchService;
+    private final QuestionSearchPlanNormalizer searchPlanNormalizer;
+    private final ApartmentDataRagSearchService apartmentDataRagSearchService;
 
     @Autowired
     public NaturalLanguageSearchService(QuestionIntentClassifier classifier, AiSearchService comparisonService,
@@ -49,7 +52,10 @@ public class NaturalLanguageSearchService {
                                         RagAnswerService ragAnswerService,
                                         AiExecutionPlanMapper executionPlanMapper,
                                         AiExecutionPlanValidator executionPlanValidator,
-                                        ApartmentDetailSearchService apartmentDetailSearchService) {
+                                        ApartmentDetailSearchService apartmentDetailSearchService,
+                                        FilteredRegionSummarySearchService filteredRegionSummarySearchService,
+                                        QuestionSearchPlanNormalizer searchPlanNormalizer,
+                                        ApartmentDataRagSearchService apartmentDataRagSearchService) {
         this.classifier = classifier;
         this.comparisonService = comparisonService;
         this.singleRegionService = singleRegionService;
@@ -67,6 +73,9 @@ public class NaturalLanguageSearchService {
         this.executionPlanMapper = executionPlanMapper;
         this.executionPlanValidator = executionPlanValidator;
         this.apartmentDetailSearchService = apartmentDetailSearchService;
+        this.filteredRegionSummarySearchService = filteredRegionSummarySearchService;
+        this.searchPlanNormalizer = searchPlanNormalizer;
+        this.apartmentDataRagSearchService = apartmentDataRagSearchService;
     }
 
     /** 기존 단위 테스트와의 생성자 호환을 위한 보조 생성자. 애플리케이션에서는 주입 생성자를 사용한다. */
@@ -82,12 +91,15 @@ public class NaturalLanguageSearchService {
                                  NearestApartmentPriceSearchService nearestApartmentPriceSearchService) {
         this(classifier, comparisonService, singleRegionService, districtSummaryService, null,
                 districtRankingService, topBottomService, rankingSearchService, tradeTrendSearchService, locationService,
-                questionAnalysisService, nearestApartmentPriceSearchService, null, null, null, null, null);
+                questionAnalysisService, nearestApartmentPriceSearchService, null, null, null, null, null, null,
+                new QuestionSearchPlanNormalizer(), null);
     }
 
     public NaturalSearchResponse search(String question) {
         try {
-            QuestionAnalysisResponse analysis = analyze(question);
+            QuestionAnalysisResponse explicitPlan = searchPlanNormalizer.fromExplicitQuestion(question);
+            QuestionAnalysisResponse analysis = explicitPlan != null ? explicitPlan
+                    : searchPlanNormalizer.normalize(question, analyze(question));
             validateExecutionPlan(question, analysis);
             if (analysis != null && "APARTMENT_DETAIL".equals(analysis.intent())) {
                 if (apartmentDetailSearchService == null) {
@@ -113,12 +125,24 @@ public class NaturalLanguageSearchService {
                         nearestApartmentPriceSearchService.search(analysis));
             }
             if (analysis != null && "APARTMENT_RANKING".equals(analysis.intent())) {
-                if (hasAmbiguousConcept(analysis) || hasStructuredFilters(analysis)) {
+                if (hasAmbiguousConcept(analysis) || hasStructuredFilters(analysis)
+                        || hasExplicitPriceDirection(normalizedQuestion)) {
+                    if (hasStructuredFilters(analysis) && apartmentDataRagSearchService != null) {
+                        return NaturalSearchResponse.success(analysis.intent(),
+                                apartmentDataRagSearchService.search(normalizedQuestion, analysis));
+                    }
                     Object result = rankingSearchService.searchStructured(normalizedQuestion, analysis);
                     return NaturalSearchResponse.success(analysis.intent(), result, interpretation(analysis));
                 }
                 return NaturalSearchResponse.success(analysis.intent(),
                         rankingSearchService.search(normalizedQuestion));
+            }
+            if (analysis != null && "SINGLE_REGION".equals(analysis.intent()) && hasStructuredFilters(analysis)) {
+                if (filteredRegionSummarySearchService == null) {
+                    throw new IllegalStateException("조건부 지역 평균 조회 서비스를 초기화할 수 없습니다.");
+                }
+                return NaturalSearchResponse.success(analysis.intent(),
+                        filteredRegionSummarySearchService.search(normalizedQuestion, analysis));
             }
             QuestionIntentClassifier.Intent intent;
             try {
@@ -141,6 +165,8 @@ public class NaturalLanguageSearchService {
                 case TRADE_TREND -> tradeTrendSearchService.search(normalizedQuestion);
             };
             return NaturalSearchResponse.success(intent.name(), result);
+        } catch (ApartmentSelectionRequiredException exception) {
+            return NaturalSearchResponse.apartmentClarification(exception.getMessage(), exception.candidates());
         } catch (IllegalArgumentException exception) {
             return NaturalSearchResponse.error(exception.getMessage(), errorCode(exception.getMessage()));
         } catch (Exception exception) {
@@ -158,6 +184,12 @@ public class NaturalLanguageSearchService {
         QuestionAnalysisResponse.SearchFilters filters = analysis.filters();
         return filters != null && (filters.minPyeong() != null || filters.maxPyeong() != null
                 || filters.minPriceWon() != null || filters.maxPriceWon() != null);
+    }
+
+    private boolean hasExplicitPriceDirection(String question) {
+        return question != null && (question.contains("싼") || question.contains("저렴") || question.contains("낮은")
+                || question.contains("최저") || question.contains("가성비") || question.contains("비싼")
+                || question.contains("높은") || question.contains("최고") || question.contains("고가"));
     }
 
     private boolean isNearbyApartmentRanking(QuestionAnalysisResponse analysis) {
