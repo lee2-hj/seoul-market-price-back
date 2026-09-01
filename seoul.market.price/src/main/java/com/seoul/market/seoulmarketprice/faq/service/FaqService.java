@@ -46,10 +46,18 @@ public class FaqService {
     }
 
     /** 노출 여부와 관계없이 활성 FAQ 목록을 반환한다. */
-    public List<AdminFaqResponse> getAdminFaqs() {
-        return faqQueryRepository.findAdminList().stream()
+    public List<AdminFaqResponse> getAdminFaqs(String keyword) {
+        String normalized = normalizeKeyword(keyword);
+        return faqQueryRepository.findAdminList(normalized).stream()
                 .map(this::toAdminResponse)
                 .toList();
+    }
+
+    private String normalizeKeyword(String keyword) {
+        if (keyword == null || keyword.isBlank()) return null;
+        String normalized = keyword.trim();
+        if (normalized.length() > 200) throw new IllegalArgumentException("검색어는 200자 이하이어야 합니다.");
+        return normalized;
     }
 
     /** 관리자가 선택한 활성 FAQ 상세를 반환한다. */

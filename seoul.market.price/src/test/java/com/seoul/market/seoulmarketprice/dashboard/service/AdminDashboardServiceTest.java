@@ -4,6 +4,7 @@ import com.seoul.market.seoulmarketprice.auth.repository.MemberRepository;
 import com.seoul.market.seoulmarketprice.board.repository.BoardRepository;
 import com.seoul.market.seoulmarketprice.dashboard.dto.AdminDashboardSummaryResponse;
 import com.seoul.market.seoulmarketprice.qna.repository.QnaRepository;
+import com.seoul.market.seoulmarketprice.pageview.service.PageViewService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -23,6 +24,7 @@ class AdminDashboardServiceTest {
     @Mock MemberRepository memberRepository;
     @Mock BoardRepository boardRepository;
     @Mock QnaRepository qnaRepository;
+    @Mock PageViewService pageViewService;
     @InjectMocks AdminDashboardService adminDashboardService;
 
     @Test
@@ -36,6 +38,7 @@ class AdminDashboardServiceTest {
         when(qnaRepository.countActivePosts()).thenReturn(85L);
         when(qnaRepository.countActivePostsCreatedBetween(
                 org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(4L);
+        when(pageViewService.getTodayPageViewCount()).thenReturn(99L);
 
         AdminDashboardSummaryResponse response = adminDashboardService.getSummary();
 
@@ -46,6 +49,7 @@ class AdminDashboardServiceTest {
         assertThat(response.totalQnaPostCount()).isEqualTo(85L);
         assertThat(response.todayQnaPostCount()).isEqualTo(4L);
         assertThat(response.todayTotalPostCount()).isEqualTo(11L);
+        assertThat(response.todayPageViewCount()).isEqualTo(99L);
 
         ArgumentCaptor<LocalDateTime> fromCaptor = ArgumentCaptor.forClass(LocalDateTime.class);
         ArgumentCaptor<LocalDateTime> toCaptor = ArgumentCaptor.forClass(LocalDateTime.class);

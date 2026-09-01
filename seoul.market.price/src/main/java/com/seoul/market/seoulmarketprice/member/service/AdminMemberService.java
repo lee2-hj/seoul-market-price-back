@@ -17,6 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
+import java.util.Locale;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -28,7 +30,7 @@ public class AdminMemberService {
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final String PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
 
-    public AdminMemberPageResponse getMembers(int page, int size) {
+    public AdminMemberPageResponse getMembers(int page, int size, String keyword) {
         if (page < 0) {
             throw new IllegalArgumentException("페이지 번호는 0 이상이어야 합니다.");
         }
@@ -36,8 +38,15 @@ public class AdminMemberService {
             throw new IllegalArgumentException("페이지 크기는 1 이상 100 이하여야 합니다.");
         }
 
-        Page<com.seoul.market.seoulmarketprice.auth.entity.Member> members =
-                memberManagementRepository.findAll(PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "created_at")));
+        String normalized = keyword == null || keyword.isBlank() ? null : keyword.trim();
+        if (normalized != null && normalized.length() > 200) throw new IllegalArgumentException("검색어는 200자 이하이어야 합니다.");
+        List<Member> filtered = memberManagementRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt")).stream()
+                .filter(member -> !member.isDeleted())
+                .filter(member -> normalized == null || matches(member, normalized)).toList();
+        int from = Math.min(page * size, filtered.size());
+        int to = Math.min(from + size, filtered.size());
+        List<Member> content = filtered.subList(from, to);
+        Page<Member> members = new org.springframework.data.domain.PageImpl<>(content, PageRequest.of(page, size), filtered.size());
 
         return new AdminMemberPageResponse(
                 members.getContent().stream().map(AdminMemberListResponse::from).toList(),
@@ -48,6 +57,16 @@ public class AdminMemberService {
                 members.isFirst(),
                 members.isLast()
         );
+    }
+
+    private boolean matches(Member member, String keyword) {
+        String value = keyword.toLowerCase(Locale.ROOT);
+        return contains(member.getUserId(), value) || contains(member.getName(), value)
+                || contains(member.getEmail(), value) || contains(member.getPhone(), value);
+    }
+
+    private boolean contains(String field, String keyword) {
+        return field != null && field.toLowerCase(Locale.ROOT).contains(keyword);
     }
 
     public AdminMemberDetailResponse getMember(Long memberId) {
