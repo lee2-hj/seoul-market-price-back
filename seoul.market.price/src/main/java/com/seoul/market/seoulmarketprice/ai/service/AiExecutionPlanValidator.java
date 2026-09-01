@@ -18,5 +18,6 @@ public class AiExecutionPlanValidator {
         if (filters.minPriceWon() != null && filters.maxPriceWon() != null && filters.minPriceWon() > filters.maxPriceWon())
             throw new IllegalArgumentException("가격 최소값이 최대값보다 클 수 없습니다.");
         if (plan.limit() < 1 || plan.limit() > 100) throw new IllegalArgumentException("조회 개수는 1~100개여야 합니다.");
+        SearchPlanCapabilities.validate(plan);
     }
 }

@@ -57,7 +57,7 @@ public class NearbyApartmentSearchService {
         long distance = Math.round(distanceMeters(latitude, longitude, item.latitude(), item.longitude()));
         return new NearbyApartmentResponse.ApartmentCandidate(item.apartmentId(), item.apartmentName(),
                 item.address(), item.sggCode(), item.dongCode(), item.latitude(), item.longitude(), distance,
-                item.averageTradeAmount(), item.averagePyeongAmount(), item.dealCount(),
+                item.averageTradeAmount(), item.averagePyeongAmount(), item.exclusiveAreaM2(), item.dealCount(),
                 item.latestDealDate(), item.baseDate());
     }
 

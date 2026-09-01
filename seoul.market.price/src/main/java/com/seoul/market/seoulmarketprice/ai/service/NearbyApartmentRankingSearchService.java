@@ -8,6 +8,7 @@ import com.seoul.market.seoulmarketprice.ai.dto.QuestionAnalysisResponse;
 import com.seoul.market.seoulmarketprice.ai.dto.RankingCriteria;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.List;
 
@@ -40,7 +41,7 @@ public class NearbyApartmentRankingSearchService {
         int limit = analysis.limit() == null ? DEFAULT_LIMIT : Math.max(1, Math.min(analysis.limit(), 10));
 
         NearbyApartmentResponse nearby = searchRankableApartments(place, PRIMARY_RADIUS_METERS);
-        if (!hasRankableApartment(nearby)) {
+        if (!hasRankableApartment(nearby, analysis.filters())) {
             nearby = searchRankableApartments(place, FALLBACK_RADIUS_METERS);
         }
         if (!"SUCCESS".equals(nearby.status())) {
@@ -49,13 +50,16 @@ public class NearbyApartmentRankingSearchService {
         }
 
         List<NearbyApartmentResponse.ApartmentCandidate> ranked = nearby.apartments().stream()
-                .filter(this::isRankable)
+                .filter(apartment -> matchesConditions(apartment, analysis.filters()))
                 .sorted(Comparator.comparing(NearbyApartmentResponse.ApartmentCandidate::averageTradeAmount)
                         .reversed()
                         .thenComparing(NearbyApartmentResponse.ApartmentCandidate::apartmentName))
                 .limit(limit)
                 .toList();
         if (ranked.isEmpty()) {
+            if (hasRequestedFilters(analysis.filters())) {
+                throw new IllegalArgumentException("기준 장소 주변에서 요청한 가격·면적 조건을 만족하는 아파트 거래 데이터를 찾을 수 없습니다.");
+            }
             throw new IllegalArgumentException("기준 장소 주변에서 거래 3건 이상인 아파트 가격 데이터를 찾을 수 없습니다.");
         }
 
@@ -80,13 +84,35 @@ public class NearbyApartmentRankingSearchService {
                 place.latitude(), place.longitude(), radius, CANDIDATE_LIMIT));
     }
 
-    private boolean hasRankableApartment(NearbyApartmentResponse response) {
-        return "SUCCESS".equals(response.status()) && response.apartments().stream().anyMatch(this::isRankable);
+    private boolean hasRankableApartment(NearbyApartmentResponse response,
+                                         QuestionAnalysisResponse.SearchFilters filters) {
+        return "SUCCESS".equals(response.status()) && response.apartments().stream()
+                .anyMatch(apartment -> matchesConditions(apartment, filters));
     }
 
-    private boolean isRankable(NearbyApartmentResponse.ApartmentCandidate apartment) {
-        return apartment.averageTradeAmount() != null && apartment.dealCount() != null
-                && apartment.dealCount() >= MINIMUM_TRADE_COUNT;
+    private boolean matchesConditions(NearbyApartmentResponse.ApartmentCandidate apartment,
+                                      QuestionAnalysisResponse.SearchFilters filters) {
+        if (apartment.averageTradeAmount() == null || apartment.dealCount() == null
+                || apartment.dealCount() < MINIMUM_TRADE_COUNT) return false;
+        if (filters == null) return true;
+
+        BigDecimal tradeAmountWon = BigDecimal.valueOf(apartment.averageTradeAmount())
+                .multiply(BigDecimal.valueOf(10_000));
+        if (filters.minPriceWon() != null
+                && tradeAmountWon.compareTo(BigDecimal.valueOf(filters.minPriceWon())) < 0) return false;
+        if (filters.maxPriceWon() != null
+                && tradeAmountWon.compareTo(BigDecimal.valueOf(filters.maxPriceWon())) >= 0) return false;
+
+        if (filters.minPyeong() == null && filters.maxPyeong() == null) return true;
+        if (apartment.exclusiveAreaM2() == null) return false;
+        double pyeong = apartment.exclusiveAreaM2() / 3.305785;
+        return (filters.minPyeong() == null || pyeong >= filters.minPyeong())
+                && (filters.maxPyeong() == null || pyeong <= filters.maxPyeong());
+    }
+
+    private boolean hasRequestedFilters(QuestionAnalysisResponse.SearchFilters filters) {
+        return filters != null && (filters.minPriceWon() != null || filters.maxPriceWon() != null
+                || filters.minPyeong() != null || filters.maxPyeong() != null);
     }
 
     private PlaceResolutionResponse.PlaceCandidate representativePlace(PlaceResolutionResponse resolution,

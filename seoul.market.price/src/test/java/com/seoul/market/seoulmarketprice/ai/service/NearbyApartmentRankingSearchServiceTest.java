@@ -53,6 +53,29 @@ class NearbyApartmentRankingSearchServiceTest {
         assertThat(result.items()).hasSize(1);
     }
 
+    @Test
+    void appliesPriceBandBeforeRankingNearbyApartments() {
+        PlaceResolver placeResolver = mock(PlaceResolver.class);
+        NearbyApartmentSearchService nearbySearch = mock(NearbyApartmentSearchService.class);
+        var place = new PlaceResolutionResponse.PlaceCandidate("1", "강동역", "STATION", null, null,
+                37.535, 127.133, "KAKAO");
+        when(placeResolver.resolve("강동역", "STATION")).thenReturn(PlaceResolutionResponse.resolved(place));
+        when(nearbySearch.search(any())).thenReturn(new NearbyApartmentResponse("SUCCESS", null, 1000, "minio",
+                List.of(candidate("four-eok", 41_678L, 3), candidate("twenty-eok", 205_000L, 4),
+                        candidate("twenty-one-eok", 210_000L, 5))));
+
+        var filters = new QuestionAnalysisResponse.SearchFilters(null, null, 2_000_000_000L, 2_100_000_000L);
+        var analysis = new QuestionAnalysisResponse("NEARBY_APARTMENT_RANKING", List.of(),
+                new QuestionAnalysisResponse.AnalyzedPlace("강동역", "STATION"), "APARTMENT",
+                null, "AVERAGE_PRICE", "DESC", 5, null, List.of(), List.of(), List.of(), null, List.of(),
+                filters, false);
+
+        var result = new NearbyApartmentRankingSearchService(placeResolver, nearbySearch).search(analysis);
+
+        assertThat(result.items()).extracting(item -> item.apartmentName()).containsExactly("twenty-eok");
+        assertThat(result.items()).extracting(item -> item.metricValue()).containsExactly(205_000L);
+    }
+
     private QuestionAnalysisResponse analysis(int limit) {
         return new QuestionAnalysisResponse("NEARBY_APARTMENT_RANKING", List.of(),
                 new QuestionAnalysisResponse.AnalyzedPlace("홍대입구", "STATION"), "APARTMENT",

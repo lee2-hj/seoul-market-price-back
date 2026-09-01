@@ -8,6 +8,8 @@ import com.seoul.market.seoulmarketprice.elasticSearch.service.ElasticSearchServ
 import com.seoul.market.seoulmarketprice.fastapi.dto.request.AptMktRequest;
 import com.seoul.market.seoulmarketprice.fastapi.dto.response.AptMktResponse;
 import com.seoul.market.seoulmarketprice.fastapi.service.FastApiService;
+import com.seoul.market.seoulmarketprice.ai.repository.ApartmentLocationRepository;
+import com.seoul.market.seoulmarketprice.ai.dto.NaturalApartmentCandidate;
 import org.springframework.stereotype.Service;
 
 import java.text.NumberFormat;
@@ -20,11 +22,14 @@ import java.util.Locale;
 public class ApartmentDetailSearchService {
     private final ElasticSearchService elasticSearchService;
     private final FastApiService fastApiService;
+    private final ApartmentLocationRepository apartmentLocationRepository;
 
     public ApartmentDetailSearchService(ElasticSearchService elasticSearchService,
-                                        FastApiService fastApiService) {
+                                        FastApiService fastApiService,
+                                        ApartmentLocationRepository apartmentLocationRepository) {
         this.elasticSearchService = elasticSearchService;
         this.fastApiService = fastApiService;
+        this.apartmentLocationRepository = apartmentLocationRepository;
     }
 
     public PriceComparisonResponse search(QuestionAnalysisResponse analysis) {
@@ -68,6 +73,23 @@ public class ApartmentDetailSearchService {
                 .map(QuestionAnalysisResponse.AnalyzedRegion::name).findFirst().orElse(null);
         String requestedDong = analysis.regions().stream().filter(region -> "DONG".equals(region.type()))
                 .map(QuestionAnalysisResponse.AnalyzedRegion::name).findFirst().orElse(null);
+        // ES may lag behind the latest Parquet partition. Search Parquet too, then relax location filters progressively.
+        List<AptNameResponse> parquetExact = apartmentLocationRepository.findByApartmentNameLike(apartmentName).stream()
+                .map(item -> new AptNameResponse(item.apartmentName(), item.mainNumber(), item.subNumber(),
+                        item.dongCode(), item.dongName(), item.sggCode(), item.districtName()))
+                .filter(item -> normalized(item.apt_name()).equals(normalized(apartmentName)))
+                .toList();
+        List<AptNameResponse> stage1 = parquetExact.stream()
+                .filter(item -> requestedDistrict == null || requestedDistrict.equals(item.sgg_nm()))
+                .filter(item -> requestedDong == null || requestedDong.equals(item.dong_nm())).toList();
+        if (stage1.stream().map(item -> item.sgg_cd() + item.dong_cd() + item.mno() + item.sno()).distinct().count() == 1) return stage1.getFirst();
+        List<AptNameResponse> stage2 = parquetExact.stream()
+                .filter(item -> requestedDistrict == null || requestedDistrict.equals(item.sgg_nm())).toList();
+        if (stage2.stream().map(item -> item.sgg_cd() + item.dong_cd() + item.mno() + item.sno()).distinct().count() == 1) return stage2.getFirst();
+        if (!stage2.isEmpty()) throw selectionRequired(apartmentName, stage2);
+        if (parquetExact.stream().map(item -> item.sgg_cd() + item.dong_cd() + item.mno() + item.sno()).distinct().count() == 1
+                && !parquetExact.isEmpty()) return parquetExact.getFirst();
+        if (!parquetExact.isEmpty()) throw selectionRequired(apartmentName, parquetExact);
         List<AptNameResponse> exactMatches = elasticSearchService.searchAptName(
                         new AptNameRequest(apartmentName, null, null)).stream()
                 .filter(item -> normalized(item.apt_name()).equals(normalized(apartmentName)))
@@ -85,8 +107,19 @@ public class ApartmentDetailSearchService {
         return exactMatches.getFirst();
     }
 
+    private ApartmentSelectionRequiredException selectionRequired(String apartmentName, List<AptNameResponse> values) {
+        List<NaturalApartmentCandidate> candidates = values.stream()
+                .collect(java.util.stream.Collectors.toMap(item -> item.sgg_cd() + item.dong_cd() + item.mno() + item.sno(), item -> item,
+                        (left, right) -> left, java.util.LinkedHashMap::new)).values().stream().limit(5)
+                .map(item -> new NaturalApartmentCandidate(item.apt_name(), item.sgg_nm(), item.sgg_cd(), item.dong_nm(),
+                        item.dong_cd(), item.mno(), item.sno())).toList();
+        return new ApartmentSelectionRequiredException(apartmentName + "과(와) 일치하는 단지가 여러 곳입니다. 단지를 선택해주세요.", candidates);
+    }
+
     private String normalized(String value) {
-        return value == null ? "" : value.replaceAll("[^\\p{IsAlphabetic}\\p{IsDigit}]", "").toLowerCase(Locale.ROOT);
+        return value == null ? "" : value.replaceAll("(?i)아파트|단지", "")
+                .replaceAll("제\\s*(\\d+)\\s*차", "$1차")
+                .replaceAll("[^\\p{IsAlphabetic}\\p{IsDigit}]", "").toLowerCase(Locale.ROOT);
     }
 
     private String money(Long value) {

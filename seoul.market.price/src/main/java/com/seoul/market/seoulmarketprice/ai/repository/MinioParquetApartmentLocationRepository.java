@@ -79,6 +79,30 @@ public class MinioParquetApartmentLocationRepository implements ApartmentLocatio
                 .toList();
     }
 
+    @Override
+    public List<ApartmentLocation> findByRegionName(String districtName, String dongName) {
+        String normalizedDistrict = normalizePlaceName(districtName);
+        String normalizedDong = normalizePlaceName(dongName);
+        if (normalizedDistrict == null) return List.of();
+        return locations().stream()
+                .filter(item -> normalizedDistrict.equals(normalizePlaceName(item.districtName())))
+                .filter(item -> normalizedDong == null
+                        || normalizedDong.equals(normalizePlaceName(item.dongName())))
+                .toList();
+    }
+
+    @Override
+    public List<ApartmentLocation> findByApartmentNameLike(String apartmentName) {
+        String query = normalizeApartmentName(apartmentName);
+        if (query == null) return List.of();
+        return locations().stream()
+                .filter(item -> {
+                    String candidate = normalizeApartmentName(item.apartmentName());
+                    return candidate != null && (candidate.contains(query) || query.contains(candidate));
+                })
+                .toList();
+    }
+
     private List<ApartmentLocation> locations() {
         Cache current = cache;
         long now = System.currentTimeMillis();
@@ -169,12 +193,14 @@ public class MinioParquetApartmentLocationRepository implements ApartmentLocatio
                 String mainNumber = text(row, "mno");
                 String subNumber = text(row, "sno");
                 String apartmentName = text(row, "bldg_nm");
+                String districtName = text(row, "cgg_nm");
+                String dongName = text(row, "stdg_nm");
                 if (latitude == null || longitude == null || apartmentName == null) continue;
                 String apartmentId = String.join("-", nullToEmpty(cggCode), nullToEmpty(dongCode),
                         nullToEmpty(mainNumber), nullToEmpty(subNumber));
                 String address = buildAddress(row, mainNumber, subNumber);
                 result.add(new ApartmentLocation(apartmentId, apartmentName, address,
-                        cggCode, dongCode, latitude, longitude,
+                        cggCode, dongCode, districtName, dongName, latitude, longitude,
                         longNumber(row, "total_thing_amt"), integerNumber(row, "deal_cnt"),
                         longNumber(row, "total_pyeong_amt"), numberAny(row, "area", "exclusive_area_m2", "exclusive_area", "exclu_use_ar"), text(row, "deal_date"),
                         text(row, "base_date")));
@@ -197,6 +223,17 @@ public class MinioParquetApartmentLocationRepository implements ApartmentLocatio
 
     private void addText(List<String> parts, String value) {
         if (value != null && !value.isBlank()) parts.add(value);
+    }
+
+    private String normalizePlaceName(String value) {
+        if (value == null || value.isBlank()) return null;
+        return value.replaceAll("\\s+", "").trim();
+    }
+
+    private String normalizeApartmentName(String value) {
+        if (value == null || value.isBlank()) return null;
+        return value.replaceAll("(?i)아파트|단지", "").replaceAll("제\\s*(\\d+)\\s*차", "$1차")
+                .replaceAll("[^\\p{IsAlphabetic}\\p{IsDigit}]", "").toLowerCase();
     }
 
     private String partitionOf(String objectName) {

@@ -89,7 +89,7 @@ public class PriceRankingSearchService {
         List<ApartmentLocation> source = region == null
                 ? locationService.getSggs().stream().flatMap(sgg -> apartmentLocationRepository
                         .findByRegion(sgg.sggCd(), null).stream()).toList()
-                : apartmentLocationRepository.findByRegion(region.sggCode(), region.dongCode());
+                : regionSource(region);
         List<Candidate> candidates = source.stream()
                 .filter(item -> item.averageTradeAmount() != null)
                 .map(item -> new Candidate(item.address(), item.baseDate(), item.apartmentName(),
@@ -110,7 +110,7 @@ public class PriceRankingSearchService {
         List<ApartmentLocation> source = region == null
                 ? locationService.getSggs().stream().flatMap(sgg -> apartmentLocationRepository
                         .findByRegion(sgg.sggCd(), null).stream()).toList()
-                : apartmentLocationRepository.findByRegion(region.sggCode(), region.dongCode());
+                : regionSource(region);
         List<Candidate> candidates = source.stream()
                 .filter(item -> item.exclusiveAreaM2() != null && item.averageTradeAmount() != null)
                 .filter(item -> matchesArea(item.exclusiveAreaM2(), areaRange))
@@ -153,7 +153,7 @@ public class PriceRankingSearchService {
         return locationService.getSggs().parallelStream()
                 .flatMap(sgg -> locationService.getDongs(sgg.sggCd()).parallelStream()
                         .flatMap(dong -> regionCandidates(new Region(sgg.sggCd(), dong.dongCd(),
-                                sgg.sggNm() + " " + dong.dongNm()), metricType, direction).stream()))
+                                sgg.sggNm() + " " + dong.dongNm(), sgg.sggNm(), dong.dongNm()), metricType, direction).stream()))
                 .toList();
     }
 
@@ -161,7 +161,7 @@ public class PriceRankingSearchService {
         if (region.dongCode() != null) return candidates(region, metricType, direction);
         return locationService.getDongs(region.sggCode()).parallelStream()
                 .flatMap(dong -> candidates(new Region(region.sggCode(), dong.dongCd(),
-                        region.name() + " " + dong.dongNm()), metricType, direction).stream())
+                        region.name() + " " + dong.dongNm(), region.districtName(), dong.dongNm()), metricType, direction).stream())
                 .toList();
     }
 
@@ -228,12 +228,13 @@ public class PriceRankingSearchService {
             DongRegionResponse dong = locationService.resolveDong(fullRegion.group(2)).stream()
                     .filter(candidate -> candidate.sggCode().equals(sgg.getSggCode())).findFirst()
                     .orElseThrow(() -> new IllegalArgumentException("자치구와 자치동 조합을 찾지 못했습니다."));
-            return new Region(sgg.getSggCode(), dong.dongCode(), sgg.getSggName() + " " + dong.dongName());
+            return new Region(sgg.getSggCode(), dong.dongCode(), sgg.getSggName() + " " + dong.dongName(),
+                    sgg.getSggName(), dong.dongName());
         }
         Matcher district = RegionQuestionPatterns.DISTRICT.matcher(question);
         if (district.find()) {
             SggMaster sgg = findSgg(district.group(1));
-            return new Region(sgg.getSggCode(), null, sgg.getSggName());
+            return new Region(sgg.getSggCode(), null, sgg.getSggName(), sgg.getSggName(), null);
         }
         return null;
     }
@@ -246,10 +247,21 @@ public class PriceRankingSearchService {
     private Region resolveRegion(String question) {
         RankingRegionResolver.ResolvedRegion resolved = regionResolver.resolve(question);
         if (resolved.allSeoul()) return null;
-        return new Region(resolved.sggCode(), resolved.dongCode(), resolved.name());
+        String[] names = resolved.name().split("\\s+", 2);
+        String districtName = names[0];
+        String dongName = resolved.dongCode() == null || names.length < 2 ? null : names[1];
+        return new Region(resolved.sggCode(), resolved.dongCode(), resolved.name(), districtName, dongName);
     }
 
-    private record Region(String sggCode, String dongCode, String name) {}
+    private List<ApartmentLocation> regionSource(Region region) {
+        List<ApartmentLocation> exact = apartmentLocationRepository.findByRegion(region.sggCode(), region.dongCode());
+        return exact.isEmpty()
+                ? apartmentLocationRepository.findByRegionName(region.districtName(), region.dongName())
+                : exact;
+    }
+
+    private record Region(String sggCode, String dongCode, String name,
+                          String districtName, String dongName) {}
     private record Candidate(String regionName, String baseDate, String apartmentName, Long metricValue, int dealCount) {}
     private record CacheKey(String sggCode, String dongCode, String metricType) {}
     private record CachedResponse(TopAndBottomResponse response, Instant createdAt) {}
