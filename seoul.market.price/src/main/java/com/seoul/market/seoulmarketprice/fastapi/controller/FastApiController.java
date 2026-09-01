@@ -90,4 +90,11 @@ public class FastApiController {
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
+
+    @Operation(summary = "최신 업데이트 내역", description = "백오피스 대시보드 최근 업데이트 아파트 api")
+    @GetMapping("/updatedApt")
+    public ResponseEntity<UpdatedAptResponse> updatedApt(){
+        UpdatedAptResponse updatedApt = fastApiService.getUpdatedApt();
+        return ResponseEntity.status(HttpStatus.OK).body(updatedApt);
+    }
 }

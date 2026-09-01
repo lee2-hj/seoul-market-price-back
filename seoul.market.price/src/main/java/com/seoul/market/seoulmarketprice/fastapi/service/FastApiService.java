@@ -131,4 +131,14 @@ public class FastApiService {
                 .retrieve()
                 .body(MainPageResponse.class);
     }
+
+    public UpdatedAptResponse getUpdatedApt() {
+
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/v1/main-mart/recent")
+                        .build())
+                .retrieve()
+                .body(UpdatedAptResponse.class);
+    }
 }
