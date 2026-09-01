@@ -31,9 +31,10 @@ public class AdminMemberController {
     @GetMapping
     public ResponseEntity<AdminMemberPageResponse> getMembers(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String keyword
     ) {
-        return ResponseEntity.ok(adminMemberService.getMembers(page, size));
+        return ResponseEntity.ok(adminMemberService.getMembers(page, size, keyword));
     }
 
     @GetMapping("/{memberId}")

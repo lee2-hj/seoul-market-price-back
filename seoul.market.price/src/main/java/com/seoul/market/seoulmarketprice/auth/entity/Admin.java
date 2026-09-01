@@ -107,6 +107,11 @@ public class Admin {
     @Column(name = "email", length = 100, comment = "이메일")
     private String email;
 
+    /** 관리자 계정의 권한. DB에는 enum 이름을 문자열로 저장한다. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false, length = 30, columnDefinition = "varchar(30) default 'ADMIN'")
+    private Role role = Role.ADMIN;
+
     @Column(updatable = false)
     private LocalDateTime created_at;
 

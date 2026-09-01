@@ -154,6 +154,7 @@ public class BoardQueryRepository {
                     .or(board.member.name.containsIgnoreCase(value));
         }
 
-        return board.title.containsIgnoreCase(value);
+        return board.title.containsIgnoreCase(value)
+                .or(board.content.containsIgnoreCase(value));
     }
 }
