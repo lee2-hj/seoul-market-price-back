@@ -9,6 +9,7 @@ import com.seoul.market.seoulmarketprice.ai.repository.ApartmentLocation;
 import com.seoul.market.seoulmarketprice.ai.repository.ApartmentLocationRepository;
 import com.seoul.market.seoulmarketprice.location.repository.SggMasterRepository;
 import com.seoul.market.seoulmarketprice.location.service.LocationMasterService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -27,6 +28,7 @@ public class FilteredRegionSummarySearchService {
     private final RankingRegionResolver regionResolver;
     private final GenericQueryExecutor queryExecutor;
 
+    @Autowired
     public FilteredRegionSummarySearchService(ApartmentLocationRepository apartmentLocationRepository,
                                               SggMasterRepository sggRepository,
                                               LocationMasterService locationService,
