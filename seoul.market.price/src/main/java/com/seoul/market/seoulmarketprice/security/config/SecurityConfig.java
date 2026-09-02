@@ -195,16 +195,24 @@ public class SecurityConfig {
                     auth.requestMatchers(HttpMethod.DELETE, "/api/boards/**")
                             .hasRole("USER");
 
-                    // 활성 메뉴: 본인 조회(/me)는 ADMIN·MASTER 모두 허용하고,
-                    // {id} 기반의 다른 관리자 관리 기능은 MASTER 전용이다.
-                    // (/me가 /api/activeMenu/** 보다 먼저 선언되어야 우선 적용된다.)
+                    /*
+                     * 활성 메뉴: /me는 ADMIN·MASTER만 호출할 수 있다(role에 따라 반환 범위가 다름).
+                     * {id} 조회(GET)는 원래 동작대로 role과 무관하게 로그인한 사용자면 누구나
+                     * 호출할 수 있다. 등록/해제(POST/DELETE)는 관리 기능이므로 ADMIN·MASTER만
+                     * 허용하고, ADMIN이 자기 자신이 아닌 다른 관리자를 대상으로 하지 못하도록
+                     * 막는 것은 서비스 레벨 IDOR 검증(ActiveMenuService)의 몫이다.
+                     * (/me가 /api/activeMenu/** 보다 먼저 선언되어야 우선 적용된다.)
+                     */
                     auth.requestMatchers(HttpMethod.GET, "/api/activeMenu/me")
                             .hasAnyRole("ADMIN", "MASTER");
-                    auth.requestMatchers("/api/activeMenu/**")
-                            .hasRole("MASTER");
+                    auth.requestMatchers(HttpMethod.GET, "/api/activeMenu/**")
+                            .authenticated();
+                    auth.requestMatchers(HttpMethod.POST, "/api/activeMenu/**")
+                            .hasAnyRole("ADMIN", "MASTER");
+                    auth.requestMatchers(HttpMethod.DELETE, "/api/activeMenu/**")
+                            .hasAnyRole("ADMIN", "MASTER");
 
-                    // 메뉴/메뉴 카테고리 카탈로그 조회는 ADMIN·MASTER 모두 허용하고,
-                    // 등록/수정/삭제는 MASTER 전용이다.
+                    // 메뉴/메뉴 카테고리 카탈로그는 조회·등록·수정·삭제 모두 ADMIN·MASTER 둘 다 허용한다.
                     auth.requestMatchers(HttpMethod.GET,
                                     "/api/menus", "/api/menus/**",
                                     "/api/menuCategory", "/api/menuCategory/**")
@@ -212,11 +220,11 @@ public class SecurityConfig {
                     auth.requestMatchers(HttpMethod.POST,
                                     "/api/menus", "/api/menus/**",
                                     "/api/menuCategory", "/api/menuCategory/**")
-                            .hasRole("MASTER");
+                            .hasAnyRole("ADMIN", "MASTER");
                     auth.requestMatchers(HttpMethod.PATCH, "/api/menus/**", "/api/menuCategory/**")
-                            .hasRole("MASTER");
+                            .hasAnyRole("ADMIN", "MASTER");
                     auth.requestMatchers(HttpMethod.DELETE, "/api/menus/**", "/api/menuCategory/**")
-                            .hasRole("MASTER");
+                            .hasAnyRole("ADMIN", "MASTER");
 
                     /*
                      * 운영 환경의 관리자 생성 및 관리자 전용 API는 ADMIN 또는 MASTER 권한이 필요하다.

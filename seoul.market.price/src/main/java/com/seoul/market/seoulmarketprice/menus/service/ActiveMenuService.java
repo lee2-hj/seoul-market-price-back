@@ -23,10 +23,13 @@ import java.util.List;
  * 관리자별로 접근 가능한 메뉴(활성 메뉴)를 조회, 등록, 해제하는 서비스이다.
  *
  * <p>
- * {@code /me} 계열 호출은 principal에서 얻은 자기 자신의 고유번호만 사용하므로
- * 구조적으로 IDOR이 발생할 수 없다. {@code /{id}} 계열 호출은 MASTER 전용
- * 관리 기능으로, SecurityConfig의 인가 규칙이 1차 방어선이며, 여기서 수행하는
- * {@link #assertAccessible(Long, Long, boolean)} 검증이 2차 방어선이다.
+ * 조회({@code getActiveMenu(Long)})는 원래 동작대로 role과 무관하게 누구나
+ * 호출할 수 있으므로 별도의 IDOR 검증 없이 대상 관리자의 활성 메뉴를 그대로
+ * 반환한다. 반면 등록/해제({@code createActiveMenu}, {@code deleteActiveMenu})는
+ * 관리 기능이므로 {@link #assertAccessible(Long, Long, boolean)}로 요청자가
+ * MASTER가 아니면 자기 자신의 {@code id}만 대상으로 할 수 있도록 제한한다
+ * (SecurityConfig의 {@code hasAnyRole("ADMIN", "MASTER")} 인가 규칙이 1차
+ * 방어선이고, 이 서비스 레벨 검증이 2차 방어선이다).
  * </p>
  */
 @Service
@@ -45,6 +48,31 @@ public class ActiveMenuService {
     }
 
     /**
+     * MASTER가 {@code /me}를 호출했을 때, 등록 여부와 무관하게 전체 메뉴
+     * 카탈로그를 반환한다. MASTER는 모든 메뉴에 접근 가능하다는 전제로,
+     * 실제 활성 메뉴 등록 여부와 관계없이 전체 목록을 보여주기 위한 조회이다.
+     *
+     * @param adminId 응답에 채울 관리자(호출자) 고유번호
+     */
+    public List<ActiveMenuResponse> getAllMenusForMaster(Long adminId) {
+        List<MenuEntity> all = menuRepository.findAllWithCategory();
+
+        return all.stream()
+                .map(menu -> new ActiveMenuResponse(
+                        null,
+                        adminId,
+                        menu.getCategory().getMenuCode(),
+                        menu.getCategory().getMenuName(),
+                        menu.getMenuCode(),
+                        menu.getMenuName(),
+                        menu.getUrl(),
+                        menu.getCreated_at(),
+                        menu.getUpdated_at()
+                ))
+                .toList();
+    }
+
+    /**
      * 대상 관리자의 활성 메뉴를 조회한다.
      *
      * @param id                조회 대상 관리자 고유번호
@@ -55,7 +83,7 @@ public class ActiveMenuService {
         assertAccessible(id, requesterId, requesterIsMaster);
 
         Admin admin = adminRepository.findById(id)
-                .orElseThrow(AdminNotFoundException::new);
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 관리자입니다."));
 
         List<ActiveMenuEntity> list = activeMenuRepository.findByAdminId(id);
 

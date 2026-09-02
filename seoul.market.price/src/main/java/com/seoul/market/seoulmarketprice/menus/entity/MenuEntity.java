@@ -39,11 +39,9 @@ public class MenuEntity {
     private String url;
 
     @Column(updatable = false, comment = "등록일")
-    @CreatedDate
     private LocalDateTime created_at;
 
-    @Column(comment = "수정일")
-    @LastModifiedDate
+    @Column(insertable = false, columnDefinition = "datetime", comment = "수정일")
     private LocalDateTime  updated_at;
 
     /**
