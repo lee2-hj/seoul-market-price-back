@@ -98,7 +98,7 @@ public class SecurityConfig {
                                 writeErrorResponse(
                                         response,
                                         HttpStatus.UNAUTHORIZED,
-                                        "AUTH-001",
+                                        String.valueOf(HttpStatus.UNAUTHORIZED.value()),
                                         "로그인이 필요합니다."
                                 )
                         )
@@ -106,7 +106,7 @@ public class SecurityConfig {
                                 writeErrorResponse(
                                         response,
                                         HttpStatus.FORBIDDEN,
-                                        "AUTH-002",
+                                        String.valueOf(HttpStatus.FORBIDDEN.value()),
                                         "접근 권한이 없습니다."
                                 )
                         )
