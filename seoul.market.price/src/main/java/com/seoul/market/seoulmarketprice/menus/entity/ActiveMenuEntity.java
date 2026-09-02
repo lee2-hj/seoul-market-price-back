@@ -64,4 +64,10 @@ public class ActiveMenuEntity {
         this.updated_at = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
     }
 
+    public ActiveMenuEntity(Admin admin, MenuCategoryEntity category, MenuEntity menu) {
+        this.admin = admin;
+        this.category = category;
+        this.menu = menu;
+    }
+
 }

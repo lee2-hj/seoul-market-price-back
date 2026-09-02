@@ -195,19 +195,40 @@ public class SecurityConfig {
                     auth.requestMatchers(HttpMethod.DELETE, "/api/boards/**")
                             .hasRole("USER");
 
-                    // 메뉴/메뉴 카테고리 API는 로그인한 사용자만 호출할 수 있도록 제한한다.
-                    auth.requestMatchers("/api/menus", "/api/menus/**")
-                            .authenticated();
-                    auth.requestMatchers("/api/menuCategory", "/api/menuCategory/**")
-                            .authenticated();
+                    // 활성 메뉴: 본인 조회(/me)는 ADMIN·MASTER 모두 허용하고,
+                    // {id} 기반의 다른 관리자 관리 기능은 MASTER 전용이다.
+                    // (/me가 /api/activeMenu/** 보다 먼저 선언되어야 우선 적용된다.)
+                    auth.requestMatchers(HttpMethod.GET, "/api/activeMenu/me")
+                            .hasAnyRole("ADMIN", "MASTER");
+                    auth.requestMatchers("/api/activeMenu/**")
+                            .hasRole("MASTER");
 
-                    // 운영 환경의 관리자 생성 및 관리자 전용 API는 ADMIN 권한이 필요하다.
+                    // 메뉴/메뉴 카테고리 카탈로그 조회는 ADMIN·MASTER 모두 허용하고,
+                    // 등록/수정/삭제는 MASTER 전용이다.
+                    auth.requestMatchers(HttpMethod.GET,
+                                    "/api/menus", "/api/menus/**",
+                                    "/api/menuCategory", "/api/menuCategory/**")
+                            .hasAnyRole("ADMIN", "MASTER");
+                    auth.requestMatchers(HttpMethod.POST,
+                                    "/api/menus", "/api/menus/**",
+                                    "/api/menuCategory", "/api/menuCategory/**")
+                            .hasRole("MASTER");
+                    auth.requestMatchers(HttpMethod.PATCH, "/api/menus/**", "/api/menuCategory/**")
+                            .hasRole("MASTER");
+                    auth.requestMatchers(HttpMethod.DELETE, "/api/menus/**", "/api/menuCategory/**")
+                            .hasRole("MASTER");
+
+                    /*
+                     * 운영 환경의 관리자 생성 및 관리자 전용 API는 ADMIN 또는 MASTER 권한이 필요하다.
+                     * 역할 계층(RoleHierarchy)이 별도로 설정되어 있지 않으므로
+                     * hasRole("ADMIN")만으로는 MASTER 계정이 접근할 수 없어 hasAnyRole로 확장한다.
+                     */
                     auth.requestMatchers(
                                     "/api/admin/**",
                                     "/api/admins",
                                     "/api/admins/**"
                             )
-                            .hasRole("ADMIN")
+                            .hasAnyRole("ADMIN", "MASTER")
                             // 그 외 요청은 로그인한 사용자만 접근할 수 있다.
                             .anyRequest().authenticated();
                 })
