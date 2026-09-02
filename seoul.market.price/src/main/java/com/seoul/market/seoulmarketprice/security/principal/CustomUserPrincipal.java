@@ -1,12 +1,14 @@
 package com.seoul.market.seoulmarketprice.security.principal;
 
+import com.seoul.market.seoulmarketprice.auth.entity.Role;
+
 import java.security.Principal;
 
 /**
  * Spring Security에서 현재 로그인한 사용자를 표현하는 객체이다.
  *
  * <p>
- * JWT Access Token에서 꺼낸 회원 고유번호와 로그인 아이디를 담는다.
+ * JWT Access Token에서 꺼낸 회원 고유번호, 로그인 아이디, 권한을 담는다.
  * </p>
  *
  * <p>
@@ -20,10 +22,12 @@ import java.security.Principal;
  *
  * @param memberId 회원 고유번호
  * @param userId   로그인 아이디
+ * @param role     로그인 사용자의 권한(USER, ADMIN, MASTER)
  */
 public record CustomUserPrincipal(
         Long memberId,
-        String userId
+        String userId,
+        Role role
 ) implements Principal {
 
     /** Spring Security의 인증 이름으로 로그인 아이디를 반환한다. */

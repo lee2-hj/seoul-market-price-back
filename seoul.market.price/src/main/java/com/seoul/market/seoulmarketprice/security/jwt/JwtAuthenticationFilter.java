@@ -143,7 +143,8 @@ public class JwtAuthenticationFilter
             CustomUserPrincipal principal =
                     new CustomUserPrincipal(
                             principalId,
-                            userId
+                            userId,
+                            role
                     );
 
             /*
