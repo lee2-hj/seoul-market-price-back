@@ -12,6 +12,7 @@ import com.seoul.market.seoulmarketprice.member.exception.AdminDeletionException
 import com.seoul.market.seoulmarketprice.member.exception.AdminNotFoundException;
 import com.seoul.market.seoulmarketprice.member.exception.MemberNotFoundException;
 import com.seoul.market.seoulmarketprice.location.exception.SggNotFoundException;
+import com.seoul.market.seoulmarketprice.menus.exception.ActiveMenuAccessDeniedException;
 import com.seoul.market.seoulmarketprice.qna.exception.QnaAccessDeniedException;
 import com.seoul.market.seoulmarketprice.qna.exception.QnaNotFoundException;
 import org.slf4j.Logger;
@@ -97,6 +98,15 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BoardAccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleBoardAccessDenied(BoardAccessDeniedException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse(String.valueOf(HttpStatus.FORBIDDEN.value()), exception.getMessage()));
+    }
+
+    /** 다른 관리자의 활성 메뉴에 접근하려는 요청을 403으로 변환한다. */
+    @ExceptionHandler(ActiveMenuAccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleActiveMenuAccessDenied(
+            ActiveMenuAccessDeniedException exception
+    ) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(new ErrorResponse(String.valueOf(HttpStatus.FORBIDDEN.value()), exception.getMessage()));
     }

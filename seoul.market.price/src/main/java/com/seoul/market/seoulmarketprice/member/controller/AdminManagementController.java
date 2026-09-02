@@ -1,10 +1,14 @@
 package com.seoul.market.seoulmarketprice.member.controller;
 
+import com.seoul.market.seoulmarketprice.auth.entity.Admin;
+import com.seoul.market.seoulmarketprice.auth.repository.AdminRepository;
 import com.seoul.market.seoulmarketprice.member.dto.request.admin.AdminCreateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.request.admin.AdminUpdateRequest;
 import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminCreateResponse;
+import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminMeResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminPageResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminUpdateResponse;
+import com.seoul.market.seoulmarketprice.member.exception.AdminNotFoundException;
 import com.seoul.market.seoulmarketprice.member.service.AdminManagementService;
 import com.seoul.market.seoulmarketprice.security.principal.CustomUserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,9 +27,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.Authentication;
-
-import java.util.Map;
 
 /**
  * 관리자 계정 생성 요청을 처리하는 Controller.
@@ -42,18 +43,22 @@ import java.util.Map;
 public class AdminManagementController {
 
     private final AdminManagementService adminManagementService;
+    private final AdminRepository adminRepository;
 
-    /**
-     * 현재 요청에 저장된 관리자 인증 이름과 권한을 확인한다.
-     * JWT 인증 문제를 진단하기 위한 임시 API이다.
-     */
-    @Operation(summary = "현재 관리자 인증 및 권한 확인")
+    /** 현재 로그인한 관리자 자신의 기본 정보를 조회한다. */
+    @Operation(summary = "내 관리자 정보 조회")
     @GetMapping("/me")
-    public ResponseEntity<Map<String, Object>> me(Authentication authentication) {
-        return ResponseEntity.ok(Map.of(
-                "name", authentication.getName(),
-                "authenticated", authentication.isAuthenticated(),
-                "authorities", authentication.getAuthorities()
+    public ResponseEntity<AdminMeResponse> me(
+            @AuthenticationPrincipal CustomUserPrincipal principal
+    ) {
+        Admin admin = adminRepository.findById(principal.memberId())
+                .orElseThrow(AdminNotFoundException::new);
+
+        return ResponseEntity.ok(new AdminMeResponse(
+                admin.getId(),
+                admin.getAdminId(),
+                admin.getName(),
+                admin.getRole()
         ));
     }
 

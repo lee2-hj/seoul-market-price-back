@@ -5,5 +5,9 @@ import com.seoul.market.seoulmarketprice.menus.repository.custom.MenuCategoryRep
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
-public interface MenuCategoryRepository extends JpaRepository<MenuCategoryEntity, Long>, MenuCategoryRepositoryCustom {}
+public interface MenuCategoryRepository extends JpaRepository<MenuCategoryEntity, Long>, MenuCategoryRepositoryCustom {
+
+    Optional<MenuCategoryEntity> findByMenuCode(String menuCode);
+}
