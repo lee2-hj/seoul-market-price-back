@@ -132,6 +132,7 @@ public class SecurityConfig {
                                 // 로그인 전 회원가입 화면에서도 지역 목록을 조회할 수 있도록 공개한다.
                                 "/api/location/sggs",
                                 "/api/location/dongs",
+                                "/api/page-views",
 
                                 // 회원가입 화면(로그인 전)에서 호출하는
                                 // 휴대폰 PASS 본인인증 결과 확인 API
@@ -181,14 +182,10 @@ public class SecurityConfig {
                             .hasRole("USER");
                     auth.requestMatchers(HttpMethod.DELETE, "/api/qnas/**")
                             .hasRole("USER");
+                    auth.requestMatchers(HttpMethod.GET, "/api/boards/me")
+                            .hasRole("USER");
                     auth.requestMatchers(HttpMethod.GET, "/api/boards", "/api/boards/**")
                             .permitAll();
-                    auth.requestMatchers(HttpMethod.GET, "/api/reports", "/api/reports/**")
-                            .permitAll();
-                    auth.requestMatchers(HttpMethod.POST, "/api/reports", "/api/reports/**")
-                            .hasRole("USER");
-                    auth.requestMatchers(HttpMethod.DELETE, "/api/reports/**")
-                            .hasRole("USER");
                     auth.requestMatchers(HttpMethod.GET, "/api/faqs", "/api/faqs/**")
                             .permitAll();
                     auth.requestMatchers(HttpMethod.POST, "/api/boards", "/api/boards/**")

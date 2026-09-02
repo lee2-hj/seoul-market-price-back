@@ -1,9 +1,9 @@
 package com.seoul.market.seoulmarketprice.qna.controller;
 
-import com.seoul.market.seoulmarketprice.attachment.dto.AttachmentDownloadResponse;
-import com.seoul.market.seoulmarketprice.attachment.dto.AttachmentResponse;
-import com.seoul.market.seoulmarketprice.attachment.entity.AttachmentTargetType;
-import com.seoul.market.seoulmarketprice.attachment.service.AttachmentService;
+import com.seoul.market.seoulmarketprice.board.attachment.dto.AttachmentDownloadResponse;
+import com.seoul.market.seoulmarketprice.board.attachment.dto.AttachmentResponse;
+import com.seoul.market.seoulmarketprice.board.attachment.entity.AttachmentTargetType;
+import com.seoul.market.seoulmarketprice.board.attachment.service.AttachmentService;
 import com.seoul.market.seoulmarketprice.qna.dto.condition.AdminQnaSearchCondition;
 import com.seoul.market.seoulmarketprice.qna.dto.request.QnaAnswerRequest;
 import com.seoul.market.seoulmarketprice.qna.dto.request.QnaVisibilityRequest;
@@ -13,7 +13,6 @@ import com.seoul.market.seoulmarketprice.qna.service.QnaService;
 import com.seoul.market.seoulmarketprice.security.principal.CustomUserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springdoc.core.annotations.ParameterObject;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -39,7 +38,7 @@ public class AdminQnaController {
     @Operation(summary = "관리자 Q&A 목록 조회")
     @GetMapping
     public ResponseEntity<QnaPageResponse> getQnas(
-            @Valid @ParameterObject
+            @Valid
             @ModelAttribute AdminQnaSearchCondition condition) {
         return ResponseEntity.ok(qnaService.getAdminQnas(condition));
     }

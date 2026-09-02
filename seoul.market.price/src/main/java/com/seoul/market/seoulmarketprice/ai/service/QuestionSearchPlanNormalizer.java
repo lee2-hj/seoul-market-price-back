@@ -49,8 +49,11 @@ public class QuestionSearchPlanNormalizer {
                 requiresClarification = false;
             }
         }
-        String metric = ("APARTMENT_RANKING".equals(intent) || "SINGLE_REGION".equals(intent)) && apartmentQuestion
-                ? "AVERAGE_PRICE" : source.metric();
+        String metric = source.metric();
+        if ((metric == null || metric.isBlank())
+                && ("APARTMENT_RANKING".equals(intent) || "SINGLE_REGION".equals(intent)) && apartmentQuestion) {
+            metric = "AVERAGE_PRICE";
+        }
         return new QuestionAnalysisResponse(intent, source.regions(), source.referencePlace(), target,
                 source.apartmentName(), metric, direction, source.limit(), source.period(), source.requestedMetrics(),
                 toolPlan, missingFields, source.ambiguousConcept(), source.metricCandidates(), filters,

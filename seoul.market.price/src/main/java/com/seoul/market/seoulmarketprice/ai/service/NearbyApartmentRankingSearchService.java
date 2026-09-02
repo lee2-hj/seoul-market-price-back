@@ -6,10 +6,12 @@ import com.seoul.market.seoulmarketprice.ai.dto.PlaceResolutionResponse;
 import com.seoul.market.seoulmarketprice.ai.dto.PriceRankingResponse;
 import com.seoul.market.seoulmarketprice.ai.dto.QuestionAnalysisResponse;
 import com.seoul.market.seoulmarketprice.ai.dto.RankingCriteria;
+import com.seoul.market.seoulmarketprice.ai.query.GenericQueryExecutor;
+import com.seoul.market.seoulmarketprice.ai.query.MetricRecord;
+import com.seoul.market.seoulmarketprice.ai.query.QueryRequest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.util.Comparator;
 import java.util.List;
 
 /** 장소(역·랜드마크) 좌표를 기준으로 주변 아파트를 평균 거래가 순으로 조회한다. */
@@ -23,11 +25,20 @@ public class NearbyApartmentRankingSearchService {
 
     private final PlaceResolver placeResolver;
     private final NearbyApartmentSearchService nearbyApartmentSearchService;
+    private final GenericQueryExecutor queryExecutor;
 
+    @Autowired
     public NearbyApartmentRankingSearchService(PlaceResolver placeResolver,
-                                                NearbyApartmentSearchService nearbyApartmentSearchService) {
+                                                NearbyApartmentSearchService nearbyApartmentSearchService,
+                                                GenericQueryExecutor queryExecutor) {
         this.placeResolver = placeResolver;
         this.nearbyApartmentSearchService = nearbyApartmentSearchService;
+        this.queryExecutor = queryExecutor;
+    }
+
+    NearbyApartmentRankingSearchService(PlaceResolver placeResolver,
+                                        NearbyApartmentSearchService nearbyApartmentSearchService) {
+        this(placeResolver, nearbyApartmentSearchService, new GenericQueryExecutor());
     }
 
     public PriceRankingResponse search(QuestionAnalysisResponse analysis) {
@@ -49,13 +60,8 @@ public class NearbyApartmentRankingSearchService {
                     ? "기준 장소 주변의 아파트를 찾을 수 없습니다." : nearby.message());
         }
 
-        List<NearbyApartmentResponse.ApartmentCandidate> ranked = nearby.apartments().stream()
-                .filter(apartment -> matchesConditions(apartment, analysis.filters()))
-                .sorted(Comparator.comparing(NearbyApartmentResponse.ApartmentCandidate::averageTradeAmount)
-                        .reversed()
-                        .thenComparing(NearbyApartmentResponse.ApartmentCandidate::apartmentName))
-                .limit(limit)
-                .toList();
+        List<NearbyApartmentResponse.ApartmentCandidate> ranked = matchingApartments(nearby.apartments(),
+                analysis.filters(), limit);
         if (ranked.isEmpty()) {
             if (hasRequestedFilters(analysis.filters())) {
                 throw new IllegalArgumentException("기준 장소 주변에서 요청한 가격·면적 조건을 만족하는 아파트 거래 데이터를 찾을 수 없습니다.");
@@ -87,27 +93,40 @@ public class NearbyApartmentRankingSearchService {
     private boolean hasRankableApartment(NearbyApartmentResponse response,
                                          QuestionAnalysisResponse.SearchFilters filters) {
         return "SUCCESS".equals(response.status()) && response.apartments().stream()
-                .anyMatch(apartment -> matchesConditions(apartment, filters));
+                .anyMatch(apartment -> !matchingApartments(List.of(apartment), filters, 1).isEmpty());
     }
 
-    private boolean matchesConditions(NearbyApartmentResponse.ApartmentCandidate apartment,
-                                      QuestionAnalysisResponse.SearchFilters filters) {
-        if (apartment.averageTradeAmount() == null || apartment.dealCount() == null
-                || apartment.dealCount() < MINIMUM_TRADE_COUNT) return false;
-        if (filters == null) return true;
+    private List<NearbyApartmentResponse.ApartmentCandidate> matchingApartments(
+            List<NearbyApartmentResponse.ApartmentCandidate> apartments,
+            QuestionAnalysisResponse.SearchFilters filters, int limit) {
+        java.util.Map<String, NearbyApartmentResponse.ApartmentCandidate> candidatesById = new java.util.HashMap<>();
+        List<MetricRecord> records = apartments.stream().map(apartment -> toMetricRecord(apartment, candidatesById))
+                .toList();
+        List<MetricRecord> matched = queryExecutor.execute(records,
+                new QueryRequest((long) MINIMUM_TRADE_COUNT,
+                        filters == null ? null : filters.minPyeong(),
+                        filters == null ? null : filters.maxPyeong(),
+                        filters == null ? null : filters.minPriceWon(),
+                        exclusiveUpperBound(filters == null ? null : filters.maxPriceWon()),
+                        QueryRequest.SortField.AVERAGE_PRICE, false, limit));
+        return matched.stream().map(record -> candidatesById.get(record.sourceId())).toList();
+    }
 
-        BigDecimal tradeAmountWon = BigDecimal.valueOf(apartment.averageTradeAmount())
-                .multiply(BigDecimal.valueOf(10_000));
-        if (filters.minPriceWon() != null
-                && tradeAmountWon.compareTo(BigDecimal.valueOf(filters.minPriceWon())) < 0) return false;
-        if (filters.maxPriceWon() != null
-                && tradeAmountWon.compareTo(BigDecimal.valueOf(filters.maxPriceWon())) >= 0) return false;
+    private MetricRecord toMetricRecord(NearbyApartmentResponse.ApartmentCandidate apartment,
+                                        java.util.Map<String, NearbyApartmentResponse.ApartmentCandidate> candidatesById) {
+        String sourceId = apartment.apartmentId() + "|" + apartment.exclusiveAreaM2() + "|"
+                + apartment.averageTradeAmount() + "|" + apartment.latestDealDate();
+        candidatesById.put(sourceId, apartment);
+        Double pyeong = apartment.exclusiveAreaM2() == null ? null : apartment.exclusiveAreaM2() / 3.305785D;
+        return new MetricRecord(sourceId, null, null, apartment.apartmentName(), apartment.address(),
+                apartment.averageTradeAmount() == null ? null : apartment.averageTradeAmount() * 10_000L,
+                apartment.averagePyeongAmount(), apartment.exclusiveAreaM2(), pyeong,
+                apartment.dealCount() == null ? null : apartment.dealCount().longValue(),
+                apartment.latestDealDate(), apartment.baseDate());
+    }
 
-        if (filters.minPyeong() == null && filters.maxPyeong() == null) return true;
-        if (apartment.exclusiveAreaM2() == null) return false;
-        double pyeong = apartment.exclusiveAreaM2() / 3.305785;
-        return (filters.minPyeong() == null || pyeong >= filters.minPyeong())
-                && (filters.maxPyeong() == null || pyeong <= filters.maxPyeong());
+    private Long exclusiveUpperBound(Long value) {
+        return value == null ? null : value - 1;
     }
 
     private boolean hasRequestedFilters(QuestionAnalysisResponse.SearchFilters filters) {

@@ -6,6 +6,7 @@ public record MetricRecord(
         String districtName,
         String dongName,
         String apartmentName,
+        String address,
         Long averagePriceWon,
         Long averagePyeongPriceManwon,
         Double exclusiveAreaM2,

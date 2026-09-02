@@ -1,7 +1,7 @@
 package com.seoul.market.seoulmarketprice.dashboard.service;
 
 import com.seoul.market.seoulmarketprice.auth.repository.MemberRepository;
-import com.seoul.market.seoulmarketprice.board.repository.BoardRepository;
+import com.seoul.market.seoulmarketprice.board.repository.BoardQueryRepository;
 import com.seoul.market.seoulmarketprice.dashboard.dto.AdminDashboardSummaryResponse;
 import com.seoul.market.seoulmarketprice.qna.repository.QnaRepository;
 import com.seoul.market.seoulmarketprice.pageview.service.PageViewService;
@@ -23,7 +23,7 @@ public class AdminDashboardService {
     private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
 
     private final MemberRepository memberRepository;
-    private final BoardRepository boardRepository;
+    private final BoardQueryRepository boardQueryRepository;
     private final QnaRepository qnaRepository;
     private final PageViewService pageViewService;
 
@@ -35,8 +35,8 @@ public class AdminDashboardService {
 
         long totalUserCount = memberRepository.countActiveUsers();
         long todayUserCount = memberRepository.countActiveUsersCreatedBetween(from, to);
-        long totalBoardPostCount = boardRepository.countActivePosts();
-        long todayBoardPostCount = boardRepository.countActivePostsCreatedBetween(from, to);
+        long totalBoardPostCount = boardQueryRepository.countActivePosts();
+        long todayBoardPostCount = boardQueryRepository.countActivePostsCreatedBetween(from, to);
         long totalQnaPostCount = qnaRepository.countActivePosts();
         long todayQnaPostCount = qnaRepository.countActivePostsCreatedBetween(from, to);
         long todayPageViewCount = pageViewService.getTodayPageViewCount();

@@ -5,11 +5,13 @@ import com.seoul.market.seoulmarketprice.ai.dto.RankingMetric;
 import com.seoul.market.seoulmarketprice.ai.dto.RankingCriteria;
 import com.seoul.market.seoulmarketprice.ai.dto.RankingSearchQuery;
 import com.seoul.market.seoulmarketprice.ai.dto.SortDirection;
+import com.seoul.market.seoulmarketprice.ai.query.GenericQueryExecutor;
+import com.seoul.market.seoulmarketprice.ai.query.MetricRecord;
+import com.seoul.market.seoulmarketprice.ai.query.ParquetApartmentMetricDataSourceAdapter;
+import com.seoul.market.seoulmarketprice.ai.query.QueryRequest;
 import com.seoul.market.seoulmarketprice.fastapi.dto.request.TopAndBottomRequest;
 import com.seoul.market.seoulmarketprice.fastapi.dto.response.TopAndBottomResponse;
 import com.seoul.market.seoulmarketprice.fastapi.service.FastApiService;
-import com.seoul.market.seoulmarketprice.ai.repository.ApartmentLocation;
-import com.seoul.market.seoulmarketprice.ai.repository.ApartmentLocationRepository;
 import com.seoul.market.seoulmarketprice.location.dto.DongRegionResponse;
 import com.seoul.market.seoulmarketprice.location.entity.SggMaster;
 import com.seoul.market.seoulmarketprice.location.repository.SggMasterRepository;
@@ -34,19 +36,22 @@ public class PriceRankingSearchService {
     private final SggMasterRepository sggRepository;
     private final LocationMasterService locationService;
     private final FastApiService fastApiService;
-    private final ApartmentLocationRepository apartmentLocationRepository;
+    private final ParquetApartmentMetricDataSourceAdapter parquetAdapter;
     private final RankingRegionResolver regionResolver;
+    private final GenericQueryExecutor queryExecutor;
     private final ConcurrentHashMap<CacheKey, CachedResponse> cache = new ConcurrentHashMap<>();
 
     public PriceRankingSearchService(RankingQuestionParser questionParser, SggMasterRepository sggRepository,
                                      LocationMasterService locationService, FastApiService fastApiService,
-                                     ApartmentLocationRepository apartmentLocationRepository) {
+                                     ParquetApartmentMetricDataSourceAdapter parquetAdapter,
+                                     GenericQueryExecutor queryExecutor) {
         this.questionParser = questionParser;
         this.sggRepository = sggRepository;
         this.locationService = locationService;
         this.fastApiService = fastApiService;
-        this.apartmentLocationRepository = apartmentLocationRepository;
+        this.parquetAdapter = parquetAdapter;
         this.regionResolver = new RankingRegionResolver(sggRepository, locationService);
+        this.queryExecutor = queryExecutor;
     }
 
     public PriceRankingResponse search(String question) {
@@ -83,18 +88,11 @@ public class PriceRankingSearchService {
     }
 
     private PriceRankingResponse searchByPriceDataset(Region region, RankingSearchQuery query) {
-        if (!apartmentLocationRepository.isAvailable()) {
+        if (!parquetAdapter.isAvailable()) {
             throw new IllegalArgumentException("가격대 조건 검색용 Parquet 데이터셋을 연결할 수 없습니다.");
         }
-        List<ApartmentLocation> source = region == null
-                ? locationService.getSggs().stream().flatMap(sgg -> apartmentLocationRepository
-                        .findByRegion(sgg.sggCd(), null).stream()).toList()
-                : regionSource(region);
-        List<Candidate> candidates = source.stream()
-                .filter(item -> item.averageTradeAmount() != null)
-                .map(item -> new Candidate(item.address(), item.baseDate(), item.apartmentName(),
-                        item.averageTradeAmount(), item.dealCount() == null ? 0 : item.dealCount()))
-                .toList();
+        List<MetricRecord> source = parquetRecords(region);
+        List<Candidate> candidates = filteredParquetCandidates(source, region, null, query);
         if (candidates.isEmpty()) {
             throw new IllegalArgumentException("입력한 지역의 아파트 거래 데이터를 찾을 수 없습니다.");
         }
@@ -104,19 +102,11 @@ public class PriceRankingSearchService {
 
     private PriceRankingResponse searchByArea(Region region, RankingQuestionParser.AreaRange areaRange,
                                                RankingSearchQuery query) {
-        if (!apartmentLocationRepository.isAvailable()) {
+        if (!parquetAdapter.isAvailable()) {
             throw new IllegalArgumentException("전용면적 조건 검색용 Parquet 데이터셋에 연결할 수 없습니다.");
         }
-        List<ApartmentLocation> source = region == null
-                ? locationService.getSggs().stream().flatMap(sgg -> apartmentLocationRepository
-                        .findByRegion(sgg.sggCd(), null).stream()).toList()
-                : regionSource(region);
-        List<Candidate> candidates = source.stream()
-                .filter(item -> item.exclusiveAreaM2() != null && item.averageTradeAmount() != null)
-                .filter(item -> matchesArea(item.exclusiveAreaM2(), areaRange))
-                .map(item -> new Candidate(item.address(), item.baseDate(), item.apartmentName(),
-                        item.averageTradeAmount(), item.dealCount() == null ? 0 : item.dealCount()))
-                .toList();
+        List<MetricRecord> source = parquetRecords(region);
+        List<Candidate> candidates = filteredParquetCandidates(source, region, areaRange, query);
         if (candidates.isEmpty()) {
             throw new IllegalArgumentException("전용 " + formatPyeong(areaRange) + "평 조건의 아파트 거래 데이터를 찾을 수 없습니다.");
         }
@@ -128,6 +118,50 @@ public class PriceRankingSearchService {
     private boolean matchesArea(double squareMeters, RankingQuestionParser.AreaRange range) {
         BigDecimal pyeong = BigDecimal.valueOf(squareMeters / 3.305785);
         return pyeong.compareTo(range.minimumPyeong()) >= 0 && pyeong.compareTo(range.maximumPyeong()) <= 0;
+    }
+
+    /**
+     * Parquet rows are converted to the common record, then every explicit area/price condition
+     * is enforced in GenericQueryExecutor before the response is assembled.
+     */
+    private List<Candidate> filteredParquetCandidates(List<MetricRecord> source, Region region,
+                                                      RankingQuestionParser.AreaRange areaRange,
+                                                      RankingSearchQuery query) {
+        Long minPrice = price(query.minPrice());
+        Long maxPriceExclusive = price(query.maxPrice());
+        List<MetricRecord> filtered = queryExecutor.execute(source,
+                new QueryRequest(null,
+                        areaRange == null ? null : areaRange.minimumPyeong().doubleValue(),
+                        areaRange == null ? null : areaRange.maximumPyeong().doubleValue(),
+                        minPrice, maxPriceExclusive == null ? null : maxPriceExclusive - 1,
+                        QueryRequest.SortField.AVERAGE_PRICE,
+                        query.direction() == SortDirection.ASC, Integer.MAX_VALUE));
+        return filtered.stream()
+                .map(record -> new Candidate(displayRegion(record, region), record.baseDate(), record.apartmentName(),
+                        record.averagePriceWon() == null ? null : record.averagePriceWon() / 10_000L,
+                        record.tradeCount() == null ? 0 : record.tradeCount().intValue()))
+                .toList();
+    }
+
+    private List<MetricRecord> parquetRecords(Region region) {
+        if (region != null) {
+            return parquetAdapter.fetchByRegion(region.sggCode(), region.dongCode(),
+                    region.districtName(), region.dongName());
+        }
+        return locationService.getSggs().stream()
+                .flatMap(sgg -> parquetAdapter.fetchByRegion(sgg.sggCd(), null, sgg.sggNm(), null).stream())
+                .toList();
+    }
+
+    private String displayRegion(MetricRecord record, Region region) {
+        if (record.address() != null && !record.address().isBlank()) return record.address();
+        String names = String.join(" ", java.util.stream.Stream.of(record.districtName(), record.dongName())
+                .filter(value -> value != null && !value.isBlank()).toList());
+        return names.isBlank() ? region == null ? "서울 전체" : region.name() : names;
+    }
+
+    private Long price(BigDecimal value) {
+        return value == null ? null : value.longValue();
     }
 
     private boolean requestsSupplyArea(String question) {
@@ -251,13 +285,6 @@ public class PriceRankingSearchService {
         String districtName = names[0];
         String dongName = resolved.dongCode() == null || names.length < 2 ? null : names[1];
         return new Region(resolved.sggCode(), resolved.dongCode(), resolved.name(), districtName, dongName);
-    }
-
-    private List<ApartmentLocation> regionSource(Region region) {
-        List<ApartmentLocation> exact = apartmentLocationRepository.findByRegion(region.sggCode(), region.dongCode());
-        return exact.isEmpty()
-                ? apartmentLocationRepository.findByRegionName(region.districtName(), region.dongName())
-                : exact;
     }
 
     private record Region(String sggCode, String dongCode, String name,

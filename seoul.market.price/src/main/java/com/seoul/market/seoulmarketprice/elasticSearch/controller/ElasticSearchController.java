@@ -29,6 +29,6 @@ public class ElasticSearchController {
     public ResponseEntity<List<AptNameResponse>> searchAptName(@Valid @ModelAttribute AptNameRequest request) {
         List<AptNameResponse> response = elasticSearchService.searchAptName(request);
 
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.ok(response);
     }
 }
