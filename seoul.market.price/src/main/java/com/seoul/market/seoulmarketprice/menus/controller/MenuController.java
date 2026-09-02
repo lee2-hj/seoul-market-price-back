@@ -2,6 +2,7 @@ package com.seoul.market.seoulmarketprice.menus.controller;
 
 import com.seoul.market.seoulmarketprice.menus.dto.request.MenuCreateRequest;
 import com.seoul.market.seoulmarketprice.menus.dto.request.MenuRequest;
+import com.seoul.market.seoulmarketprice.menus.dto.response.MenuAllResponse;
 import com.seoul.market.seoulmarketprice.menus.dto.response.MenuResponse;
 import com.seoul.market.seoulmarketprice.menus.service.MenuService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/menus")
@@ -24,6 +27,14 @@ public class MenuController {
     @Operation(summary = "메뉴 리스트 조회", description = "메뉴목록 조회 api")
     public ResponseEntity<MenuResponse> menusList(@ModelAttribute MenuRequest request){
         MenuResponse response = menuService.getMenusList(request);
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @GetMapping("/all")
+    @Operation(summary = "모든 메뉴 리스트 조회", description = "모든 메뉴목록 조회 api")
+    public ResponseEntity<MenuAllResponse> menusListAll(){
+        MenuAllResponse response = menuService.getMenusListAll();
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }

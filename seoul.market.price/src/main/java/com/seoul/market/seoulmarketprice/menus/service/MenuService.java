@@ -2,7 +2,9 @@ package com.seoul.market.seoulmarketprice.menus.service;
 
 import com.seoul.market.seoulmarketprice.menus.dto.request.MenuCreateRequest;
 import com.seoul.market.seoulmarketprice.menus.dto.request.MenuRequest;
+import com.seoul.market.seoulmarketprice.menus.dto.response.MenuAllResponse;
 import com.seoul.market.seoulmarketprice.menus.dto.response.MenuResponse;
+import com.seoul.market.seoulmarketprice.menus.entity.ActiveMenuEntity;
 import com.seoul.market.seoulmarketprice.menus.entity.MenuCategoryEntity;
 import com.seoul.market.seoulmarketprice.menus.entity.MenuEntity;
 import com.seoul.market.seoulmarketprice.menus.repository.MenuCategoryRepository;
@@ -120,5 +122,23 @@ public class MenuService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 메뉴입니다."));
 
         menuRepository.delete(menu);
+    }
+
+    public MenuAllResponse getMenusListAll() {
+        List<MenuAllResponse.Menus> menus = menuRepository.findAll()
+                .stream()
+                .map(item -> new MenuAllResponse.Menus(
+                        item.getId(),
+                        item.getCategory().getMenuCode(),
+                        item.getCategory().getMenuName(),
+                        item.getMenuCode(),
+                        item.getMenuName(),
+                        item.getUrl(),
+                        item.getCreated_at(),
+                        item.getUpdated_at()
+                ))
+                .toList();
+
+        return new MenuAllResponse(menus);
     }
 }
