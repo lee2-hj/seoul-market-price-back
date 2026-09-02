@@ -1,9 +1,9 @@
 package com.seoul.market.seoulmarketprice.board.controller;
 
-import com.seoul.market.seoulmarketprice.attachment.dto.AttachmentDownloadResponse;
-import com.seoul.market.seoulmarketprice.attachment.dto.AttachmentResponse;
-import com.seoul.market.seoulmarketprice.attachment.entity.AttachmentTargetType;
-import com.seoul.market.seoulmarketprice.attachment.service.AttachmentService;
+import com.seoul.market.seoulmarketprice.board.attachment.dto.AttachmentDownloadResponse;
+import com.seoul.market.seoulmarketprice.board.attachment.dto.AttachmentResponse;
+import com.seoul.market.seoulmarketprice.board.attachment.entity.AttachmentTargetType;
+import com.seoul.market.seoulmarketprice.board.attachment.service.AttachmentService;
 import com.seoul.market.seoulmarketprice.board.dto.request.AdminBoardUpdateRequest;
 import com.seoul.market.seoulmarketprice.board.dto.request.NoticeCreateRequest;
 import com.seoul.market.seoulmarketprice.board.dto.response.BoardDetailResponse;
@@ -26,7 +26,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -48,7 +47,7 @@ public class AdminBoardController {
     @Operation(summary = "관리자 게시판 목록 조회")
     @GetMapping
     public ResponseEntity<AdminBoardPageResponse> getBoards(
-            @Valid @ParameterObject @org.springframework.web.bind.annotation.ModelAttribute
+            @Valid @org.springframework.web.bind.annotation.ModelAttribute
             BoardSearchCondition condition
     ) {
         return ResponseEntity.ok(boardService.getAdminBoards(condition));

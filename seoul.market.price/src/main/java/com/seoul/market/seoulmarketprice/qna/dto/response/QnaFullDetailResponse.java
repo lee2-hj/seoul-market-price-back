@@ -1,6 +1,6 @@
 package com.seoul.market.seoulmarketprice.qna.dto.response;
 
-import com.seoul.market.seoulmarketprice.attachment.dto.AttachmentResponse;
+import com.seoul.market.seoulmarketprice.board.attachment.dto.AttachmentResponse;
 
 import java.util.List;
 

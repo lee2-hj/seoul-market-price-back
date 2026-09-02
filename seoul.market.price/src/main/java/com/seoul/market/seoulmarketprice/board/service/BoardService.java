@@ -47,6 +47,17 @@ public class BoardService {
 
         Page<Board> result = boardQueryRepository.findPublicPage(condition, pageable);
 
+        return toPageResponse(result);
+    }
+
+    public BoardPageResponse getMyBoards(Long userId, BoardSearchCondition condition) {
+        validatePage(condition.getPage(), condition.getSize());
+        condition.setKeyword(normalizeKeyword(condition.getKeyword()));
+        PageRequest pageable = PageRequest.of(condition.getPage(), condition.getSize());
+        return toPageResponse(boardQueryRepository.findMyPage(userId, condition, pageable));
+    }
+
+    private BoardPageResponse toPageResponse(Page<Board> result) {
         return new BoardPageResponse(
                 result.getContent().stream().map(this::toListResponse).toList(),
                 result.getNumber(),

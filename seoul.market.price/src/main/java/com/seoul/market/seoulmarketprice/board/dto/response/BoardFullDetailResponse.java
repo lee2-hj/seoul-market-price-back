@@ -1,7 +1,7 @@
 package com.seoul.market.seoulmarketprice.board.dto.response;
 
-import com.seoul.market.seoulmarketprice.attachment.dto.AttachmentResponse;
-import com.seoul.market.seoulmarketprice.comment.dto.response.CommentResponse;
+import com.seoul.market.seoulmarketprice.board.attachment.dto.AttachmentResponse;
+import com.seoul.market.seoulmarketprice.board.comment.dto.response.CommentResponse;
 
 import java.util.List;
 

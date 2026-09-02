@@ -1,7 +1,7 @@
 package com.seoul.market.seoulmarketprice.qna.service;
 
-import com.seoul.market.seoulmarketprice.attachment.entity.AttachmentTargetType;
-import com.seoul.market.seoulmarketprice.attachment.repository.AttachmentRepository;
+import com.seoul.market.seoulmarketprice.board.attachment.entity.AttachmentTargetType;
+import com.seoul.market.seoulmarketprice.board.attachment.repository.AttachmentRepository;
 import com.seoul.market.seoulmarketprice.qna.dto.condition.AdminQnaSearchCondition;
 import com.seoul.market.seoulmarketprice.qna.dto.condition.QnaSearchCondition;
 import com.seoul.market.seoulmarketprice.qna.dto.request.QnaAnswerRequest;
