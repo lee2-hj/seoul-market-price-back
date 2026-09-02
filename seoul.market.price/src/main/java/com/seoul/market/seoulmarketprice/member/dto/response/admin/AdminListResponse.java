@@ -1,5 +1,6 @@
 package com.seoul.market.seoulmarketprice.member.dto.response.admin;
 
+import com.seoul.market.seoulmarketprice.auth.entity.Role;
 import java.time.LocalDateTime;
 
 /**
@@ -13,6 +14,7 @@ public record AdminListResponse(
         String name,
         String phone,
         String email,
+        Role role,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {

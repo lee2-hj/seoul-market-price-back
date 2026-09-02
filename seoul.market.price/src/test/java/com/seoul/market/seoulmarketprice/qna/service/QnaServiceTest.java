@@ -1,6 +1,6 @@
 package com.seoul.market.seoulmarketprice.qna.service;
 
-import com.seoul.market.seoulmarketprice.attachment.repository.AttachmentRepository;
+import com.seoul.market.seoulmarketprice.board.attachment.repository.AttachmentRepository;
 import com.seoul.market.seoulmarketprice.qna.dto.request.QnaAnswerRequest;
 import com.seoul.market.seoulmarketprice.qna.dto.request.QnaCreateRequest;
 import com.seoul.market.seoulmarketprice.qna.dto.request.QnaUpdateRequest;

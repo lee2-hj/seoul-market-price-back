@@ -8,6 +8,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Cookie;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -142,7 +143,8 @@ public class JwtAuthenticationFilter
             CustomUserPrincipal principal =
                     new CustomUserPrincipal(
                             principalId,
-                            userId
+                            userId,
+                            role
                     );
 
             /*
@@ -193,11 +195,8 @@ public class JwtAuthenticationFilter
                         HttpHeaders.AUTHORIZATION
                 );
 
-        if (
-                authorizationHeader == null
-                        || authorizationHeader.isBlank()
-        ) {
-            return null;
+        if (authorizationHeader == null || authorizationHeader.isBlank()) {
+            return findCookie(request, "adminAccessToken");
         }
 
         String bearerPrefix = "Bearer ";
@@ -216,5 +215,16 @@ public class JwtAuthenticationFilter
         }
 
         return accessToken;
+    }
+
+    private String findCookie(HttpServletRequest request, String name) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) return null;
+        for (Cookie cookie : cookies) {
+            if (name.equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isBlank()) {
+                return cookie.getValue();
+            }
+        }
+        return null;
     }
 }

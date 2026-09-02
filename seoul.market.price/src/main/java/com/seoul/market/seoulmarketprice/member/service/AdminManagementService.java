@@ -6,6 +6,7 @@ import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminCreateRe
 import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminListResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminPageResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminUpdateResponse;
+import com.seoul.market.seoulmarketprice.auth.entity.Role;
 import com.seoul.market.seoulmarketprice.member.exception.AdminDeletionException;
 import com.seoul.market.seoulmarketprice.member.exception.AdminNotFoundException;
 import com.seoul.market.seoulmarketprice.member.exception.DuplicateAdminException;
@@ -103,7 +104,8 @@ public class AdminManagementService {
                         encodedPassword,
                         request.name(),
                         request.phone(),
-                        request.email()
+                        request.email(),
+                        request.role()
                 )
                 .orElseThrow(AdminNotFoundException::new);
     }

@@ -98,7 +98,7 @@ public class SecurityConfig {
                                 writeErrorResponse(
                                         response,
                                         HttpStatus.UNAUTHORIZED,
-                                        "AUTH-001",
+                                        String.valueOf(HttpStatus.UNAUTHORIZED.value()),
                                         "로그인이 필요합니다."
                                 )
                         )
@@ -106,7 +106,7 @@ public class SecurityConfig {
                                 writeErrorResponse(
                                         response,
                                         HttpStatus.FORBIDDEN,
-                                        "AUTH-002",
+                                        String.valueOf(HttpStatus.FORBIDDEN.value()),
                                         "접근 권한이 없습니다."
                                 )
                         )
@@ -132,6 +132,7 @@ public class SecurityConfig {
                                 // 로그인 전 회원가입 화면에서도 지역 목록을 조회할 수 있도록 공개한다.
                                 "/api/location/sggs",
                                 "/api/location/dongs",
+                                "/api/page-views",
 
                                 // 회원가입 화면(로그인 전)에서 호출하는
                                 // 휴대폰 PASS 본인인증 결과 확인 API
@@ -181,14 +182,10 @@ public class SecurityConfig {
                             .hasRole("USER");
                     auth.requestMatchers(HttpMethod.DELETE, "/api/qnas/**")
                             .hasRole("USER");
+                    auth.requestMatchers(HttpMethod.GET, "/api/boards/me")
+                            .hasRole("USER");
                     auth.requestMatchers(HttpMethod.GET, "/api/boards", "/api/boards/**")
                             .permitAll();
-                    auth.requestMatchers(HttpMethod.GET, "/api/reports", "/api/reports/**")
-                            .permitAll();
-                    auth.requestMatchers(HttpMethod.POST, "/api/reports", "/api/reports/**")
-                            .hasRole("USER");
-                    auth.requestMatchers(HttpMethod.DELETE, "/api/reports/**")
-                            .hasRole("USER");
                     auth.requestMatchers(HttpMethod.GET, "/api/faqs", "/api/faqs/**")
                             .permitAll();
                     auth.requestMatchers(HttpMethod.POST, "/api/boards", "/api/boards/**")
@@ -198,13 +195,48 @@ public class SecurityConfig {
                     auth.requestMatchers(HttpMethod.DELETE, "/api/boards/**")
                             .hasRole("USER");
 
-                    // 운영 환경의 관리자 생성 및 관리자 전용 API는 ADMIN 권한이 필요하다.
+                    /*
+                     * 활성 메뉴: /me는 ADMIN·MASTER만 호출할 수 있다(role에 따라 반환 범위가 다름).
+                     * {id} 조회(GET)는 원래 동작대로 role과 무관하게 로그인한 사용자면 누구나
+                     * 호출할 수 있다. 등록/해제(POST/DELETE)는 관리 기능이므로 ADMIN·MASTER만
+                     * 허용하고, ADMIN이 자기 자신이 아닌 다른 관리자를 대상으로 하지 못하도록
+                     * 막는 것은 서비스 레벨 IDOR 검증(ActiveMenuService)의 몫이다.
+                     * (/me가 /api/activeMenu/** 보다 먼저 선언되어야 우선 적용된다.)
+                     */
+                    auth.requestMatchers(HttpMethod.GET, "/api/activeMenu/me")
+                            .hasAnyRole("ADMIN", "MASTER");
+                    auth.requestMatchers(HttpMethod.GET, "/api/activeMenu/**")
+                            .authenticated();
+                    auth.requestMatchers(HttpMethod.POST, "/api/activeMenu/**")
+                            .hasAnyRole("ADMIN", "MASTER");
+                    auth.requestMatchers(HttpMethod.DELETE, "/api/activeMenu/**")
+                            .hasAnyRole("ADMIN", "MASTER");
+
+                    // 메뉴/메뉴 카테고리 카탈로그는 조회·등록·수정·삭제 모두 ADMIN·MASTER 둘 다 허용한다.
+                    auth.requestMatchers(HttpMethod.GET,
+                                    "/api/menus", "/api/menus/**",
+                                    "/api/menuCategory", "/api/menuCategory/**")
+                            .hasAnyRole("ADMIN", "MASTER");
+                    auth.requestMatchers(HttpMethod.POST,
+                                    "/api/menus", "/api/menus/**",
+                                    "/api/menuCategory", "/api/menuCategory/**")
+                            .hasAnyRole("ADMIN", "MASTER");
+                    auth.requestMatchers(HttpMethod.PATCH, "/api/menus/**", "/api/menuCategory/**")
+                            .hasAnyRole("ADMIN", "MASTER");
+                    auth.requestMatchers(HttpMethod.DELETE, "/api/menus/**", "/api/menuCategory/**")
+                            .hasAnyRole("ADMIN", "MASTER");
+
+                    /*
+                     * 운영 환경의 관리자 생성 및 관리자 전용 API는 ADMIN 또는 MASTER 권한이 필요하다.
+                     * 역할 계층(RoleHierarchy)이 별도로 설정되어 있지 않으므로
+                     * hasRole("ADMIN")만으로는 MASTER 계정이 접근할 수 없어 hasAnyRole로 확장한다.
+                     */
                     auth.requestMatchers(
                                     "/api/admin/**",
                                     "/api/admins",
                                     "/api/admins/**"
                             )
-                            .hasRole("ADMIN")
+                            .hasAnyRole("ADMIN", "MASTER")
                             // 그 외 요청은 로그인한 사용자만 접근할 수 있다.
                             .anyRequest().authenticated();
                 })

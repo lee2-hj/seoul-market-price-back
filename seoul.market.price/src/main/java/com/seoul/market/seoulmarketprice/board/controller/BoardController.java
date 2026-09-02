@@ -1,9 +1,9 @@
 package com.seoul.market.seoulmarketprice.board.controller;
 
-import com.seoul.market.seoulmarketprice.attachment.dto.AttachmentDownloadResponse;
-import com.seoul.market.seoulmarketprice.attachment.dto.AttachmentResponse;
-import com.seoul.market.seoulmarketprice.attachment.entity.AttachmentTargetType;
-import com.seoul.market.seoulmarketprice.attachment.service.AttachmentService;
+import com.seoul.market.seoulmarketprice.board.attachment.dto.AttachmentDownloadResponse;
+import com.seoul.market.seoulmarketprice.board.attachment.dto.AttachmentResponse;
+import com.seoul.market.seoulmarketprice.board.attachment.entity.AttachmentTargetType;
+import com.seoul.market.seoulmarketprice.board.attachment.service.AttachmentService;
 import com.seoul.market.seoulmarketprice.board.dto.condition.BoardSearchCondition;
 import com.seoul.market.seoulmarketprice.board.dto.request.BoardCreateRequest;
 import com.seoul.market.seoulmarketprice.board.dto.request.BoardUpdateRequest;
@@ -11,11 +11,10 @@ import com.seoul.market.seoulmarketprice.board.dto.response.BoardDetailResponse;
 import com.seoul.market.seoulmarketprice.board.dto.response.BoardFullDetailResponse;
 import com.seoul.market.seoulmarketprice.board.dto.response.BoardPageResponse;
 import com.seoul.market.seoulmarketprice.board.service.BoardService;
-import com.seoul.market.seoulmarketprice.comment.service.CommentService;
+import com.seoul.market.seoulmarketprice.board.comment.service.CommentService;
 import com.seoul.market.seoulmarketprice.security.principal.CustomUserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springdoc.core.annotations.ParameterObject;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -54,7 +53,7 @@ public class BoardController {
     @Operation(summary = "게시글 목록 조회")
     @GetMapping
     public ResponseEntity<BoardPageResponse> getBoards(
-            @Valid @ParameterObject
+            @Valid
             @ModelAttribute BoardSearchCondition condition
     ) {
         return ResponseEntity.ok(
@@ -69,6 +68,15 @@ public class BoardController {
             @PathVariable Long id
     ) {
         return ResponseEntity.ok(boardService.getBoard(id));
+    }
+
+    @Operation(summary = "내 게시글 목록 조회")
+    @GetMapping("/me")
+    public ResponseEntity<BoardPageResponse> getMyBoards(
+            @AuthenticationPrincipal CustomUserPrincipal principal,
+            @Valid @ModelAttribute BoardSearchCondition condition
+    ) {
+        return ResponseEntity.ok(boardService.getMyBoards(principal.memberId(), condition));
     }
 
     /** 게시글, 댓글, 첨부파일을 상세 화면용 통합 응답으로 조회한다. */

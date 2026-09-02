@@ -23,5 +23,8 @@ public enum Role {
     /**
      * 관리자 권한.
      */
-    ADMIN
+    ADMIN,
+
+    /** 모든 관리자 기능을 관리할 수 있는 최고 관리자 권한. */
+    MASTER
 }

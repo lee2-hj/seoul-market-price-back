@@ -3,8 +3,8 @@ package com.seoul.market.seoulmarketprice.common.exception;
 import com.seoul.market.seoulmarketprice.common.dto.ErrorResponse;
 import com.seoul.market.seoulmarketprice.board.exception.BoardAccessDeniedException;
 import com.seoul.market.seoulmarketprice.board.exception.BoardNotFoundException;
-import com.seoul.market.seoulmarketprice.comment.exception.CommentAccessDeniedException;
-import com.seoul.market.seoulmarketprice.comment.exception.CommentNotFoundException;
+import com.seoul.market.seoulmarketprice.board.comment.exception.CommentAccessDeniedException;
+import com.seoul.market.seoulmarketprice.board.comment.exception.CommentNotFoundException;
 import com.seoul.market.seoulmarketprice.faq.exception.FaqNotFoundException;
 import com.seoul.market.seoulmarketprice.member.exception.DuplicateMemberException;
 import com.seoul.market.seoulmarketprice.member.exception.DuplicateAdminException;
@@ -12,6 +12,7 @@ import com.seoul.market.seoulmarketprice.member.exception.AdminDeletionException
 import com.seoul.market.seoulmarketprice.member.exception.AdminNotFoundException;
 import com.seoul.market.seoulmarketprice.member.exception.MemberNotFoundException;
 import com.seoul.market.seoulmarketprice.location.exception.SggNotFoundException;
+import com.seoul.market.seoulmarketprice.menus.exception.ActiveMenuAccessDeniedException;
 import com.seoul.market.seoulmarketprice.qna.exception.QnaAccessDeniedException;
 import com.seoul.market.seoulmarketprice.qna.exception.QnaNotFoundException;
 import org.slf4j.Logger;
@@ -19,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -38,14 +40,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(SggNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleSggNotFound(SggNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse("LOCATION-001", exception.getMessage()));
+                .body(new ErrorResponse(String.valueOf(HttpStatus.NOT_FOUND.value()), exception.getMessage()));
     }
 
     /** 존재하지 않거나 이미 탈퇴한 회원 요청을 404 응답으로 변환한다. */
     @ExceptionHandler(MemberNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleMemberNotFound(MemberNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse("MEMBER-001", exception.getMessage()));
+                .body(new ErrorResponse(String.valueOf(HttpStatus.NOT_FOUND.value()), exception.getMessage()));
     }
 
     /** ModelAttribute 쿼리 파라미터 바인딩과 검증 실패를 400 응답으로 변환한다. */
@@ -54,51 +56,60 @@ public class GlobalExceptionHandler {
         String message = exception.getBindingResult().getFieldError() == null
                 ? "요청 파라미터가 올바르지 않습니다."
                 : exception.getBindingResult().getFieldError().getDefaultMessage();
-        return ResponseEntity.badRequest()
-                .body(new ErrorResponse("VALID-001", message));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(String.valueOf(HttpStatus.BAD_REQUEST.value()), message));
     }
 
     @ExceptionHandler(QnaNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleQnaNotFound(QnaNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse("QNA-001", exception.getMessage()));
+                .body(new ErrorResponse(String.valueOf(HttpStatus.NOT_FOUND.value()), exception.getMessage()));
     }
 
     @ExceptionHandler(QnaAccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleQnaAccessDenied(QnaAccessDeniedException exception) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new ErrorResponse("QNA-002", exception.getMessage()));
+                .body(new ErrorResponse(String.valueOf(HttpStatus.FORBIDDEN.value()), exception.getMessage()));
     }
 
     /** 존재하지 않거나 공개되지 않은 FAQ 요청을 404로 변환한다. */
     @ExceptionHandler(FaqNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleFaqNotFound(FaqNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse("FAQ-001", exception.getMessage()));
+                .body(new ErrorResponse(String.valueOf(HttpStatus.NOT_FOUND.value()), exception.getMessage()));
     }
 
     @ExceptionHandler(CommentNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleCommentNotFound(CommentNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse("COMMENT-001", exception.getMessage()));
+                .body(new ErrorResponse(String.valueOf(HttpStatus.NOT_FOUND.value()), exception.getMessage()));
     }
 
     @ExceptionHandler(CommentAccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleCommentAccessDenied(CommentAccessDeniedException exception) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new ErrorResponse("COMMENT-002", exception.getMessage()));
+                .body(new ErrorResponse(String.valueOf(HttpStatus.FORBIDDEN.value()), exception.getMessage()));
     }
 
     @ExceptionHandler(BoardNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleBoardNotFound(BoardNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse("BOARD-001", exception.getMessage()));
+                .body(new ErrorResponse(String.valueOf(HttpStatus.NOT_FOUND.value()), exception.getMessage()));
     }
 
     @ExceptionHandler(BoardAccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleBoardAccessDenied(BoardAccessDeniedException exception) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new ErrorResponse("BOARD-002", exception.getMessage()));
+                .body(new ErrorResponse(String.valueOf(HttpStatus.FORBIDDEN.value()), exception.getMessage()));
+    }
+
+    /** 다른 관리자의 활성 메뉴에 접근하려는 요청을 403으로 변환한다. */
+    @ExceptionHandler(ActiveMenuAccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleActiveMenuAccessDenied(
+            ActiveMenuAccessDeniedException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse(String.valueOf(HttpStatus.FORBIDDEN.value()), exception.getMessage()));
     }
 
     /** 존재하지 않거나 이미 삭제된 관리자 요청을 404로 변환한다. */
@@ -107,7 +118,7 @@ public class GlobalExceptionHandler {
             AdminNotFoundException exception
     ) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse("ADMIN-002", exception.getMessage()));
+                .body(new ErrorResponse(String.valueOf(HttpStatus.NOT_FOUND.value()), exception.getMessage()));
     }
 
     /** 안전 정책에 따라 거부된 관리자 삭제 요청을 409로 변환한다. */
@@ -116,7 +127,7 @@ public class GlobalExceptionHandler {
             AdminDeletionException exception
     ) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(new ErrorResponse("ADMIN-003", exception.getMessage()));
+                .body(new ErrorResponse(String.valueOf(HttpStatus.CONFLICT.value()), exception.getMessage()));
     }
 
     /**
@@ -129,7 +140,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
                 .body(new ErrorResponse(
-                        "ADMIN-001",
+                        String.valueOf(HttpStatus.CONFLICT.value()),
                         exception.getMessage()
                 ));
     }
@@ -188,6 +199,32 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 요청 본문을 읽지 못한 경우를 400으로 변환한다.
+     *
+     * <p>
+     * JSON 문법 오류, 타입 불일치뿐 아니라 요청 본문이 UTF-8이 아닌 인코딩
+     * (예: EUC-KR/CP949)으로 전송되어 Jackson이 파싱하지 못하는 경우도
+     * 포함한다. 이 예외를 별도로 처리하지 않으면 클라이언트 잘못임에도
+     * 아래 handleException(500)으로 흘러가 서버 오류처럼 로그가 남는다.
+     * </p>
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleMessageNotReadable(
+            HttpMessageNotReadableException exception
+    ) {
+        log.warn("요청 본문을 읽지 못했습니다: {}", exception.getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(
+                        new ErrorResponse(
+                                String.valueOf(HttpStatus.BAD_REQUEST.value()),
+                                "요청 본문을 읽을 수 없습니다. 요청이 올바른 JSON과 UTF-8 인코딩인지 확인해주세요."
+                        )
+                );
+    }
+
+    /**
      * DTO 검증 실패 처리.
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -201,10 +238,10 @@ public class GlobalExceptionHandler {
                 .getDefaultMessage();
 
         return ResponseEntity
-                .badRequest()
+                .status(HttpStatus.BAD_REQUEST)
                 .body(
                         new ErrorResponse(
-                                "VALID-001",
+                                String.valueOf(HttpStatus.BAD_REQUEST.value()),
                                 message
                         )
                 );

@@ -46,13 +46,18 @@ public class FaqQueryRepository {
     }
 
     /** 삭제되지 않은 모든 FAQ를 관리자 노출 순서로 조회한다. */
-    public List<Faq> findAdminList() {
+    public List<Faq> findAdminList(String keyword) {
         return queryFactory
                 .selectFrom(faq)
                 .leftJoin(faq.member).fetchJoin()
-                .where(active())
+                .where(active(), keywordContains(keyword))
                 .orderBy(faq.displayOrder.asc(), faq.id.asc())
                 .fetch();
+    }
+
+    private BooleanExpression keywordContains(String keyword) {
+        if (keyword == null || keyword.isBlank()) return null;
+        return faq.question.containsIgnoreCase(keyword).or(faq.answer.containsIgnoreCase(keyword));
     }
 
     /** 관리자 작업을 위해 삭제되지 않은 FAQ를 조회한다. */

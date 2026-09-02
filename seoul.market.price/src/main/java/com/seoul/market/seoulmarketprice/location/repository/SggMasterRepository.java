@@ -14,5 +14,7 @@ public interface SggMasterRepository extends JpaRepository<SggMaster, Long> {
     /** 입력된 자치구 코드가 마스터에 존재하는지 확인한다. */
     boolean existsBySggCode(String sggCode);
 
+    Optional<SggMaster> findBySggCode(String sggCode);
+
     Optional<SggMaster> findBySggName(String sggName);
 }

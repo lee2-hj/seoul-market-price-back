@@ -24,7 +24,7 @@ public class FastApiController {
     public ResponseEntity<CompareResponse> compare(@Valid @ModelAttribute CompareRequest request){
         CompareResponse response = fastApiService.getCompare(request);
 
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "지역별 평균가 비교(지도용)", description = "지역별 평균가 비교 데이터 api")
@@ -32,7 +32,7 @@ public class FastApiController {
     public ResponseEntity<ListResponse> pyeongList(@Valid @ModelAttribute ListRequest request){
         ListResponse response = fastApiService.getPyeongList(request);
 
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "지역내 아파트 가격 상위 5개,하위 5개", description = "지역내 아파트 가격 상위5개, 하위5개 데이터 api<br>" +
@@ -41,7 +41,7 @@ public class FastApiController {
     public ResponseEntity<TopAndBottomResponse> topAndbottom(@Valid @ModelAttribute TopAndBottomRequest request){
         TopAndBottomResponse response = fastApiService.getTopAndBottom(request);
 
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "아파트 타입별 비교(평형,층수)", description = "아파트 층수별 비교 api <br>" +
@@ -51,7 +51,7 @@ public class FastApiController {
     public ResponseEntity<AptCompareResponse> aptcompare(@Valid @ ModelAttribute AptCompareRequest request){
         AptCompareResponse response = fastApiService.getAptCompare(request);
 
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.ok(response);
     }
 
     @Operation(summary ="아파트별 비교", description = "아파트별 비교 api<br>"+
@@ -64,7 +64,7 @@ public class FastApiController {
     public ResponseEntity<RegionAptCompareResponse> regionaptcompare(@Valid @ModelAttribute RegionAptCompareRequest request){
         RegionAptCompareResponse response = fastApiService.getRegionaptcompare(request);
 
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "지역별 거래 동향", description = "지역별 거래 동향 api" )
@@ -72,7 +72,7 @@ public class FastApiController {
     public ResponseEntity<RttRespopnse> rttInfo(@Valid @ModelAttribute RttRequest request){
         RttRespopnse response = fastApiService.getRttInfo(request);
 
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "아파트 별 거래 동향", description = "아파트 별 거래 동향 api")
@@ -80,7 +80,7 @@ public class FastApiController {
     public ResponseEntity<AptMktResponse> aptmktInfo(@Valid @ModelAttribute AptMktRequest request){
         AptMktResponse response = fastApiService.getAptmktInfo(request);
 
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "메인 페이지", description = "메인 페이지 api")
@@ -88,6 +88,13 @@ public class FastApiController {
     public ResponseEntity<MainPageResponse> mainpageInfo(@Valid @ModelAttribute MainPageRequest request){
         MainPageResponse response = fastApiService.getMainpageInfo(request);
 
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "최신 업데이트 내역", description = "백오피스 대시보드 최근 업데이트 아파트 api")
+    @GetMapping("/updatedApt")
+    public ResponseEntity<UpdatedAptResponse> updatedApt(){
+        UpdatedAptResponse updatedApt = fastApiService.getUpdatedApt();
+        return ResponseEntity.ok(updatedApt);
     }
 }

@@ -12,6 +12,7 @@ public record AdminDashboardSummaryResponse(
         long totalQnaPostCount,
         long todayQnaPostCount,
         long todayTotalPostCount,
+        long todayPageViewCount,
         LocalDate baseDate,
         OffsetDateTime generatedAt
 ) {

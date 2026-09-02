@@ -8,13 +8,25 @@ public record PriceRankingResponse(
         String metricType,
         String baseDate,
         RankingCriteria criteria,
-        List<Item> items
+        List<Item> items,
+        String summary
 ) {
+    public PriceRankingResponse(String regionName, String metricType, String baseDate,
+                                RankingCriteria criteria, List<Item> items) {
+        this(regionName, metricType, baseDate, criteria, items, null);
+    }
     public record Item(
             int rank,
             String regionName,
             String apartmentName,
             Long metricValue,
-            int dealCount
-    ) {}
+            int dealCount,
+            Double exclusiveAreaM2,
+            Double pyeong,
+            String dealDate
+    ) {
+        public Item(int rank, String regionName, String apartmentName, Long metricValue, int dealCount) {
+            this(rank, regionName, apartmentName, metricValue, dealCount, null, null, null);
+        }
+    }
 }

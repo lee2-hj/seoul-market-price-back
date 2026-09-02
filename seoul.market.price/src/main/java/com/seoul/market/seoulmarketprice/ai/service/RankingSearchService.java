@@ -42,7 +42,7 @@ public class RankingSearchService {
                 ? new QuestionAnalysisResponse.SearchFilters(null, null, null, null) : analysis.filters();
         java.time.LocalDate today = java.time.LocalDate.now();
         RankingSearchQuery query = new RankingSearchQuery(RankingTarget.APARTMENT, metric,
-                direction(analysis.direction()), null, today.minusMonths(1), today,
+                direction(question, analysis.direction(), metric), null, today.minusMonths(1), today,
                 decimal(filters.minPriceWon()), decimal(filters.maxPriceWon()),
                 decimal(filters.minPyeong()), decimal(filters.maxPyeong()), null,
                 analysis.limit() == null ? 1 : Math.min(analysis.limit(), 5), 3);
@@ -58,8 +58,22 @@ public class RankingSearchService {
         return "TRADE_COUNT".equals(metric) ? RankingMetric.TRADE_COUNT : RankingMetric.PRICE;
     }
 
-    private SortDirection direction(String direction) {
+    private SortDirection direction(String question, String direction, RankingMetric metric) {
+        if (metric == RankingMetric.PRICE && containsAny(question, "싼", "저렴", "낮은", "최저", "가성비")) {
+            return SortDirection.ASC;
+        }
+        if (metric == RankingMetric.PRICE && containsAny(question, "비싼", "높은", "최고", "고가")) {
+            return SortDirection.DESC;
+        }
         return "ASC".equals(direction) ? SortDirection.ASC : SortDirection.DESC;
+    }
+
+    private boolean containsAny(String question, String... keywords) {
+        if (question == null) return false;
+        for (String keyword : keywords) {
+            if (question.contains(keyword)) return true;
+        }
+        return false;
     }
 
     private java.math.BigDecimal decimal(Number value) {

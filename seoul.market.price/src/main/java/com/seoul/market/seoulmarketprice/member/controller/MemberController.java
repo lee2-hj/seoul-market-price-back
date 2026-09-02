@@ -87,7 +87,7 @@ public class MemberController {
     ){
         MemberCheckResponse response = memberService.checkMember(request);
 
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.ok(response);
     }
 
     /**
