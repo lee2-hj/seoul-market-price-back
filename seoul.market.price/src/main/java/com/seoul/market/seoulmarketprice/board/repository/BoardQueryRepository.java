@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 import java.util.Locale;
+import java.time.LocalDateTime;
 
 /** QueryDSL로 공개 게시판 목록의 동적 검색과 페이징을 처리한다. */
 @Repository
@@ -32,6 +33,17 @@ public class BoardQueryRepository {
 
     /** 벌크 수정 후 영속성 컨텍스트를 초기화할 때 사용한다. */
     private final EntityManager entityManager;
+
+    public long countActivePosts() {
+        return queryFactory.select(board.count()).from(board)
+                .where(board.deletedAt.isNull()).fetchOne();
+    }
+
+    public long countActivePostsCreatedBetween(LocalDateTime from, LocalDateTime to) {
+        return queryFactory.select(board.count()).from(board)
+                .where(board.createdAt.goe(from), board.createdAt.lt(to), board.deletedAt.isNull())
+                .fetchOne();
+    }
 
     /** 노출 중인 활성 게시글을 검색 조건과 페이지 조건에 맞춰 조회한다. */
     public Page<Board> findPublicPage(BoardSearchCondition condition, Pageable pageable) {
@@ -55,6 +67,19 @@ public class BoardQueryRepository {
                 .where(activeAndVisible(), search)
                 .fetchOne();
 
+        return new PageImpl<>(content, pageable, total == null ? 0 : total);
+    }
+
+    public Page<Board> findMyPage(Long userId, BoardSearchCondition condition, Pageable pageable) {
+        BooleanExpression search = searchCondition(condition.getSearchType(), condition.getKeyword());
+        List<Board> content = queryFactory.selectFrom(board)
+                .leftJoin(board.user).fetchJoin()
+                .leftJoin(board.member).fetchJoin()
+                .where(board.userId.eq(userId), board.deletedAt.isNull(), search)
+                .orderBy(board.createdAt.desc(), board.id.desc())
+                .offset(pageable.getOffset()).limit(pageable.getPageSize()).fetch();
+        Long total = queryFactory.select(board.count()).from(board)
+                .where(board.userId.eq(userId), board.deletedAt.isNull(), search).fetchOne();
         return new PageImpl<>(content, pageable, total == null ? 0 : total);
     }
 

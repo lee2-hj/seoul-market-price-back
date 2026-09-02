@@ -1,9 +1,9 @@
 package com.seoul.market.seoulmarketprice.qna.controller;
 
-import com.seoul.market.seoulmarketprice.attachment.dto.AttachmentDownloadResponse;
-import com.seoul.market.seoulmarketprice.attachment.dto.AttachmentResponse;
-import com.seoul.market.seoulmarketprice.attachment.entity.AttachmentTargetType;
-import com.seoul.market.seoulmarketprice.attachment.service.AttachmentService;
+import com.seoul.market.seoulmarketprice.board.attachment.dto.AttachmentDownloadResponse;
+import com.seoul.market.seoulmarketprice.board.attachment.dto.AttachmentResponse;
+import com.seoul.market.seoulmarketprice.board.attachment.entity.AttachmentTargetType;
+import com.seoul.market.seoulmarketprice.board.attachment.service.AttachmentService;
 import com.seoul.market.seoulmarketprice.qna.dto.condition.QnaSearchCondition;
 import com.seoul.market.seoulmarketprice.qna.dto.request.QnaCreateRequest;
 import com.seoul.market.seoulmarketprice.qna.dto.request.QnaUpdateRequest;
@@ -14,7 +14,6 @@ import com.seoul.market.seoulmarketprice.qna.service.QnaService;
 import com.seoul.market.seoulmarketprice.security.principal.CustomUserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springdoc.core.annotations.ParameterObject;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -40,7 +39,7 @@ public class QnaController {
     @Operation(summary = "공개 Q&A 목록 조회")
     @GetMapping
     public ResponseEntity<QnaPageResponse> getQnas(
-            @Valid @ParameterObject
+            @Valid
             @ModelAttribute QnaSearchCondition condition) {
         return ResponseEntity.ok(qnaService.getPublicQnas(condition));
     }
@@ -50,7 +49,7 @@ public class QnaController {
     @GetMapping("/me")
     public ResponseEntity<QnaPageResponse> getMyQnas(
             @AuthenticationPrincipal CustomUserPrincipal principal,
-            @Valid @ParameterObject
+            @Valid
             @ModelAttribute QnaSearchCondition condition) {
         return ResponseEntity.ok(qnaService.getMyQnas(principal.memberId(), condition));
     }
