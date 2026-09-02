@@ -1,5 +1,6 @@
 package com.seoul.market.seoulmarketprice.member.dto.request.admin;
 
+import com.seoul.market.seoulmarketprice.auth.entity.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -14,6 +15,10 @@ public record AdminUpdateRequest(
         String phone,
         @Email(message = "이메일 형식이 올바르지 않습니다.")
         @Size(max = 100, message = "이메일은 100자 이하여야 합니다.")
-        String email
+        String email,
+        Role role
 ) {
+    public AdminUpdateRequest(String password, String name, String phone, String email) {
+        this(password, name, phone, email, null);
+    }
 }

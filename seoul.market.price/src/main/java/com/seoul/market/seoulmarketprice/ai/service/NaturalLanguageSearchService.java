@@ -31,6 +31,7 @@ public class NaturalLanguageSearchService {
     private final ScopeResolverChain scopeResolverChain;
     private final DataSourceAdapterRegistry dataSourceAdapterRegistry;
     private final NaturalQueryExecutionRouter executionRouter;
+    private final PreferenceRegionResolver preferenceRegionResolver;
 
     @Autowired
     public NaturalLanguageSearchService(QuestionIntentClassifier classifier, LocationMasterService locationService,
@@ -41,7 +42,8 @@ public class NaturalLanguageSearchService {
                                         QuestionSearchPlanNormalizer searchPlanNormalizer,
                                         ScopeResolverChain scopeResolverChain,
                                         DataSourceAdapterRegistry dataSourceAdapterRegistry,
-                                        NaturalQueryExecutionRouter executionRouter) {
+                                        NaturalQueryExecutionRouter executionRouter,
+                                        PreferenceRegionResolver preferenceRegionResolver) {
         this.classifier = classifier;
         this.locationService = locationService;
         this.questionAnalysisService = questionAnalysisService;
@@ -52,6 +54,7 @@ public class NaturalLanguageSearchService {
         this.scopeResolverChain = scopeResolverChain;
         this.dataSourceAdapterRegistry = dataSourceAdapterRegistry;
         this.executionRouter = executionRouter;
+        this.preferenceRegionResolver = preferenceRegionResolver;
     }
 
     /** 기존 단위 테스트와의 생성자 호환을 위한 보조 생성자. 애플리케이션에서는 주입 생성자를 사용한다. */
@@ -71,10 +74,21 @@ public class NaturalLanguageSearchService {
                 new DataSourceAdapterRegistry(List.of()),
                 new NaturalQueryExecutionRouter(comparisonService, singleRegionService, districtSummaryService, null,
                         districtRankingService, topBottomService, rankingSearchService, tradeTrendSearchService,
-                        nearestApartmentPriceSearchService, null, null, null, null));
+                        nearestApartmentPriceSearchService, null, null, null, null),
+                new PreferenceRegionResolver(null, null));
     }
 
     public NaturalSearchResponse search(String question) {
+        return search(question, null);
+    }
+
+    public NaturalSearchResponse search(String question, Long memberId) {
+        PreferenceRegionResolver.Resolution preferenceResolution = preferenceRegionResolver.resolve(question, memberId);
+        if (preferenceResolution.status() == PreferenceRegionResolver.Status.PREFERENCE_UNAVAILABLE) {
+            return NaturalSearchResponse.error(PreferenceRegionResolver.PREFERENCE_REGION_REQUIRED_MESSAGE,
+                    NaturalSearchErrorCode.MISSING_REGION);
+        }
+        question = preferenceResolution.question();
         try {
             QuestionAnalysisResponse analyzed = analyze(question);
             // The LLM plan remains the primary source of intent. Explicit wording only corrects

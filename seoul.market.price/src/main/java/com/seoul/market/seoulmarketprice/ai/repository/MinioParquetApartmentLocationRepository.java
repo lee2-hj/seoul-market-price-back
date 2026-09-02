@@ -347,12 +347,11 @@ public class MinioParquetApartmentLocationRepository implements ApartmentLocatio
 
         private ApartmentLocation toLocation() {
             Long pyeong = dealCount < 1 ? null : Math.round((double) weightedPyeongAmount / dealCount);
-            Long averageTradeAmount = dealCount < 1 ? null : Math.round((double) totalTradeAmount / dealCount);
             return new ApartmentLocation(representative.apartmentId(), representative.apartmentName(),
                     representative.address(), representative.sggCode(), representative.dongCode(),
                     representative.districtName(), representative.dongName(),
                     representative.latitude(), representative.longitude(),
-                    averageTradeAmount, dealCount < 1 ? null : dealCount,
+                    dealCount < 1 ? null : totalTradeAmount, dealCount < 1 ? null : dealCount,
                     pyeong, representative.exclusiveAreaM2(), latestDealDate, baseDate);
         }
     }

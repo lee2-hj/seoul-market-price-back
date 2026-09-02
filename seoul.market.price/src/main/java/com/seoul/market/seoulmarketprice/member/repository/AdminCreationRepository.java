@@ -2,6 +2,7 @@ package com.seoul.market.seoulmarketprice.member.repository;
 
 import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminListResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminUpdateResponse;
+import com.seoul.market.seoulmarketprice.auth.entity.Role;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
@@ -46,7 +47,7 @@ public class AdminCreationRepository {
     public List<AdminListResponse> findAll(int size, long offset) {
         return jdbcTemplate.query(
                 """
-                SELECT id, user_id, name, phone, email, created_at, updated_at
+                SELECT id, user_id, name, phone, email, role, created_at, updated_at
                 FROM tb_member
                 WHERE deleted_at IS NULL
                 ORDER BY created_at DESC
@@ -58,6 +59,7 @@ public class AdminCreationRepository {
                         resultSet.getString("name"),
                         resultSet.getString("phone"),
                         resultSet.getString("email"),
+                        Role.valueOf(resultSet.getString("role")),
                         resultSet.getTimestamp("created_at") == null
                                 ? null : resultSet.getTimestamp("created_at").toLocalDateTime(),
                         resultSet.getTimestamp("updated_at") == null
@@ -96,23 +98,23 @@ public class AdminCreationRepository {
 
     /** 전달된 항목만 변경하고 수정된 관리자 정보를 반환한다. */
     public Optional<AdminUpdateResponse> update(
-            Long id, String password, String name, String phone, String email
+            Long id, String password, String name, String phone, String email, Role role
     ) {
         int updatedRows = jdbcTemplate.update(
                 """
                 UPDATE tb_member
                 SET password = COALESCE(?, password), name = COALESCE(?, name),
-                    phone = COALESCE(?, phone), email = COALESCE(?, email),
+                    phone = COALESCE(?, phone), email = COALESCE(?, email), role = COALESCE(?, role),
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ? AND deleted_at IS NULL
                 """,
-                password, name, phone, email, id
+                password, name, phone, email, role == null ? null : role.name(), id
         );
         if (updatedRows == 0) {
             return Optional.empty();
         }
         return jdbcTemplate.query(
-                "SELECT id, user_id, name, phone, email, updated_at FROM tb_member WHERE id = ? AND deleted_at IS NULL",
+                "SELECT id, user_id, name, phone, email, role, updated_at FROM tb_member WHERE id = ? AND deleted_at IS NULL",
                 resultSet -> resultSet.next()
                         ? Optional.of(new AdminUpdateResponse(
                                 resultSet.getLong("id"),
@@ -120,10 +122,15 @@ public class AdminCreationRepository {
                                 resultSet.getString("name"),
                                 resultSet.getString("phone"),
                                 resultSet.getString("email"),
+                                Role.valueOf(resultSet.getString("role")),
                                 resultSet.getTimestamp("updated_at").toLocalDateTime()
                         )) : Optional.empty(),
                 id
         );
+    }
+
+    public Optional<AdminUpdateResponse> update(Long id, String password, String name, String phone, String email) {
+        return update(id, password, name, phone, email, null);
     }
 
     /** 관리자의 삭제 시각을 기록하여 계정을 소프트 삭제한다. */

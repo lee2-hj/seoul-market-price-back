@@ -80,6 +80,12 @@ public class PriceRankingSearchService {
         if (hasPriceCondition(query)) {
             return searchByPriceDataset(region, query);
         }
+        if (parquetAdapter.isAvailable()) {
+            List<Candidate> candidates = filteredParquetCandidates(parquetRecords(region), region, null, query);
+            if (!candidates.isEmpty()) {
+                return toResponse(region == null ? "?쒖슱 ?꾩껜" : region.name(), "thing_amt", candidates, query);
+            }
+        }
         List<Candidate> candidates = region == null
                 ? allSeoulCandidates(metricType, query.direction())
                 : regionCandidates(region, metricType, query.direction());
@@ -139,7 +145,8 @@ public class PriceRankingSearchService {
         return filtered.stream()
                 .map(record -> new Candidate(displayRegion(record, region), record.baseDate(), record.apartmentName(),
                         record.averagePriceWon() == null ? null : record.averagePriceWon() / 10_000L,
-                        record.tradeCount() == null ? 0 : record.tradeCount().intValue()))
+                        record.tradeCount() == null ? 0 : record.tradeCount().intValue(),
+                        record.exclusiveAreaM2(), record.pyeong(), record.latestDealDate()))
                 .toList();
     }
 
@@ -206,7 +213,7 @@ public class PriceRankingSearchService {
         if (source == null) return List.of();
         return source.stream().map(item -> new Candidate(region.name(), response.baseDate(), item.bldgNm(),
                 metricType.equals("pyeong") ? item.avgPyeongAmt() : item.avgThingAmt(),
-                item.dealCnt() == null ? 0 : item.dealCnt())).toList();
+                item.dealCnt() == null ? 0 : item.dealCnt(), null, null, null)).toList();
     }
 
     private TopAndBottomResponse topAndBottom(String sggCode, String dongCode, String metricType) {
@@ -232,7 +239,7 @@ public class PriceRankingSearchService {
                 .mapToObj(index -> {
                     Candidate item = sorted.get(index);
                     return new PriceRankingResponse.Item(index + 1, item.regionName(), item.apartmentName(),
-                            item.metricValue(), item.dealCount());
+                            item.metricValue(), item.dealCount(), item.exclusiveAreaM2(), item.pyeong(), item.dealDate());
                 }).toList();
         String baseDate = sorted.isEmpty() ? null : sorted.get(0).baseDate();
         RankingCriteria criteria = new RankingCriteria(
@@ -289,7 +296,8 @@ public class PriceRankingSearchService {
 
     private record Region(String sggCode, String dongCode, String name,
                           String districtName, String dongName) {}
-    private record Candidate(String regionName, String baseDate, String apartmentName, Long metricValue, int dealCount) {}
+    private record Candidate(String regionName, String baseDate, String apartmentName, Long metricValue, int dealCount,
+                             Double exclusiveAreaM2, Double pyeong, String dealDate) {}
     private record CacheKey(String sggCode, String dongCode, String metricType) {}
     private record CachedResponse(TopAndBottomResponse response, Instant createdAt) {}
 }
