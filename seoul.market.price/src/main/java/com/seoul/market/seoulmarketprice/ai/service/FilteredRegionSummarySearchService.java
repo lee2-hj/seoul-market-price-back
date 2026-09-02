@@ -4,8 +4,8 @@ import com.seoul.market.seoulmarketprice.ai.dto.QuestionAnalysisResponse;
 import com.seoul.market.seoulmarketprice.ai.dto.SingleRegionPriceResponse;
 import com.seoul.market.seoulmarketprice.ai.query.GenericQueryExecutor;
 import com.seoul.market.seoulmarketprice.ai.query.MetricRecord;
+import com.seoul.market.seoulmarketprice.ai.query.ParquetApartmentMetricDataSourceAdapter;
 import com.seoul.market.seoulmarketprice.ai.query.QueryRequest;
-import com.seoul.market.seoulmarketprice.ai.repository.ApartmentLocation;
 import com.seoul.market.seoulmarketprice.ai.repository.ApartmentLocationRepository;
 import com.seoul.market.seoulmarketprice.location.repository.SggMasterRepository;
 import com.seoul.market.seoulmarketprice.location.service.LocationMasterService;
@@ -22,18 +22,16 @@ import java.util.Locale;
 @Service
 public class FilteredRegionSummarySearchService {
     private static final BigDecimal WON_PER_MANWON = BigDecimal.valueOf(10_000);
-    private static final double SQUARE_METERS_PER_PYEONG = 3.305785;
-
-    private final ApartmentLocationRepository apartmentLocationRepository;
+    private final ParquetApartmentMetricDataSourceAdapter parquetAdapter;
     private final RankingRegionResolver regionResolver;
     private final GenericQueryExecutor queryExecutor;
 
     @Autowired
-    public FilteredRegionSummarySearchService(ApartmentLocationRepository apartmentLocationRepository,
+    public FilteredRegionSummarySearchService(ParquetApartmentMetricDataSourceAdapter parquetAdapter,
                                               SggMasterRepository sggRepository,
                                               LocationMasterService locationService,
                                               GenericQueryExecutor queryExecutor) {
-        this.apartmentLocationRepository = apartmentLocationRepository;
+        this.parquetAdapter = parquetAdapter;
         this.regionResolver = new RankingRegionResolver(sggRepository, locationService);
         this.queryExecutor = queryExecutor;
     }
@@ -42,13 +40,11 @@ public class FilteredRegionSummarySearchService {
     FilteredRegionSummarySearchService(ApartmentLocationRepository apartmentLocationRepository,
                                        SggMasterRepository sggRepository,
                                        LocationMasterService locationService) {
-        this(apartmentLocationRepository, sggRepository, locationService, new GenericQueryExecutor());
+        this(new ParquetApartmentMetricDataSourceAdapter(apartmentLocationRepository), sggRepository,
+                locationService, new GenericQueryExecutor());
     }
 
     public SingleRegionPriceResponse search(String question, QuestionAnalysisResponse analysis) {
-        if (!apartmentLocationRepository.isAvailable()) {
-            throw new IllegalArgumentException("조건부 지역 평균 조회용 아파트 데이터셋에 연결할 수 없습니다.");
-        }
         RankingRegionResolver.ResolvedRegion region = regionResolver.resolve(question);
         if (region.allSeoul()) {
             throw new IllegalArgumentException("면적·가격 조건이 있는 평균 조회는 현재 자치구 또는 자치동을 지정해주세요.");
@@ -57,14 +53,8 @@ public class FilteredRegionSummarySearchService {
         String[] names = region.name().split("\\s+", 2);
         String districtName = names[0];
         String dongName = region.dongCode() == null || names.length < 2 ? null : names[1];
-        List<ApartmentLocation> source = apartmentLocationRepository.findByRegion(region.sggCode(), region.dongCode());
-        if (source.isEmpty()) {
-            source = apartmentLocationRepository.findByRegionName(districtName, dongName);
-        }
-        List<MetricRecord> matched = queryExecutor.execute(source.stream()
-                        .map(this::toMetricRecord)
-                        .filter(java.util.Objects::nonNull)
-                        .toList(),
+        List<MetricRecord> matched = queryExecutor.execute(parquetAdapter.fetchByRegion(
+                        region.sggCode(), region.dongCode(), districtName, dongName),
                 new QueryRequest(1L,
                         filters == null ? null : filters.minPyeong(),
                         filters == null ? null : filters.maxPyeong(),
@@ -90,14 +80,6 @@ public class FilteredRegionSummarySearchService {
                         "평균 평단가: " + NumberFormat.getIntegerInstance(Locale.KOREA).format(averagePyeongPrice) + "만원/평"),
                 List.of("평균 거래가 · 만원 · " + (baseDate == null ? "조회 데이터 기준" : baseDate + " 기준"),
                         "단지별 평균 거래가를 거래 건수로 가중 평균한 값입니다."));
-    }
-
-    private MetricRecord toMetricRecord(ApartmentLocation item) {
-        if (item.averageTradeAmount() == null || item.dealCount() == null || item.dealCount() < 1) return null;
-        Double pyeong = item.exclusiveAreaM2() == null ? null : item.exclusiveAreaM2() / SQUARE_METERS_PER_PYEONG;
-        return new MetricRecord(item.apartmentId(), item.districtName(), item.dongName(), item.apartmentName(),
-                item.averageTradeAmount() * WON_PER_MANWON.longValue(), item.averagePyeongAmount(),
-                item.exclusiveAreaM2(), pyeong, item.dealCount().longValue(), item.latestDealDate(), item.baseDate());
     }
 
     private Long exclusiveUpperBound(Long value) {

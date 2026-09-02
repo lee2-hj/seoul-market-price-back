@@ -48,7 +48,7 @@ public class DistrictMetricDataSourceAdapter implements DataSourceAdapter {
         }
         if (countSum == 0) return null;
         long average = Math.round((double) weightedSum / countSum);
-        return new MetricRecord("district:" + sgg.getSggCode(), sgg.getSggName(), null, null,
+        return new MetricRecord("district:" + sgg.getSggCode(), sgg.getSggName(), null, null, null,
                 null, average, null, null, countSum, null, response.baseDate());
     }
 }

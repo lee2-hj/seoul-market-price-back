@@ -32,7 +32,7 @@ class GenericQueryExecutorTest {
     }
 
     private MetricRecord record(String name, Long price, Double pyeong, Long count) {
-        return new MetricRecord(name, "강남구", "대치동", name, price, 5_000L,
+        return new MetricRecord(name, "강남구", "대치동", name, "강남구 대치동", price, 5_000L,
                 84.0, pyeong, count, "2026-09-01", "2026-09-01");
     }
 }

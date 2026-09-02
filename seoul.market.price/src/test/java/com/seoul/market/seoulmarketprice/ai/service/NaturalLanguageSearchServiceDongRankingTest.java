@@ -22,7 +22,7 @@ class NaturalLanguageSearchServiceDongRankingTest {
         when(locationService.resolveDong("대치동")).thenReturn(List.of(
                 new DongRegionResponse("대치동", "대치동", "1168010600", "강남구", "11680")
         ));
-        when(rankingService.search(anyString())).thenReturn(
+        when(rankingService.searchStructured(anyString(), org.mockito.ArgumentMatchers.any())).thenReturn(
                 new PriceRankingResponse("강남구 대치동", "thing_amt", "2026-08-24", null, List.of()));
         NaturalLanguageSearchService service = new NaturalLanguageSearchService(
                 new QuestionIntentClassifier(new AiQuestionProperties(List.of("아파트"))),
@@ -34,7 +34,8 @@ class NaturalLanguageSearchServiceDongRankingTest {
 
         var response = service.search("대치동 비싼 아파트 상위 5개 알려줘");
 
-        assertEquals("RANKING_SEARCH", response.intent());
-        verify(rankingService).search("강남구 대치동 비싼 아파트 상위 5개 알려줘");
+        assertEquals("APARTMENT_RANKING", response.intent());
+        verify(rankingService).searchStructured(org.mockito.ArgumentMatchers.eq("강남구 대치동 비싼 아파트 상위 5개 알려줘"),
+                org.mockito.ArgumentMatchers.any());
     }
 }

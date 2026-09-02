@@ -7,4 +7,8 @@ public interface DataSourceAdapter {
     boolean supports(SearchScope scope);
 
     List<MetricRecord> fetch(SearchScope scope);
+
+    default String sourceName() {
+        return getClass().getSimpleName();
+    }
 }
