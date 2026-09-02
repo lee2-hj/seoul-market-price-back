@@ -3,6 +3,12 @@ package com.seoul.market.seoulmarketprice.ai.service;
 import com.seoul.market.seoulmarketprice.ai.dto.*;
 import com.seoul.market.seoulmarketprice.location.dto.DongRegionResponse;
 import com.seoul.market.seoulmarketprice.location.service.LocationMasterService;
+import com.seoul.market.seoulmarketprice.ai.query.ApartmentScopeResolver;
+import com.seoul.market.seoulmarketprice.ai.query.DataSourceAdapterRegistry;
+import com.seoul.market.seoulmarketprice.ai.query.PlaceScopeResolver;
+import com.seoul.market.seoulmarketprice.ai.query.RegionScopeResolver;
+import com.seoul.market.seoulmarketprice.ai.query.ScopeResolverChain;
+import com.seoul.market.seoulmarketprice.ai.query.SearchScope;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
@@ -16,66 +22,36 @@ import java.util.regex.Matcher;
 public class NaturalLanguageSearchService {
     private static final Logger log = LoggerFactory.getLogger(NaturalLanguageSearchService.class);
     private final QuestionIntentClassifier classifier;
-    private final AiSearchService comparisonService;
-    private final SingleRegionSearchService singleRegionService;
-    private final DistrictSummarySearchService districtSummaryService;
-    private final CitySummarySearchService citySummarySearchService;
-    private final DistrictRankingSearchService districtRankingService;
-    private final TopBottomSearchService topBottomService;
-    private final RankingSearchService rankingSearchService;
-    private final TradeTrendSearchService tradeTrendSearchService;
     private final LocationMasterService locationService;
     private final QuestionAnalysisService questionAnalysisService;
-    private final NearestApartmentPriceSearchService nearestApartmentPriceSearchService;
-    private final NearbyApartmentRankingSearchService nearbyApartmentRankingSearchService;
     private final RagAnswerService ragAnswerService;
     private final AiExecutionPlanMapper executionPlanMapper;
     private final AiExecutionPlanValidator executionPlanValidator;
-    private final ApartmentDetailSearchService apartmentDetailSearchService;
-    private final FilteredRegionSummarySearchService filteredRegionSummarySearchService;
     private final QuestionSearchPlanNormalizer searchPlanNormalizer;
-    private final ApartmentDataRagSearchService apartmentDataRagSearchService;
+    private final ScopeResolverChain scopeResolverChain;
+    private final DataSourceAdapterRegistry dataSourceAdapterRegistry;
+    private final NaturalQueryExecutionRouter executionRouter;
 
     @Autowired
-    public NaturalLanguageSearchService(QuestionIntentClassifier classifier, AiSearchService comparisonService,
-                                        SingleRegionSearchService singleRegionService,
-                                        DistrictSummarySearchService districtSummaryService,
-                                        CitySummarySearchService citySummarySearchService,
-                                        DistrictRankingSearchService districtRankingService,
-                                        TopBottomSearchService topBottomService,
-                                        RankingSearchService rankingSearchService,
-                                        TradeTrendSearchService tradeTrendSearchService,
-                                        LocationMasterService locationService,
+    public NaturalLanguageSearchService(QuestionIntentClassifier classifier, LocationMasterService locationService,
                                         QuestionAnalysisService questionAnalysisService,
-                                        NearestApartmentPriceSearchService nearestApartmentPriceSearchService,
-                                        NearbyApartmentRankingSearchService nearbyApartmentRankingSearchService,
                                         RagAnswerService ragAnswerService,
                                         AiExecutionPlanMapper executionPlanMapper,
                                         AiExecutionPlanValidator executionPlanValidator,
-                                        ApartmentDetailSearchService apartmentDetailSearchService,
-                                        FilteredRegionSummarySearchService filteredRegionSummarySearchService,
                                         QuestionSearchPlanNormalizer searchPlanNormalizer,
-                                        ApartmentDataRagSearchService apartmentDataRagSearchService) {
+                                        ScopeResolverChain scopeResolverChain,
+                                        DataSourceAdapterRegistry dataSourceAdapterRegistry,
+                                        NaturalQueryExecutionRouter executionRouter) {
         this.classifier = classifier;
-        this.comparisonService = comparisonService;
-        this.singleRegionService = singleRegionService;
-        this.districtSummaryService = districtSummaryService;
-        this.citySummarySearchService = citySummarySearchService;
-        this.districtRankingService = districtRankingService;
-        this.topBottomService = topBottomService;
-        this.rankingSearchService = rankingSearchService;
-        this.tradeTrendSearchService = tradeTrendSearchService;
         this.locationService = locationService;
         this.questionAnalysisService = questionAnalysisService;
-        this.nearestApartmentPriceSearchService = nearestApartmentPriceSearchService;
-        this.nearbyApartmentRankingSearchService = nearbyApartmentRankingSearchService;
         this.ragAnswerService = ragAnswerService;
         this.executionPlanMapper = executionPlanMapper;
         this.executionPlanValidator = executionPlanValidator;
-        this.apartmentDetailSearchService = apartmentDetailSearchService;
-        this.filteredRegionSummarySearchService = filteredRegionSummarySearchService;
         this.searchPlanNormalizer = searchPlanNormalizer;
-        this.apartmentDataRagSearchService = apartmentDataRagSearchService;
+        this.scopeResolverChain = scopeResolverChain;
+        this.dataSourceAdapterRegistry = dataSourceAdapterRegistry;
+        this.executionRouter = executionRouter;
     }
 
     /** 기존 단위 테스트와의 생성자 호환을 위한 보조 생성자. 애플리케이션에서는 주입 생성자를 사용한다. */
@@ -89,30 +65,40 @@ public class NaturalLanguageSearchService {
                                  LocationMasterService locationService,
                                  QuestionAnalysisService questionAnalysisService,
                                  NearestApartmentPriceSearchService nearestApartmentPriceSearchService) {
-        this(classifier, comparisonService, singleRegionService, districtSummaryService, null,
-                districtRankingService, topBottomService, rankingSearchService, tradeTrendSearchService, locationService,
-                questionAnalysisService, nearestApartmentPriceSearchService, null, null, null, null, null, null,
-                new QuestionSearchPlanNormalizer(), null);
+        this(classifier, locationService, questionAnalysisService, null, null, null,
+                new QuestionSearchPlanNormalizer(),
+                new ScopeResolverChain(List.of(new ApartmentScopeResolver(), new PlaceScopeResolver(), new RegionScopeResolver())),
+                new DataSourceAdapterRegistry(List.of()),
+                new NaturalQueryExecutionRouter(comparisonService, singleRegionService, districtSummaryService, null,
+                        districtRankingService, topBottomService, rankingSearchService, tradeTrendSearchService,
+                        nearestApartmentPriceSearchService, null, null, null, null));
     }
 
     public NaturalSearchResponse search(String question) {
         try {
-            QuestionAnalysisResponse explicitPlan = searchPlanNormalizer.fromExplicitQuestion(question);
-            QuestionAnalysisResponse analysis = explicitPlan != null ? explicitPlan
-                    : searchPlanNormalizer.normalize(question, analyze(question));
-            validateExecutionPlan(question, analysis);
+            QuestionAnalysisResponse analyzed = analyze(question);
+            // The LLM plan remains the primary source of intent. Explicit wording only corrects
+            // its filters/direction; it becomes a fallback when the analyser is unavailable.
+            QuestionAnalysisResponse analysis = analyzed == null
+                    ? searchPlanNormalizer.fromExplicitQuestion(question)
+                    : searchPlanNormalizer.normalize(question, analyzed);
+            SearchScope scope = scopeResolverChain.resolve(analysis);
             if (analysis != null && "APARTMENT_DETAIL".equals(analysis.intent())) {
+                /*
                 if (apartmentDetailSearchService == null) {
                     throw new IllegalStateException("단지 상세 조회 서비스를 초기화할 수 없습니다.");
                 }
-                return NaturalSearchResponse.success(analysis.intent(), apartmentDetailSearchService.search(analysis));
+                */
+                return NaturalSearchResponse.success(analysis.intent(), executionRouter.executeApartmentDetail(analysis));
             }
             if (isNearbyApartmentRanking(analysis)) {
+                /*
                 if (nearbyApartmentRankingSearchService == null) {
                     throw new IllegalStateException("주변 아파트 순위 서비스를 초기화할 수 없습니다.");
                 }
+                */
                 return NaturalSearchResponse.success(analysis.intent(),
-                        nearbyApartmentRankingSearchService.search(analysis));
+                        executionRouter.executeNearbyApartmentRanking(analysis));
             }
             String normalizedQuestion = resolveDongOnlyQuestion(question);
             if (normalizedQuestion == null) {
@@ -122,27 +108,18 @@ public class NaturalLanguageSearchService {
             }
             if (analysis != null && "NEAREST_APARTMENT_PRICE".equals(analysis.intent())) {
                 return NaturalSearchResponse.success(analysis.intent(),
-                        nearestApartmentPriceSearchService.search(analysis));
+                        executionRouter.executeNearestApartmentPrice(analysis));
             }
             if (analysis != null && "APARTMENT_RANKING".equals(analysis.intent())) {
-                if (hasAmbiguousConcept(analysis) || hasStructuredFilters(analysis)
-                        || hasExplicitPriceDirection(normalizedQuestion)) {
-                    if (hasStructuredFilters(analysis) && apartmentDataRagSearchService != null) {
-                        return NaturalSearchResponse.success(analysis.intent(),
-                                apartmentDataRagSearchService.search(normalizedQuestion, analysis));
-                    }
-                    Object result = rankingSearchService.searchStructured(normalizedQuestion, analysis);
-                    return NaturalSearchResponse.success(analysis.intent(), result, interpretation(analysis));
-                }
-                return NaturalSearchResponse.success(analysis.intent(),
-                        rankingSearchService.search(normalizedQuestion));
+                boolean structuredRanking = hasAmbiguousConcept(analysis) || hasStructuredFilters(analysis)
+                        || hasExplicitPriceDirection(normalizedQuestion);
+                Object result = executionRouter.executeApartmentRanking(normalizedQuestion, analysis, structuredRanking);
+                return NaturalSearchResponse.success(analysis.intent(), result,
+                        structuredRanking ? interpretation(analysis) : null);
             }
             if (analysis != null && "SINGLE_REGION".equals(analysis.intent()) && hasStructuredFilters(analysis)) {
-                if (filteredRegionSummarySearchService == null) {
-                    throw new IllegalStateException("조건부 지역 평균 조회 서비스를 초기화할 수 없습니다.");
-                }
                 return NaturalSearchResponse.success(analysis.intent(),
-                        filteredRegionSummarySearchService.search(normalizedQuestion, analysis));
+                        executionRouter.executeFilteredSingleRegion(normalizedQuestion, analysis));
             }
             QuestionIntentClassifier.Intent intent;
             try {
@@ -154,16 +131,7 @@ public class NaturalLanguageSearchService {
                 }
                 throw exception;
             }
-            Object result = switch (intent) {
-                case PRICE_COMPARISON -> comparisonService.search(normalizedQuestion);
-                case SINGLE_REGION -> singleRegionService.search(normalizedQuestion);
-                case DISTRICT_SUMMARY -> districtSummaryService.search(normalizedQuestion);
-                case CITY_SUMMARY -> citySummarySearchService.search(normalizedQuestion);
-                case DISTRICT_RANKING -> districtRankingService.search(normalizedQuestion);
-                case TOP_BOTTOM -> topBottomService.search(normalizedQuestion);
-                case RANKING_SEARCH -> rankingSearchService.search(normalizedQuestion);
-                case TRADE_TREND -> tradeTrendSearchService.search(normalizedQuestion);
-            };
+            Object result = executionRouter.executeLegacy(intent, normalizedQuestion);
             return NaturalSearchResponse.success(intent.name(), result);
         } catch (ApartmentSelectionRequiredException exception) {
             return NaturalSearchResponse.apartmentClarification(exception.getMessage(), exception.candidates());
