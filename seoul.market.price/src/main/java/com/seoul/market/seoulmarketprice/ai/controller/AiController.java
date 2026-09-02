@@ -2,8 +2,10 @@ package com.seoul.market.seoulmarketprice.ai.controller;
 
 import com.seoul.market.seoulmarketprice.ai.dto.*;
 import com.seoul.market.seoulmarketprice.ai.service.*;
+import com.seoul.market.seoulmarketprice.security.principal.CustomUserPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,8 +28,12 @@ public class AiController {
 
     @PostMapping("/search-natural")
     /** 사용자의 자연어 질문을 해석하고 적절한 부동산 검색을 수행한다. */
-    public ResponseEntity<NaturalSearchResponse> searchNatural(@Valid @RequestBody AiSearchRequest request) {
-        return ResponseEntity.ok(naturalLanguageSearchService.search(request.question()));
+    public ResponseEntity<NaturalSearchResponse> searchNatural(
+            @Valid @RequestBody AiSearchRequest request,
+            @AuthenticationPrincipal CustomUserPrincipal principal
+    ) {
+        Long memberId = principal == null ? null : principal.memberId();
+        return ResponseEntity.ok(naturalLanguageSearchService.search(request.question(), memberId));
     }
 
     @PostMapping("/analyze-question")
