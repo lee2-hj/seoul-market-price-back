@@ -2,7 +2,6 @@ package com.seoul.market.seoulmarketprice.menus.service;
 
 import com.seoul.market.seoulmarketprice.auth.entity.Admin;
 import com.seoul.market.seoulmarketprice.auth.repository.AdminRepository;
-import com.seoul.market.seoulmarketprice.member.exception.AdminNotFoundException;
 import com.seoul.market.seoulmarketprice.menus.dto.response.ActiveMenuResponse;
 import com.seoul.market.seoulmarketprice.menus.entity.ActiveMenuEntity;
 import com.seoul.market.seoulmarketprice.menus.entity.MenuCategoryEntity;
@@ -84,13 +83,13 @@ class ActiveMenuServiceTest {
         assertThat(response.url()).isEqualTo("/menu1");
     }
 
-    /** 존재하지 않는 관리자를 조회하면 전용 예외가 발생하는지 검증한다. */
+    /** 존재하지 않는 관리자를 조회하면 예외가 발생하는지 검증한다. */
     @Test
     void getActiveMenuRejectsMissingAdmin() {
         when(adminRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.getActiveMenu(99L))
-                .isInstanceOf(AdminNotFoundException.class);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     /** MASTER가 아닌 요청자가 자기 자신이 아닌 다른 관리자를 조회하면 거부되는지 검증한다(IDOR 2차 방어). */
@@ -112,5 +111,40 @@ class ActiveMenuServiceTest {
         List<ActiveMenuResponse> result = service.getActiveMenu(2L, 1L, true);
 
         assertThat(result).isEmpty();
+    }
+
+    /** ADMIN 본인은 자기 자신의 id를 조회할 수 있는지 검증한다(비MASTER, id==requesterId). */
+    @Test
+    void getActiveMenuAllowsNonMasterAccessingSelf() {
+        Admin admin = mock(Admin.class);
+        when(adminRepository.findById(1L)).thenReturn(Optional.of(admin));
+        when(activeMenuRepository.findByAdminId(1L)).thenReturn(List.of());
+
+        List<ActiveMenuResponse> result = service.getActiveMenu(1L, 1L, false);
+
+        assertThat(result).isEmpty();
+    }
+
+    /**
+     * MASTER가 /me를 호출하면 등록 여부와 무관하게 전체 메뉴 카탈로그를
+     * 반환하는지 검증한다. 등록되지 않은 메뉴도 포함되므로 id는 null이다.
+     */
+    @Test
+    void getAllMenusForMasterReturnsWholeCatalogWithNullId() {
+        MenuCategoryEntity category = new MenuCategoryEntity("CAT01", "카테고리1");
+        MenuEntity menu = new MenuEntity(category, "MENU01", "메뉴1", "/menu1");
+        when(menuRepository.findAllWithCategory()).thenReturn(List.of(menu));
+
+        List<ActiveMenuResponse> result = service.getAllMenusForMaster(9L);
+
+        assertThat(result).hasSize(1);
+        ActiveMenuResponse response = result.get(0);
+        assertThat(response.id()).isNull();
+        assertThat(response.adminId()).isEqualTo(9L);
+        assertThat(response.categoryCode()).isEqualTo("CAT01");
+        assertThat(response.menuCode()).isEqualTo("MENU01");
+        assertThat(response.url()).isEqualTo("/menu1");
+
+        verify(adminRepository, never()).findById(any());
     }
 }

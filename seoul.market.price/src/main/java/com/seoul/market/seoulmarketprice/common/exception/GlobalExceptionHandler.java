@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -193,6 +194,32 @@ public class GlobalExceptionHandler {
                         new ErrorResponse(
                                 String.valueOf(status.value()),
                                 exception.getMessage()
+                        )
+                );
+    }
+
+    /**
+     * 요청 본문을 읽지 못한 경우를 400으로 변환한다.
+     *
+     * <p>
+     * JSON 문법 오류, 타입 불일치뿐 아니라 요청 본문이 UTF-8이 아닌 인코딩
+     * (예: EUC-KR/CP949)으로 전송되어 Jackson이 파싱하지 못하는 경우도
+     * 포함한다. 이 예외를 별도로 처리하지 않으면 클라이언트 잘못임에도
+     * 아래 handleException(500)으로 흘러가 서버 오류처럼 로그가 남는다.
+     * </p>
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleMessageNotReadable(
+            HttpMessageNotReadableException exception
+    ) {
+        log.warn("요청 본문을 읽지 못했습니다: {}", exception.getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(
+                        new ErrorResponse(
+                                String.valueOf(HttpStatus.BAD_REQUEST.value()),
+                                "요청 본문을 읽을 수 없습니다. 요청이 올바른 JSON과 UTF-8 인코딩인지 확인해주세요."
                         )
                 );
     }

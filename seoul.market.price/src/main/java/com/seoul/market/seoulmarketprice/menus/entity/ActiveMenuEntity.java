@@ -16,7 +16,7 @@ import java.time.temporal.ChronoUnit;
 
 @Entity
 @Getter
-@Table(name = "tb_avtive_menu")
+@Table(name = "tb_menu_active")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
 public class ActiveMenuEntity {
@@ -40,12 +40,10 @@ public class ActiveMenuEntity {
     @OnDelete(action = OnDeleteAction.CASCADE)
     MenuEntity menu;
 
-    @CreatedDate
     @Column(updatable = false, comment = "등록일")
     private LocalDateTime created_at;
 
-    @LastModifiedDate
-    @Column(comment = "수정일")
+    @Column(insertable = false, columnDefinition = "datetime", comment = "수정일")
     private LocalDateTime  updated_at;
 
     /**

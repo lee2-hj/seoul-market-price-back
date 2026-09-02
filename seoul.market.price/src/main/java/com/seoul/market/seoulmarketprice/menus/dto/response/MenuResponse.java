@@ -15,6 +15,7 @@ public record MenuResponse(
                         String menuCategoryName,
                         String menuCode,
                         String menuName,
+                        String url,
                         LocalDateTime createAt,
                         LocalDateTime updateAt) {}
 

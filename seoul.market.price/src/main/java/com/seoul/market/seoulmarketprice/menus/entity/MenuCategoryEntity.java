@@ -30,11 +30,9 @@ public class MenuCategoryEntity {
     private String menuName;
 
     @Column(updatable = false, comment = "등록일")
-    @CreatedDate
     private LocalDateTime created_at;
 
-    @LastModifiedDate
-    @Column(comment = "수정일")
+    @Column(insertable = false, columnDefinition = "datetime", comment = "수정일")
     private LocalDateTime  updated_at;
 
     /**

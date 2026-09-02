@@ -49,6 +49,7 @@ public class MenuService {
                             item.getCategory().getMenuName(),
                             item.getMenuCode(),
                             item.getMenuName(),
+                            item.getUrl(),
                             item.getCreated_at(),
                             item.getUpdated_at()
                     ))
@@ -67,6 +68,7 @@ public class MenuService {
                             item.getCategory().getMenuName(),
                             item.getMenuCode(),
                             item.getMenuName(),
+                            item.getUrl(),
                             item.getCreated_at(),
                             item.getUpdated_at()
                     ))
@@ -82,7 +84,7 @@ public class MenuService {
            throw new IllegalArgumentException("이미 존재하는 메뉴코드입니다.");
        }
 
-        MenuCategoryEntity category = menuCategoryRepository.findById(request.menuCategoryId())
+        MenuCategoryEntity category = menuCategoryRepository.findByMenuCode(request.menuCategoryCode())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 메뉴 카테고리입니다."));
 
         menuRepository.save(new MenuEntity(
@@ -100,7 +102,7 @@ public class MenuService {
         MenuEntity menu = menuRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 메뉴입니다."));
 
-        MenuCategoryEntity category = menuCategoryRepository.findById(request.menuCategoryId())
+        MenuCategoryEntity category = menuCategoryRepository.findByMenuCode(request.menuCategoryCode())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 메뉴 카테고리입니다."));
 
         menu.updateMenu(

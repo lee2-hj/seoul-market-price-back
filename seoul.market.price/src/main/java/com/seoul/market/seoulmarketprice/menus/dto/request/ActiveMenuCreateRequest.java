@@ -1,5 +1,7 @@
 package com.seoul.market.seoulmarketprice.menus.dto.request;
 
+import jakarta.validation.constraints.NotBlank;
+
 import java.util.List;
 
 /**
@@ -9,7 +11,11 @@ public record ActiveMenuCreateRequest(
         List<ActiveMenuItem> actives
 ) {
     public record ActiveMenuItem(
+
+            @NotBlank(message = "메뉴 카테고리 코드를 입력하세요")
             String categoryCode,
+
+            @NotBlank(message = "메뉴 코드를 입력하세요")
             String menuCode
     ) {
     }
