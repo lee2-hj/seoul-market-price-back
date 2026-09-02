@@ -198,6 +198,12 @@ public class SecurityConfig {
                     auth.requestMatchers(HttpMethod.DELETE, "/api/boards/**")
                             .hasRole("USER");
 
+                    // 메뉴/메뉴 카테고리 API는 로그인한 사용자만 호출할 수 있도록 제한한다.
+                    auth.requestMatchers("/api/menus", "/api/menus/**")
+                            .authenticated();
+                    auth.requestMatchers("/api/menuCategory", "/api/menuCategory/**")
+                            .authenticated();
+
                     // 운영 환경의 관리자 생성 및 관리자 전용 API는 ADMIN 권한이 필요하다.
                     auth.requestMatchers(
                                     "/api/admin/**",

@@ -38,14 +38,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(SggNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleSggNotFound(SggNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse("LOCATION-001", exception.getMessage()));
+                .body(new ErrorResponse(String.valueOf(HttpStatus.NOT_FOUND.value()), exception.getMessage()));
     }
 
     /** 존재하지 않거나 이미 탈퇴한 회원 요청을 404 응답으로 변환한다. */
     @ExceptionHandler(MemberNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleMemberNotFound(MemberNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse("MEMBER-001", exception.getMessage()));
+                .body(new ErrorResponse(String.valueOf(HttpStatus.NOT_FOUND.value()), exception.getMessage()));
     }
 
     /** ModelAttribute 쿼리 파라미터 바인딩과 검증 실패를 400 응답으로 변환한다. */
@@ -54,51 +54,51 @@ public class GlobalExceptionHandler {
         String message = exception.getBindingResult().getFieldError() == null
                 ? "요청 파라미터가 올바르지 않습니다."
                 : exception.getBindingResult().getFieldError().getDefaultMessage();
-        return ResponseEntity.badRequest()
-                .body(new ErrorResponse("VALID-001", message));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(String.valueOf(HttpStatus.BAD_REQUEST.value()), message));
     }
 
     @ExceptionHandler(QnaNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleQnaNotFound(QnaNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse("QNA-001", exception.getMessage()));
+                .body(new ErrorResponse(String.valueOf(HttpStatus.NOT_FOUND.value()), exception.getMessage()));
     }
 
     @ExceptionHandler(QnaAccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleQnaAccessDenied(QnaAccessDeniedException exception) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new ErrorResponse("QNA-002", exception.getMessage()));
+                .body(new ErrorResponse(String.valueOf(HttpStatus.FORBIDDEN.value()), exception.getMessage()));
     }
 
     /** 존재하지 않거나 공개되지 않은 FAQ 요청을 404로 변환한다. */
     @ExceptionHandler(FaqNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleFaqNotFound(FaqNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse("FAQ-001", exception.getMessage()));
+                .body(new ErrorResponse(String.valueOf(HttpStatus.NOT_FOUND.value()), exception.getMessage()));
     }
 
     @ExceptionHandler(CommentNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleCommentNotFound(CommentNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse("COMMENT-001", exception.getMessage()));
+                .body(new ErrorResponse(String.valueOf(HttpStatus.NOT_FOUND.value()), exception.getMessage()));
     }
 
     @ExceptionHandler(CommentAccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleCommentAccessDenied(CommentAccessDeniedException exception) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new ErrorResponse("COMMENT-002", exception.getMessage()));
+                .body(new ErrorResponse(String.valueOf(HttpStatus.FORBIDDEN.value()), exception.getMessage()));
     }
 
     @ExceptionHandler(BoardNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleBoardNotFound(BoardNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse("BOARD-001", exception.getMessage()));
+                .body(new ErrorResponse(String.valueOf(HttpStatus.NOT_FOUND.value()), exception.getMessage()));
     }
 
     @ExceptionHandler(BoardAccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleBoardAccessDenied(BoardAccessDeniedException exception) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new ErrorResponse("BOARD-002", exception.getMessage()));
+                .body(new ErrorResponse(String.valueOf(HttpStatus.FORBIDDEN.value()), exception.getMessage()));
     }
 
     /** 존재하지 않거나 이미 삭제된 관리자 요청을 404로 변환한다. */
@@ -107,7 +107,7 @@ public class GlobalExceptionHandler {
             AdminNotFoundException exception
     ) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse("ADMIN-002", exception.getMessage()));
+                .body(new ErrorResponse(String.valueOf(HttpStatus.NOT_FOUND.value()), exception.getMessage()));
     }
 
     /** 안전 정책에 따라 거부된 관리자 삭제 요청을 409로 변환한다. */
@@ -116,7 +116,7 @@ public class GlobalExceptionHandler {
             AdminDeletionException exception
     ) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(new ErrorResponse("ADMIN-003", exception.getMessage()));
+                .body(new ErrorResponse(String.valueOf(HttpStatus.CONFLICT.value()), exception.getMessage()));
     }
 
     /**
@@ -129,7 +129,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
                 .body(new ErrorResponse(
-                        "ADMIN-001",
+                        String.valueOf(HttpStatus.CONFLICT.value()),
                         exception.getMessage()
                 ));
     }
@@ -201,10 +201,10 @@ public class GlobalExceptionHandler {
                 .getDefaultMessage();
 
         return ResponseEntity
-                .badRequest()
+                .status(HttpStatus.BAD_REQUEST)
                 .body(
                         new ErrorResponse(
-                                "VALID-001",
+                                String.valueOf(HttpStatus.BAD_REQUEST.value()),
                                 message
                         )
                 );
