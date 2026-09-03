@@ -8,7 +8,6 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.Cookie;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -195,8 +194,14 @@ public class JwtAuthenticationFilter
                         HttpHeaders.AUTHORIZATION
                 );
 
+        /*
+         * 일반 회원(/api/auth)과 동일하게 Authorization 헤더로만
+         * Access Token을 판별한다. 헤더가 없을 때 관리자 쿠키로
+         * 대체 인증하던 로직은 /api/auth와 흐름이 달라 새로고침 시
+         * 인증 상태가 불일치하는 원인이 되므로 제거한다.
+         */
         if (authorizationHeader == null || authorizationHeader.isBlank()) {
-            return findCookie(request, "adminAccessToken");
+            return null;
         }
 
         String bearerPrefix = "Bearer ";
@@ -215,16 +220,5 @@ public class JwtAuthenticationFilter
         }
 
         return accessToken;
-    }
-
-    private String findCookie(HttpServletRequest request, String name) {
-        Cookie[] cookies = request.getCookies();
-        if (cookies == null) return null;
-        for (Cookie cookie : cookies) {
-            if (name.equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isBlank()) {
-                return cookie.getValue();
-            }
-        }
-        return null;
     }
 }
