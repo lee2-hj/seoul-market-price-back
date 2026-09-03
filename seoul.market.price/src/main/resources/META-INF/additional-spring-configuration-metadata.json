@@ -1,0 +1,11 @@
+{
+  "properties": [
+    {
+      "name": "app.member-data.migrate-plaintext",
+      "type": "java.lang.Boolean",
+      "description": "기존 평문 회원 개인정보(tb_user)를 암호화로 마이그레이션할지 여부. @ConditionalOnProperty로만 참조되어 IDE가 자동 인식하지 못해 수동으로 메타데이터를 등록한다.",
+      "sourceType": "com.seoul.market.seoulmarketprice.auth.crypto.MemberDataMigrationRunner",
+      "defaultValue": false
+    }
+  ]
+}
