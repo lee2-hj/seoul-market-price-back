@@ -120,9 +120,13 @@ public class JwtAuthenticationFilter
             /*
              * 삭제된 관리자의 기존 Access Token은
              * 만료 여부와 관계없이 즉시 인증에서 제외한다.
+             *
+             * 관리자 로그인은 실제 DB 권한(ADMIN 또는 MASTER)을
+             * Access Token에 그대로 담아 발급하므로, MASTER 토큰도
+             * 동일하게 삭제 여부를 검사해야 한다.
              */
             if (
-                    role == Role.ADMIN
+                    (role == Role.ADMIN || role == Role.MASTER)
                             && !adminRepository.existsActiveById(principalId)
             ) {
                 filterChain.doFilter(request, response);
