@@ -8,6 +8,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Cookie;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -201,6 +202,16 @@ public class JwtAuthenticationFilter
          * 인증 상태가 불일치하는 원인이 되므로 제거한다.
          */
         if (authorizationHeader == null || authorizationHeader.isBlank()) {
+            Cookie[] cookies = request.getCookies();
+            if (cookies != null) {
+                for (Cookie cookie : cookies) {
+                    if ("adminAccessToken".equals(cookie.getName())
+                            && cookie.getValue() != null
+                            && !cookie.getValue().isBlank()) {
+                        return cookie.getValue();
+                    }
+                }
+            }
             return null;
         }
 
