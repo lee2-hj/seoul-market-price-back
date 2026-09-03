@@ -3,6 +3,7 @@ package com.seoul.market.seoulmarketprice.ai.service;
 import com.seoul.market.seoulmarketprice.ai.dto.*;
 import com.seoul.market.seoulmarketprice.location.dto.DongRegionResponse;
 import com.seoul.market.seoulmarketprice.location.service.LocationMasterService;
+import com.seoul.market.seoulmarketprice.location.repository.SggMasterRepository;
 import com.seoul.market.seoulmarketprice.ai.query.ApartmentScopeResolver;
 import com.seoul.market.seoulmarketprice.ai.query.DataSourceAdapterRegistry;
 import com.seoul.market.seoulmarketprice.ai.query.PlaceScopeResolver;
@@ -15,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.time.Duration;
 import java.util.List;
 import java.util.regex.Matcher;
 
@@ -32,6 +34,10 @@ public class NaturalLanguageSearchService {
     private final DataSourceAdapterRegistry dataSourceAdapterRegistry;
     private final NaturalQueryExecutionRouter executionRouter;
     private final PreferenceRegionResolver preferenceRegionResolver;
+    private final ConversationContextStore conversationContextStore;
+    private final ConversationContextMerger conversationContextMerger;
+    private final PriceAnomalyDetector priceAnomalyDetector;
+    private final SggMasterRepository sggRepository;
 
     @Autowired
     public NaturalLanguageSearchService(QuestionIntentClassifier classifier, LocationMasterService locationService,
@@ -43,7 +49,11 @@ public class NaturalLanguageSearchService {
                                         ScopeResolverChain scopeResolverChain,
                                         DataSourceAdapterRegistry dataSourceAdapterRegistry,
                                         NaturalQueryExecutionRouter executionRouter,
-                                        PreferenceRegionResolver preferenceRegionResolver) {
+                                        PreferenceRegionResolver preferenceRegionResolver,
+                                        ConversationContextStore conversationContextStore,
+                                        ConversationContextMerger conversationContextMerger,
+                                        PriceAnomalyDetector priceAnomalyDetector,
+                                        SggMasterRepository sggRepository) {
         this.classifier = classifier;
         this.locationService = locationService;
         this.questionAnalysisService = questionAnalysisService;
@@ -55,6 +65,27 @@ public class NaturalLanguageSearchService {
         this.dataSourceAdapterRegistry = dataSourceAdapterRegistry;
         this.executionRouter = executionRouter;
         this.preferenceRegionResolver = preferenceRegionResolver;
+        this.conversationContextStore = conversationContextStore;
+        this.conversationContextMerger = conversationContextMerger;
+        this.priceAnomalyDetector = priceAnomalyDetector;
+        this.sggRepository = sggRepository;
+    }
+
+    /** Compatibility constructor retained for existing unit tests and legacy wiring. */
+    NaturalLanguageSearchService(QuestionIntentClassifier classifier, LocationMasterService locationService,
+                                 QuestionAnalysisService questionAnalysisService,
+                                 RagAnswerService ragAnswerService,
+                                 AiExecutionPlanMapper executionPlanMapper,
+                                 AiExecutionPlanValidator executionPlanValidator,
+                                 QuestionSearchPlanNormalizer searchPlanNormalizer,
+                                 ScopeResolverChain scopeResolverChain,
+                                 DataSourceAdapterRegistry dataSourceAdapterRegistry,
+                                 NaturalQueryExecutionRouter executionRouter,
+                                 PreferenceRegionResolver preferenceRegionResolver) {
+        this(classifier, locationService, questionAnalysisService, ragAnswerService, executionPlanMapper,
+                executionPlanValidator, searchPlanNormalizer, scopeResolverChain, dataSourceAdapterRegistry,
+                executionRouter, preferenceRegionResolver,
+                new InMemoryConversationContextStore(Duration.ofMinutes(15)), new ConversationContextMerger(), null, null);
     }
 
     /** 기존 단위 테스트와의 생성자 호환을 위한 보조 생성자. 애플리케이션에서는 주입 생성자를 사용한다. */
@@ -75,27 +106,46 @@ public class NaturalLanguageSearchService {
                 new NaturalQueryExecutionRouter(comparisonService, singleRegionService, districtSummaryService, null,
                         districtRankingService, topBottomService, rankingSearchService, tradeTrendSearchService,
                         nearestApartmentPriceSearchService, null, null, null, null),
-                new PreferenceRegionResolver(null, null));
+                new PreferenceRegionResolver(null, null),
+                new InMemoryConversationContextStore(Duration.ofMinutes(15)), new ConversationContextMerger(), null, null);
     }
 
     public NaturalSearchResponse search(String question) {
-        return search(question, null);
+        return search(question, (Long) null, null);
     }
 
     public NaturalSearchResponse search(String question, Long memberId) {
+        return search(question, memberId, null);
+    }
+
+    public NaturalSearchResponse search(String question, String sessionId) {
+        return search(question, null, sessionId);
+    }
+
+    public NaturalSearchResponse search(String question, Long memberId, String sessionId) {
         PreferenceRegionResolver.Resolution preferenceResolution = preferenceRegionResolver.resolve(question, memberId);
         if (preferenceResolution.status() == PreferenceRegionResolver.Status.PREFERENCE_UNAVAILABLE) {
             return NaturalSearchResponse.error(PreferenceRegionResolver.PREFERENCE_REGION_REQUIRED_MESSAGE,
                     NaturalSearchErrorCode.MISSING_REGION);
         }
         question = preferenceResolution.question();
+        String contextSessionId = normalizedSessionId(sessionId);
         try {
             QuestionAnalysisResponse analyzed = analyze(question);
             // The LLM plan remains the primary source of intent. Explicit wording only corrects
             // its filters/direction; it becomes a fallback when the analyser is unavailable.
+            ConversationContextMerger.MergeResult context = analyzed == null
+                    ? new ConversationContextMerger.MergeResult(null, List.of())
+                    : conversationContextMerger.merge(question, analyzed, contextSessionId == null ? null
+                    : conversationContextStore.get(contextSessionId).orElse(null));
             QuestionAnalysisResponse analysis = analyzed == null
                     ? searchPlanNormalizer.fromExplicitQuestion(question)
-                    : searchPlanNormalizer.normalize(question, analyzed);
+                    : searchPlanNormalizer.normalize(question, context.analysis());
+            List<String> inheritedFromContext = context.inheritedFromContext();
+            log.info("AI conversation context applied: sessionId={}, inheritedSlots={}, intent={}, hasRegion={}, hasReferencePlace={}",
+                    contextSessionId, inheritedFromContext, analysis == null ? null : analysis.intent(),
+                    analysis != null && analysis.regions() != null && !analysis.regions().isEmpty(),
+                    analysis != null && analysis.referencePlace() != null);
             SearchScope scope = scopeResolverChain.resolve(analysis);
             if (analysis != null && "APARTMENT_DETAIL".equals(analysis.intent())) {
                 /*
@@ -103,7 +153,8 @@ public class NaturalLanguageSearchService {
                     throw new IllegalStateException("단지 상세 조회 서비스를 초기화할 수 없습니다.");
                 }
                 */
-                return NaturalSearchResponse.success(analysis.intent(), executionRouter.executeApartmentDetail(analysis));
+                return complete(NaturalSearchResponse.success(analysis.intent(), executionRouter.executeApartmentDetail(analysis)),
+                        contextSessionId, analysis, inheritedFromContext);
             }
             if (isNearbyApartmentRanking(analysis)) {
                 /*
@@ -111,29 +162,29 @@ public class NaturalLanguageSearchService {
                     throw new IllegalStateException("주변 아파트 순위 서비스를 초기화할 수 없습니다.");
                 }
                 */
-                return NaturalSearchResponse.success(analysis.intent(),
-                        executionRouter.executeNearbyApartmentRanking(analysis));
+                return complete(NaturalSearchResponse.success(analysis.intent(),
+                        executionRouter.executeNearbyApartmentRanking(analysis)), contextSessionId, analysis, inheritedFromContext);
             }
             String normalizedQuestion = resolveDongOnlyQuestion(question);
             if (normalizedQuestion == null) {
                 String intent = analysis != null && "APARTMENT_RANKING".equals(analysis.intent())
                         ? "APARTMENT_RANKING" : null;
-                return buildClarification(question, intent);
+                return complete(buildClarification(question, intent), contextSessionId, analysis, inheritedFromContext);
             }
             if (analysis != null && "NEAREST_APARTMENT_PRICE".equals(analysis.intent())) {
-                return NaturalSearchResponse.success(analysis.intent(),
-                        executionRouter.executeNearestApartmentPrice(analysis));
+                return complete(NaturalSearchResponse.success(analysis.intent(),
+                        executionRouter.executeNearestApartmentPrice(analysis)), contextSessionId, analysis, inheritedFromContext);
             }
             if (analysis != null && "APARTMENT_RANKING".equals(analysis.intent())) {
                 boolean structuredRanking = hasAmbiguousConcept(analysis) || hasStructuredFilters(analysis)
                         || hasExplicitPriceDirection(normalizedQuestion);
                 Object result = executionRouter.executeApartmentRanking(normalizedQuestion, analysis, structuredRanking);
-                return NaturalSearchResponse.success(analysis.intent(), result,
-                        structuredRanking ? interpretation(analysis) : null);
+                return complete(NaturalSearchResponse.success(analysis.intent(), result,
+                        structuredRanking ? interpretation(analysis) : null), contextSessionId, analysis, inheritedFromContext);
             }
             if (analysis != null && "SINGLE_REGION".equals(analysis.intent()) && hasStructuredFilters(analysis)) {
-                return NaturalSearchResponse.success(analysis.intent(),
-                        executionRouter.executeFilteredSingleRegion(normalizedQuestion, analysis));
+                return complete(NaturalSearchResponse.success(analysis.intent(),
+                        executionRouter.executeFilteredSingleRegion(normalizedQuestion, analysis)), contextSessionId, analysis, inheritedFromContext);
             }
             QuestionIntentClassifier.Intent intent;
             try {
@@ -141,12 +192,13 @@ public class NaturalLanguageSearchService {
             } catch (IllegalArgumentException exception) {
                 String ragAnswer = ragAnswerService == null ? null : ragAnswerService.answerIfSupported(question);
                 if (ragAnswer != null) {
-                    return NaturalSearchResponse.success("RAG_FAQ", new RagAnswerResponse(ragAnswer));
+                    return complete(NaturalSearchResponse.success("RAG_FAQ", new RagAnswerResponse(ragAnswer)),
+                            contextSessionId, analysis, inheritedFromContext);
                 }
                 throw exception;
             }
             Object result = executionRouter.executeLegacy(intent, normalizedQuestion);
-            return NaturalSearchResponse.success(intent.name(), result);
+            return complete(NaturalSearchResponse.success(intent.name(), result), contextSessionId, analysis, inheritedFromContext);
         } catch (ApartmentSelectionRequiredException exception) {
             return NaturalSearchResponse.apartmentClarification(exception.getMessage(), exception.candidates());
         } catch (IllegalArgumentException exception) {
@@ -156,6 +208,26 @@ public class NaturalLanguageSearchService {
             return NaturalSearchResponse.error("아파트 조회 데이터를 연결하지 못했습니다. 데이터 서버 상태를 확인한 뒤 다시 시도해주세요.",
                     NaturalSearchErrorCode.AI_UNAVAILABLE);
         }
+    }
+
+    private NaturalSearchResponse complete(NaturalSearchResponse response, String sessionId,
+                                           QuestionAnalysisResponse analysis, List<String> inheritedFromContext) {
+        if (sessionId != null && analysis != null) conversationContextStore.put(sessionId, analysis);
+        return response.withInheritedFromContext(inheritedFromContext)
+                .withDataQualityWarnings(anomalyWarnings(response.result(), analysis));
+    }
+
+    private List<String> anomalyWarnings(Object result, QuestionAnalysisResponse analysis) {
+        if (priceAnomalyDetector == null || sggRepository == null || !(result instanceof PriceRankingResponse ranking)) return List.of();
+        String district = analysis.regions() == null ? null : analysis.regions().stream()
+                .filter(region -> "DISTRICT".equals(region.type())).map(QuestionAnalysisResponse.AnalyzedRegion::name).findFirst().orElse(null);
+        if (district == null || district.isBlank()) return List.of();
+        return sggRepository.findBySggName(district).map(sgg -> priceAnomalyDetector.checkRankingItems(sgg.getSggCode(), ranking.items())
+                .stream().map(PriceAnomalyDetector.AnomalyWarning::message).toList()).orElse(List.of());
+    }
+
+    private String normalizedSessionId(String sessionId) {
+        return sessionId == null || sessionId.isBlank() ? null : sessionId.trim();
     }
 
     private boolean hasAmbiguousConcept(QuestionAnalysisResponse analysis) {
@@ -176,8 +248,7 @@ public class NaturalLanguageSearchService {
 
     private boolean isNearbyApartmentRanking(QuestionAnalysisResponse analysis) {
         if (analysis == null || analysis.referencePlace() == null) return false;
-        return "NEARBY_APARTMENT_RANKING".equals(analysis.intent())
-                || "APARTMENT_RANKING".equals(analysis.intent());
+        return "NEARBY_APARTMENT_RANKING".equals(analysis.intent());
     }
 
     private SearchInterpretation interpretation(QuestionAnalysisResponse analysis) {
