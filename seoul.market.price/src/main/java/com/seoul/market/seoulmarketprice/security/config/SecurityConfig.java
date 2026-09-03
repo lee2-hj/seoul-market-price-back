@@ -150,7 +150,8 @@ public class SecurityConfig {
                                 // Swagger UI 및 OpenAPI 명세 조회는 인증 없이 접근 허용
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
-                                "/v3/api-docs/**"
+                                "/v3/api-docs/**",
+                                "/actuator/health"
                         ).permitAll();
 
                     // 메인 AI 검색은 비로그인 사용자에게도 공개하되, IP별 요청 제한 필터를 적용한다.

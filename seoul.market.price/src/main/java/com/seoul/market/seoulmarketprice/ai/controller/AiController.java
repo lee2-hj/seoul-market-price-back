@@ -33,7 +33,7 @@ public class AiController {
             @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
         Long memberId = principal == null ? null : principal.memberId();
-        return ResponseEntity.ok(naturalLanguageSearchService.search(request.question(), memberId));
+        return ResponseEntity.ok(naturalLanguageSearchService.search(request.question(), memberId, request.sessionId()));
     }
 
     @PostMapping("/analyze-question")
