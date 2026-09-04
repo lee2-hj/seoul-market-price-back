@@ -1,5 +1,9 @@
 package com.seoul.market.seoulmarketprice.auth.entity;
 
+import com.seoul.market.seoulmarketprice.auth.crypto.NameEncryptionConverter;
+import com.seoul.market.seoulmarketprice.auth.crypto.PhoneEncryptionConverter;
+import com.seoul.market.seoulmarketprice.auth.crypto.UserIdEncryptionConverter;
+
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -58,7 +62,11 @@ public class Admin {
      * </p>
      */
     @Column(name = "user_id", nullable = false, unique = true, length = 50, comment = "관리자 로그인 아이디")
+    @Convert(converter = UserIdEncryptionConverter.class)
     private String adminId;
+
+    @Column(name = "user_id_hash", length = 43)
+    private String adminIdHash;
 
     /**
      * BCrypt로 암호화된 관리자 비밀번호.
@@ -83,7 +91,11 @@ public class Admin {
      * </p>
      */
     @Column(name = "name", nullable = false, comment = "관리자명")
+    @Convert(converter = NameEncryptionConverter.class)
     private String name;
+
+    @Column(name = "name_hash", length = 43)
+    private String nameHash;
 
     /**
      * 로그인에 사용할 비밀번호가 존재하는지 확인한다.
@@ -97,7 +109,11 @@ public class Admin {
      * 관리자 계정의 전화번호를 저장한다.
      */
     @Column(name = "phone", length = 20, comment = "휴대폰 번호")
+    @Convert(converter = PhoneEncryptionConverter.class)
     private String phone;
+
+    @Column(name = "phone_hash", length = 43)
+    private String phoneHash;
 
     /**
      * 관리자 이메일 주소.
@@ -119,8 +135,15 @@ public class Admin {
 
     private LocalDateTime  deleted_at;
 
+    private void updateSearchHashes() {
+        adminIdHash = com.seoul.market.seoulmarketprice.auth.crypto.MemberDataCrypto.searchHash("userId", adminId);
+        nameHash = com.seoul.market.seoulmarketprice.auth.crypto.MemberDataCrypto.searchHash("name", name);
+        phoneHash = com.seoul.market.seoulmarketprice.auth.crypto.MemberDataCrypto.searchHash("phone", phone);
+    }
+
     @PrePersist
     private void prePersist() {
+        updateSearchHashes();
         this.created_at = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
     }
 
@@ -129,6 +152,7 @@ public class Admin {
      */
     @PreUpdate
     private void preUpdate() {
+        updateSearchHashes();
         this.updated_at = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
     }
 
