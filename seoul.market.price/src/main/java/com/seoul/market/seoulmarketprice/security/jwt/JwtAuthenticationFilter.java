@@ -8,6 +8,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Cookie;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -119,9 +120,13 @@ public class JwtAuthenticationFilter
             /*
              * 삭제된 관리자의 기존 Access Token은
              * 만료 여부와 관계없이 즉시 인증에서 제외한다.
+             *
+             * 관리자 로그인은 실제 DB 권한(ADMIN 또는 MASTER)을
+             * Access Token에 그대로 담아 발급하므로, MASTER 토큰도
+             * 동일하게 삭제 여부를 검사해야 한다.
              */
             if (
-                    role == Role.ADMIN
+                    (role == Role.ADMIN || role == Role.MASTER)
                             && !adminRepository.existsActiveById(principalId)
             ) {
                 filterChain.doFilter(request, response);
@@ -201,6 +206,16 @@ public class JwtAuthenticationFilter
          * 인증 상태가 불일치하는 원인이 되므로 제거한다.
          */
         if (authorizationHeader == null || authorizationHeader.isBlank()) {
+            Cookie[] cookies = request.getCookies();
+            if (cookies != null) {
+                for (Cookie cookie : cookies) {
+                    if ("adminAccessToken".equals(cookie.getName())
+                            && cookie.getValue() != null
+                            && !cookie.getValue().isBlank()) {
+                        return cookie.getValue();
+                    }
+                }
+            }
             return null;
         }
 

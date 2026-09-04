@@ -123,12 +123,19 @@ public class AdminAuthServiceImpl
             );
         }
 
-        // 관리자 API 인증에 사용할 Access Token을 생성한다.
+        /*
+         * 관리자 API 인증에 사용할 Access Token을 생성한다.
+         * DB에 저장된 실제 권한(admin.getRole())을 사용해야
+         * MASTER 관리자가 ADMIN으로 강등되어 인증되는 것을 막는다.
+         * 하드코딩된 Role.ADMIN을 사용하면 MASTER 계정도 항상
+         * ADMIN 권한 토큰을 발급받아, MASTER 전용 기능(다른 관리자의
+         * 활성 메뉴 관리 등)에서 서비스 레벨 IDOR 검증에 막혀버린다.
+         */
         String accessToken =
                 jwtTokenProvider.createAccessToken(
                         admin.getId(),
                         admin.getAdminId(),
-                        Role.ADMIN
+                        admin.getRole()
                 );
 
         // Access Token 재발급에 사용할 Refresh Token을 생성한다.
@@ -220,12 +227,12 @@ public class AdminAuthServiceImpl
                 .orElseThrow(() -> new IllegalStateException("사용할 수 없는 관리자 계정입니다."));
         adminRefreshTokenService.validate(admin, rawRefreshToken);
 
-        // 새로운 관리자 Access Token을 생성한다.
+        // 새로운 관리자 Access Token을 생성한다. DB의 실제 권한을 반영한다(로그인과 동일한 이유).
         String newAccessToken =
                 jwtTokenProvider.createAccessToken(
                         admin.getId(),
                         admin.getAdminId(),
-                        Role.ADMIN
+                        admin.getRole()
                 );
 
         // 새로운 관리자 Refresh Token을 생성한다.
