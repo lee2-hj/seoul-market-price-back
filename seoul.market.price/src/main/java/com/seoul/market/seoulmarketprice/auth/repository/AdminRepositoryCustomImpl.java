@@ -3,6 +3,7 @@ package com.seoul.market.seoulmarketprice.auth.repository;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.seoul.market.seoulmarketprice.auth.entity.Admin;
 import com.seoul.market.seoulmarketprice.auth.entity.QAdmin;
+import com.seoul.market.seoulmarketprice.auth.crypto.MemberDataCrypto;
 import lombok.RequiredArgsConstructor;
 import jakarta.persistence.LockModeType;
 import java.util.Optional;
@@ -14,7 +15,7 @@ public class AdminRepositoryCustomImpl implements AdminRepositoryCustom {
 
     public Optional<Admin> findActiveByAdminId(String adminId) {
         return Optional.ofNullable(queryFactory.selectFrom(admin)
-                .where(admin.adminId.eq(adminId), admin.deleted_at.isNull()).fetchOne());
+                .where(admin.adminIdHash.eq(MemberDataCrypto.searchHash("userId", adminId)), admin.deleted_at.isNull()).fetchOne());
     }
     public boolean existsActiveById(Long id) {
         return queryFactory.selectOne().from(admin)

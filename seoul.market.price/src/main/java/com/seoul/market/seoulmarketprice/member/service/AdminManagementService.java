@@ -12,6 +12,7 @@ import com.seoul.market.seoulmarketprice.member.exception.AdminNotFoundException
 import com.seoul.market.seoulmarketprice.member.exception.DuplicateAdminException;
 import com.seoul.market.seoulmarketprice.member.repository.AdminCreationRepository;
 import lombok.RequiredArgsConstructor;
+import java.util.Optional;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -99,14 +100,10 @@ public class AdminManagementService {
         String encodedPassword = request.password() == null
                 ? null : passwordEncoder.encode(request.password());
 
-        return adminCreationRepository.update(
-                        id,
-                        encodedPassword,
-                        request.name(),
-                        request.phone(),
-                        request.email(),
-                        request.role()
-                )
+        Optional<AdminUpdateResponse> updated = request.role() == null
+                ? adminCreationRepository.update(id, encodedPassword, request.name(), request.phone(), request.email())
+                : adminCreationRepository.update(id, encodedPassword, request.name(), request.phone(), request.email(), request.role());
+        return updated
                 .orElseThrow(AdminNotFoundException::new);
     }
 
