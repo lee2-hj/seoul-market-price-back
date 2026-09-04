@@ -235,7 +235,7 @@ class MemberServiceTest {
                 .thenReturn(Optional.of(member));
 
         var response = memberService.agreeToLocationService(
-                1L, new LocationConsentUpdateRequest(true)
+                1L, new LocationConsentUpdateRequest((byte) 1)
         );
 
         assertThat(member.getIsLocationAgreed()).isEqualTo((byte) 1);

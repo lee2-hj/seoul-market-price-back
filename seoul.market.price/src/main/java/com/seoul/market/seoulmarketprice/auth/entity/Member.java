@@ -434,4 +434,11 @@ public class Member {
     public void agreeToLocationService() {
         this.isLocationAgreed = 1;
     }
+
+    public void changeLocationConsent(Byte agreed) {
+        if (agreed == null || (agreed != 0 && agreed != 1)) {
+            throw new IllegalArgumentException("위치 서비스 동의 값은 0 또는 1이어야 합니다.");
+        }
+        this.isLocationAgreed = agreed;
+    }
 }
