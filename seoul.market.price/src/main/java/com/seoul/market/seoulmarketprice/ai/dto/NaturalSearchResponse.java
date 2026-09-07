@@ -44,8 +44,11 @@ public record NaturalSearchResponse(
                 apartmentCandidates, errorCode, interpretation, fields == null ? List.of() : List.copyOf(fields), dataQualityWarnings);
     }
     public NaturalSearchResponse withDataQualityWarnings(List<String> warnings) {
-        return new NaturalSearchResponse(status, intent, message, result, missingFields, candidates,
+        List<String> safeWarnings = warnings == null ? List.of() : List.copyOf(warnings);
+        NaturalSearchStatus responseStatus = status == NaturalSearchStatus.SUCCESS && !safeWarnings.isEmpty()
+                ? NaturalSearchStatus.PARTIAL_DATA : status;
+        return new NaturalSearchResponse(responseStatus, intent, message, result, missingFields, candidates,
                 apartmentCandidates, errorCode, interpretation, inheritedFromContext,
-                warnings == null ? List.of() : List.copyOf(warnings));
+                safeWarnings);
     }
 }

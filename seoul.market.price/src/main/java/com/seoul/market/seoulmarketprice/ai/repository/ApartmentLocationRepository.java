@@ -7,6 +7,11 @@ public interface ApartmentLocationRepository {
     boolean isAvailable();
     String datasetLocation();
     List<ApartmentLocation> findCandidates(double latitude, double longitude, int radiusMeters);
+
+    /** Quality warnings for the currently loaded dataset partition. */
+    default List<String> dataQualityWarnings() {
+        return List.of();
+    }
     default List<ApartmentLocation> findByRegion(String sggCode, String dongCode) {
         return List.of();
     }
