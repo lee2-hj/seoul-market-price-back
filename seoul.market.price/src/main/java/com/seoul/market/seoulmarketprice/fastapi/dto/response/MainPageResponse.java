@@ -15,6 +15,9 @@ public record MainPageResponse(
         @JsonProperty("period_end")
         String periodEnd,
 
+        @JsonProperty("preference_base_date")
+        String preferenceBaseDate,
+
         @JsonProperty("seoul_top5_districts")
         List<DistrictDto> seoulTop5Districts,
 
@@ -31,7 +34,10 @@ public record MainPageResponse(
         PopularDongDto preferencePopularDong,
 
         @JsonProperty("preference_top_trading_apts")
-        List<TradingAptDto> preferenceTopTradingApts
+        List<TradingAptDto> preferenceTopTradingApts,
+
+        @JsonProperty("apt_recent_rank")
+        AptRecentRankDto aptRecentRank
 
 ) {
     public record DistrictDto(
@@ -96,6 +102,9 @@ public record MainPageResponse(
             @JsonProperty("cgg_nm")
             String cggNm,
 
+            @JsonProperty("stdg_cd")
+            String stdgCd,
+
             @JsonProperty("stdg_nm")
             String stdgNm
     ){}
@@ -109,5 +118,48 @@ public record MainPageResponse(
 
             @JsonProperty("deal_cnt")
             Integer dealCnt
+    ){}
+
+    public record AptRecentRankDto(
+            @JsonProperty("sgg_cd")
+            String sggCd,
+
+            @JsonProperty("sgg_nm")
+            String sggNm,
+
+            @JsonProperty("dong_cd")
+            String dongCd,
+
+            @JsonProperty("dong_nm")
+            String dongNm,
+
+            @JsonProperty("period_start")
+            String periodStart,
+
+            @JsonProperty("period_end")
+            String periodEnd,
+
+            @JsonProperty("top")
+            List<AptRecentRankItemDto> top,
+
+            @JsonProperty("bottom")
+            List<AptRecentRankItemDto> bottom
+    ){}
+
+    public record AptRecentRankItemDto(
+            @JsonProperty("apt_name")
+            String aptName,
+
+            @JsonProperty("exclusive_area_m2")
+            Double exclusiveAreaM2,
+
+            @JsonProperty("pyeong")
+            Integer pyeong,
+
+            @JsonProperty("floor")
+            Integer floor,
+
+            @JsonProperty("trade_amount")
+            Double tradeAmount
     ){}
 }
