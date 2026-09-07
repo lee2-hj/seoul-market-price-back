@@ -3,6 +3,7 @@ package com.seoul.market.seoulmarketprice.member.repository;
 import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminListResponse;
 import com.seoul.market.seoulmarketprice.member.dto.response.admin.AdminUpdateResponse;
 import com.seoul.market.seoulmarketprice.auth.entity.Role;
+import com.seoul.market.seoulmarketprice.auth.crypto.MemberDataCrypto;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
@@ -26,9 +27,9 @@ public class AdminCreationRepository {
     /** 관리자 로그인 아이디의 중복 여부를 확인한다. */
     public boolean existsByAdminId(String adminId) {
         Long count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM tb_member WHERE user_id = ?",
+                "SELECT COUNT(*) FROM tb_member WHERE user_id_hash = ?",
                 Long.class,
-                adminId
+                MemberDataCrypto.searchHash("userId", adminId)
         );
         return count != null && count > 0;
     }
@@ -55,9 +56,9 @@ public class AdminCreationRepository {
                 """,
                 (resultSet, rowNum) -> new AdminListResponse(
                         resultSet.getLong("id"),
-                        resultSet.getString("user_id"),
-                        resultSet.getString("name"),
-                        resultSet.getString("phone"),
+                        MemberDataCrypto.decrypt("userId", resultSet.getString("user_id")),
+                        MemberDataCrypto.decrypt("name", resultSet.getString("name")),
+                        MemberDataCrypto.decrypt("phone", resultSet.getString("phone")),
                         resultSet.getString("email"),
                         Role.valueOf(resultSet.getString("role")),
                         resultSet.getTimestamp("created_at") == null
@@ -84,12 +85,14 @@ public class AdminCreationRepository {
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
             PreparedStatement statement = connection.prepareStatement(
-                    "INSERT INTO tb_member (user_id, password, name) VALUES (?, ?, ?)",
+                    "INSERT INTO tb_member (user_id, user_id_hash, password, name, name_hash) VALUES (?, ?, ?, ?, ?)",
                     Statement.RETURN_GENERATED_KEYS
             );
-            statement.setString(1, adminId);
-            statement.setString(2, password);
-            statement.setString(3, name);
+            statement.setString(1, MemberDataCrypto.encrypt("userId", adminId));
+            statement.setString(2, MemberDataCrypto.searchHash("userId", adminId));
+            statement.setString(3, password);
+            statement.setString(4, MemberDataCrypto.encrypt("name", name));
+            statement.setString(5, MemberDataCrypto.searchHash("name", name));
             return statement;
         }, keyHolder);
         Number key = keyHolder.getKey();
@@ -104,11 +107,16 @@ public class AdminCreationRepository {
                 """
                 UPDATE tb_member
                 SET password = COALESCE(?, password), name = COALESCE(?, name),
-                    phone = COALESCE(?, phone), email = COALESCE(?, email), role = COALESCE(?, role),
+                    phone = COALESCE(?, phone), name_hash = COALESCE(?, name_hash), phone_hash = COALESCE(?, phone_hash),
+                    email = COALESCE(?, email), role = COALESCE(?, role),
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ? AND deleted_at IS NULL
                 """,
-                password, name, phone, email, role == null ? null : role.name(), id
+                password, name == null ? null : MemberDataCrypto.encrypt("name", name),
+                phone == null ? null : MemberDataCrypto.encrypt("phone", phone),
+                name == null ? null : MemberDataCrypto.searchHash("name", name),
+                phone == null ? null : MemberDataCrypto.searchHash("phone", phone),
+                email, role == null ? null : role.name(), id
         );
         if (updatedRows == 0) {
             return Optional.empty();

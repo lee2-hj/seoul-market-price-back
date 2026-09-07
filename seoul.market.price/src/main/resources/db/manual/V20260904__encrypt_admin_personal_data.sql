@@ -1,0 +1,7 @@
+ALTER TABLE tb_member
+    MODIFY COLUMN user_id VARCHAR(512) NOT NULL,
+    MODIFY COLUMN name VARCHAR(512) NOT NULL,
+    MODIFY COLUMN phone VARCHAR(512),
+    ADD COLUMN user_id_hash VARCHAR(43),
+    ADD COLUMN name_hash VARCHAR(43),
+    ADD COLUMN phone_hash VARCHAR(43);

@@ -24,6 +24,7 @@ public class MemberDataMigrationRunner implements ApplicationRunner {
     @Transactional
     public void run(ApplicationArguments args) {
         expandLegacyGeneratedColumns();
+        migrateAdmins();
         List<MemberRow> rows = jdbcTemplate.query("""
                 SELECT id, user_id, name, phone, ci
                 FROM tb_user
@@ -54,6 +55,24 @@ public class MemberDataMigrationRunner implements ApplicationRunner {
         log.info("tb_user 개인정보 평문 마이그레이션 완료: {}건", rows.size());
     }
 
+    private void migrateAdmins() {
+        List<AdminRow> rows = jdbcTemplate.query("""
+                SELECT id, user_id, name, phone FROM tb_member
+                WHERE user_id NOT LIKE ? OR name NOT LIKE ?
+                   OR (phone IS NOT NULL AND phone <> '' AND phone NOT LIKE ?)
+                FOR UPDATE
+                """, (rs, rowNum) -> new AdminRow(rs.getLong("id"), rs.getString("user_id"),
+                rs.getString("name"), rs.getString("phone")), ENCRYPTED_PREFIX, ENCRYPTED_PREFIX, ENCRYPTED_PREFIX);
+        for (AdminRow row : rows) {
+            jdbcTemplate.update("""
+                    UPDATE tb_member SET user_id = ?, user_id_hash = ?, name = ?, name_hash = ?, phone = ?, phone_hash = ? WHERE id = ?
+                    """, encryptIfPlain("userId", row.userId()), hashPlainOrEncrypted("userId", row.userId()),
+                    encryptIfPlain("name", row.name()), hashPlainOrEncrypted("name", row.name()),
+                    encryptIfPlain("phone", row.phone()), hashPlainOrEncrypted("phone", row.phone()), row.id());
+        }
+        log.info("tb_member 관리자 개인정보 마이그레이션 완료: {}건", rows.size());
+    }
+
     private void expandLegacyGeneratedColumns() {
         jdbcTemplate.execute("""
                 ALTER TABLE tb_user
@@ -61,6 +80,12 @@ public class MemberDataMigrationRunner implements ApplicationRunner {
                     GENERATED ALWAYS AS (CASE WHEN deleted_at IS NULL THEN user_id ELSE NULL END) STORED,
                 MODIFY COLUMN active_ci VARCHAR(512)
                     GENERATED ALWAYS AS (CASE WHEN deleted_at IS NULL THEN ci ELSE NULL END) STORED
+                """);
+        jdbcTemplate.execute("""
+                ALTER TABLE tb_member
+                MODIFY COLUMN user_id VARCHAR(512) NOT NULL,
+                MODIFY COLUMN name VARCHAR(512) NOT NULL,
+                MODIFY COLUMN phone VARCHAR(512)
                 """);
     }
 
@@ -75,4 +100,5 @@ public class MemberDataMigrationRunner implements ApplicationRunner {
     }
 
     private record MemberRow(Long id, String userId, String name, String phone, String ci) {}
+    private record AdminRow(Long id, String userId, String name, String phone) {}
 }

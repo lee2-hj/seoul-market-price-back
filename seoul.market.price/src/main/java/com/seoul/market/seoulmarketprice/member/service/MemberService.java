@@ -156,7 +156,7 @@ public class MemberService {
     ) {
         Member member = memberManagementRepository.findActiveByIdForUpdate(memberId)
                 .orElseThrow(MemberNotFoundException::new);
-        member.agreeToLocationService();
+        member.changeLocationConsent(request.agreed());
         return MemberResponse.from(member);
     }
 
