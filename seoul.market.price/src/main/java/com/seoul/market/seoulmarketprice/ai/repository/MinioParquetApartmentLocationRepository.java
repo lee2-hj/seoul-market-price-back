@@ -60,6 +60,13 @@ public class MinioParquetApartmentLocationRepository implements ApartmentLocatio
     }
 
     @Override
+    public List<String> dataQualityWarnings() {
+        locations();
+        Cache current = cache;
+        return current == null ? List.of() : current.qualityWarnings();
+    }
+
+    @Override
     public List<ApartmentLocation> findCandidates(double latitude, double longitude, int radiusMeters) {
         double latitudeDelta = radiusMeters / 111_320.0;
         double longitudeScale = Math.max(0.01, Math.cos(Math.toRadians(latitude)));
@@ -133,8 +140,9 @@ public class MinioParquetApartmentLocationRepository implements ApartmentLocatio
                     .filter(name -> partition.equals(partitionOf(name)))
                     .toList();
             List<ApartmentLocation> loaded = new ArrayList<>();
+            QualityStats quality = new QualityStats();
             for (String objectName : latestObjects) {
-                loaded.addAll(readParquet(objectName));
+                loaded.addAll(readParquet(objectName, quality));
             }
             Map<String, ApartmentAccumulator> unique = new LinkedHashMap<>();
             for (ApartmentLocation location : loaded) {
@@ -147,7 +155,7 @@ public class MinioParquetApartmentLocationRepository implements ApartmentLocatio
                     .toList();
             log.info("아파트 위치 데이터셋 적재 완료: partition={}, files={}, rows={}",
                     partition, latestObjects.size(), locations.size());
-            return new Cache(partition, locations, loadedAtMillis);
+            return new Cache(partition, locations, loadedAtMillis, quality.warnings());
         } catch (Exception exception) {
             throw new IllegalStateException("MinIO Parquet 데이터셋 조회에 실패했습니다.", exception);
         }
@@ -167,7 +175,7 @@ public class MinioParquetApartmentLocationRepository implements ApartmentLocatio
         return names;
     }
 
-    private List<ApartmentLocation> readParquet(String objectName) throws Exception {
+    private List<ApartmentLocation> readParquet(String objectName, QualityStats quality) throws Exception {
         byte[] bytes;
         try (GetObjectResponse response = minioClient.getObject(GetObjectArgs.builder()
                 .bucket(properties.bucket())
@@ -188,6 +196,8 @@ public class MinioParquetApartmentLocationRepository implements ApartmentLocatio
                 }
                 Double latitude = number(row, "latitude");
                 Double longitude = number(row, "longitude");
+                quality.add(latitude, longitude, optionalBoolean(row, "is_exact_location"),
+                        optionalText(row, "apartment_match_status"));
                 String cggCode = text(row, "cgg_cd");
                 String dongCode = text(row, "stdg_cd");
                 String mainNumber = text(row, "mno");
@@ -256,6 +266,16 @@ public class MinioParquetApartmentLocationRepository implements ApartmentLocatio
         return value == null ? null : value.toString();
     }
 
+    private String optionalText(GenericRecord row, String field) {
+        return row.getSchema().getField(field) == null ? null : text(row, field);
+    }
+
+    private Boolean optionalBoolean(GenericRecord row, String field) {
+        if (row.getSchema().getField(field) == null) return null;
+        Object value = row.get(field);
+        return value instanceof Boolean bool ? bool : null;
+    }
+
     private Double number(GenericRecord row, String field) {
         Object value = row.get(field);
         return value instanceof Number number ? number.doubleValue() : null;
@@ -313,7 +333,34 @@ public class MinioParquetApartmentLocationRepository implements ApartmentLocatio
         return area == null ? "unknown" : String.format(java.util.Locale.ROOT, "%.2f", area);
     }
 
-    private record Cache(String partition, List<ApartmentLocation> locations, long loadedAtMillis) {}
+    private record Cache(String partition, List<ApartmentLocation> locations, long loadedAtMillis,
+                         List<String> qualityWarnings) {}
+
+    private static final class QualityStats {
+        private long total;
+        private long missingCoordinates;
+        private long approximateCoordinates;
+        private long unmatchedApartments;
+
+        private void add(Double latitude, Double longitude, Boolean exact, String matchStatus) {
+            total++;
+            if (latitude == null || longitude == null) missingCoordinates++;
+            else if (Boolean.FALSE.equals(exact)) approximateCoordinates++;
+            if (matchStatus != null && !"MATCHED".equals(matchStatus)) unmatchedApartments++;
+        }
+
+        private List<String> warnings() {
+            if (total == 0) return List.of();
+            List<String> warnings = new ArrayList<>();
+            if (unmatchedApartments > 0) warnings.add(
+                    "최신 가격 데이터 일부가 단지 마스터와 매칭되지 않았습니다: " + unmatchedApartments + "/" + total + "행");
+            if (missingCoordinates > 0) warnings.add(
+                    "최신 가격 데이터 일부에 위치 좌표가 없습니다: " + missingCoordinates + "/" + total + "행");
+            if (approximateCoordinates > 0) warnings.add(
+                    "일부 위치는 법정동 중심 좌표를 사용합니다: " + approximateCoordinates + "/" + total + "행");
+            return List.copyOf(warnings);
+        }
+    }
 
     private static final class ApartmentAccumulator {
         private final ApartmentLocation representative;

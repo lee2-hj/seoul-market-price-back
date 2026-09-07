@@ -10,6 +10,7 @@ import com.seoul.market.seoulmarketprice.ai.query.PlaceScopeResolver;
 import com.seoul.market.seoulmarketprice.ai.query.RegionScopeResolver;
 import com.seoul.market.seoulmarketprice.ai.query.ScopeResolverChain;
 import com.seoul.market.seoulmarketprice.ai.query.SearchScope;
+import com.seoul.market.seoulmarketprice.ai.repository.ApartmentLocationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
@@ -38,6 +39,7 @@ public class NaturalLanguageSearchService {
     private final ConversationContextMerger conversationContextMerger;
     private final PriceAnomalyDetector priceAnomalyDetector;
     private final SggMasterRepository sggRepository;
+    private final ApartmentLocationRepository apartmentLocationRepository;
 
     @Autowired
     public NaturalLanguageSearchService(QuestionIntentClassifier classifier, LocationMasterService locationService,
@@ -53,7 +55,8 @@ public class NaturalLanguageSearchService {
                                         ConversationContextStore conversationContextStore,
                                         ConversationContextMerger conversationContextMerger,
                                         PriceAnomalyDetector priceAnomalyDetector,
-                                        SggMasterRepository sggRepository) {
+                                        SggMasterRepository sggRepository,
+                                        ApartmentLocationRepository apartmentLocationRepository) {
         this.classifier = classifier;
         this.locationService = locationService;
         this.questionAnalysisService = questionAnalysisService;
@@ -69,6 +72,7 @@ public class NaturalLanguageSearchService {
         this.conversationContextMerger = conversationContextMerger;
         this.priceAnomalyDetector = priceAnomalyDetector;
         this.sggRepository = sggRepository;
+        this.apartmentLocationRepository = apartmentLocationRepository;
     }
 
     /** Compatibility constructor retained for existing unit tests and legacy wiring. */
@@ -85,7 +89,7 @@ public class NaturalLanguageSearchService {
         this(classifier, locationService, questionAnalysisService, ragAnswerService, executionPlanMapper,
                 executionPlanValidator, searchPlanNormalizer, scopeResolverChain, dataSourceAdapterRegistry,
                 executionRouter, preferenceRegionResolver,
-                new InMemoryConversationContextStore(Duration.ofMinutes(15)), new ConversationContextMerger(), null, null);
+                new InMemoryConversationContextStore(Duration.ofMinutes(15)), new ConversationContextMerger(), null, null, null);
     }
 
     /** 기존 단위 테스트와의 생성자 호환을 위한 보조 생성자. 애플리케이션에서는 주입 생성자를 사용한다. */
@@ -107,7 +111,7 @@ public class NaturalLanguageSearchService {
                         districtRankingService, topBottomService, rankingSearchService, tradeTrendSearchService,
                         nearestApartmentPriceSearchService, null, null, null, null),
                 new PreferenceRegionResolver(null, null),
-                new InMemoryConversationContextStore(Duration.ofMinutes(15)), new ConversationContextMerger(), null, null);
+                new InMemoryConversationContextStore(Duration.ofMinutes(15)), new ConversationContextMerger(), null, null, null);
     }
 
     public NaturalSearchResponse search(String question) {
@@ -218,12 +222,20 @@ public class NaturalLanguageSearchService {
     }
 
     private List<String> anomalyWarnings(Object result, QuestionAnalysisResponse analysis) {
-        if (priceAnomalyDetector == null || sggRepository == null || !(result instanceof PriceRankingResponse ranking)) return List.of();
+        List<String> warnings = new ArrayList<>();
+        if (apartmentLocationRepository != null) {
+            warnings.addAll(apartmentLocationRepository.dataQualityWarnings());
+        }
+        if (priceAnomalyDetector == null || sggRepository == null || !(result instanceof PriceRankingResponse ranking)) {
+            return List.copyOf(warnings);
+        }
         String district = analysis.regions() == null ? null : analysis.regions().stream()
                 .filter(region -> "DISTRICT".equals(region.type())).map(QuestionAnalysisResponse.AnalyzedRegion::name).findFirst().orElse(null);
-        if (district == null || district.isBlank()) return List.of();
-        return sggRepository.findBySggName(district).map(sgg -> priceAnomalyDetector.checkRankingItems(sgg.getSggCode(), ranking.items())
-                .stream().map(PriceAnomalyDetector.AnomalyWarning::message).toList()).orElse(List.of());
+        if (district == null || district.isBlank()) return List.copyOf(warnings);
+        sggRepository.findBySggName(district).ifPresent(sgg -> warnings.addAll(
+                priceAnomalyDetector.checkRankingItems(sgg.getSggCode(), ranking.items())
+                        .stream().map(PriceAnomalyDetector.AnomalyWarning::message).toList()));
+        return List.copyOf(warnings);
     }
 
     private String normalizedSessionId(String sessionId) {
