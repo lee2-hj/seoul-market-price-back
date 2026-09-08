@@ -253,7 +253,6 @@ public class BoardService {
     private BoardListResponse toListResponse(Board board) {
         return new BoardListResponse(
                 board.getId(),
-                board.getId(),
                 board.getPostType(),
                 board.getTitle(),
                 board.getWriterUserId(),
@@ -267,7 +266,7 @@ public class BoardService {
 
     private AdminBoardListResponse toAdminListResponse(Board board) {
         return new AdminBoardListResponse(
-                board.getId(), board.getId(), board.getPostType(), board.getTitle(),
+                board.getId(), board.getPostType(), board.getTitle(),
                 board.getContent(), board.getWriterUserId(), board.getWriterName(), board.getMemberId(),
                 board.getViewCount(), board.isVisible(), board.isPinned(), board.getCreatedAt()
         );

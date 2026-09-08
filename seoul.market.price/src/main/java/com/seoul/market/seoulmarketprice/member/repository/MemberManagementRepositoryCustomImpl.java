@@ -1,11 +1,15 @@
 package com.seoul.market.seoulmarketprice.member.repository;
 
+import com.querydsl.core.Tuple;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.CaseBuilder;
+import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.seoul.market.seoulmarketprice.auth.crypto.MemberDataCrypto;
 import com.seoul.market.seoulmarketprice.auth.entity.Member;
 import com.seoul.market.seoulmarketprice.auth.entity.QMember;
 import com.seoul.market.seoulmarketprice.auth.entity.UserType;
+import com.seoul.market.seoulmarketprice.phoneverification.dto.response.MembershipStatus;
 import jakarta.persistence.LockModeType;
 import lombok.RequiredArgsConstructor;
 import java.util.Optional;
@@ -18,10 +22,25 @@ public class MemberManagementRepositoryCustomImpl implements MemberManagementRep
 
     public boolean existsActiveByUserId(String userId) { return exists(member.userIdHash.eq(hash("userId", userId)).and(active())); }
     public boolean existsActiveByPhone(String phone) { return exists(member.phoneHash.eq(hash("phone", phone)).and(active())); }
-    public boolean existsActiveByCi(String ci) { return exists(member.ciHash.eq(hash("ci", ci)).and(active())); }
-    public boolean existsAnyByCi(String ci) { return exists(member.ciHash.eq(hash("ci", ci))); }
     public boolean existsActiveByNameAndPhone(String name, String phone) {
         return exists(member.nameHash.eq(hash("name", name)).and(member.phoneHash.eq(hash("phone", phone))).and(active()));
+    }
+    @Override
+    public MembershipStatus findMembershipStatusByNameAndPhone(String name, String phone) {
+        NumberExpression<Long> activeCountExpression = new CaseBuilder()
+                .when(member.deleted_at.isNull()).then(1L).otherwise(0L).sum();
+        Tuple counts = queryFactory.select(member.count(), activeCountExpression)
+                .from(member)
+                .where(member.nameHash.eq(hash("name", name)), member.phoneHash.eq(hash("phone", phone)))
+                .fetchOne();
+
+        long totalCount = counts == null || counts.get(member.count()) == null
+                ? 0L : counts.get(member.count());
+        long activeCount = counts == null || counts.get(activeCountExpression) == null
+                ? 0L : counts.get(activeCountExpression);
+
+        if (totalCount == 0) return MembershipStatus.NEW;
+        return activeCount > 0 ? MembershipStatus.ACTIVE : MembershipStatus.WITHDRAWN;
     }
     public Optional<Member> findActiveLocalByUserIdForCiRegistration(String userId) {
         return locked(member.userIdHash.eq(hash("userId", userId)).and(member.userType.eq(UserType.LOCAL)).and(active()));
@@ -55,5 +74,17 @@ public class MemberManagementRepositoryCustomImpl implements MemberManagementRep
                 .setLockMode(LockModeType.PESSIMISTIC_WRITE).fetchOne());
     }
     private BooleanExpression active() { return member.deleted_at.isNull(); }
-    private String hash(String field, String value) { return MemberDataCrypto.searchHash(field, value); }
+    private String hash(String field, String value) {
+        return MemberDataCrypto.searchHash(
+                field,
+                "phone".equals(field) ? canonicalPhone(value) : value
+        );
+    }
+
+    private String canonicalPhone(String phone) {
+        String digits = phone == null ? "" : phone.replaceAll("\\D", "");
+        return digits.length() == 11
+                ? digits.substring(0, 3) + "-" + digits.substring(3, 7) + "-" + digits.substring(7)
+                : phone;
+    }
 }
