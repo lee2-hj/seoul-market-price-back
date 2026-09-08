@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.util.StringUtils;
 
 @Service
-@Transactional(readOnly = true)
 public class FastApiService {
 
     private final RestClient restClient;
