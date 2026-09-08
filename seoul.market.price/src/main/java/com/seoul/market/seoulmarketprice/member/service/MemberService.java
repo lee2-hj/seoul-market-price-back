@@ -18,6 +18,7 @@ import com.seoul.market.seoulmarketprice.member.repository.MemberManagementRepos
 import com.seoul.market.seoulmarketprice.location.repository.SggMasterRepository;
 import com.seoul.market.seoulmarketprice.phoneverification.dto.request.PhoneVerificationConfirmRequest;
 import com.seoul.market.seoulmarketprice.phoneverification.dto.response.PhoneVerificationConfirmResponse;
+import com.seoul.market.seoulmarketprice.phoneverification.dto.response.MembershipStatus;
 import com.seoul.market.seoulmarketprice.phoneverification.service.PhoneVerificationService;
 import com.seoul.market.seoulmarketprice.token.service.RefreshTokenService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -213,10 +214,6 @@ public class MemberService {
             throw new DuplicateMemberException("이미 사용 중인 전화번호입니다.");
         }
 
-        if (memberManagementRepository.existsActiveByCi(verification.ci())) {
-            throw new DuplicateMemberException("이미 가입된 본인인증 정보입니다.");
-        }
-
         Member member = request.toEntity(
                 passwordEncoder.encode(request.password()),
                 verification.ci()
@@ -281,13 +278,9 @@ public class MemberService {
     //일반 회원 가입 시 이미 등록 된 회원인지 체크
     public MemberCheckResponse checkMember(MemberCheckRequest request) {
 
-        boolean check = memberManagementRepository.existsActiveByNameAndPhone(
-                request.name(),
-                request.phone()
-        );
-
-        boolean isDuple = check;
-
-        return new MemberCheckResponse(isDuple);
+        MembershipStatus membershipStatus = memberManagementRepository
+                .findMembershipStatusByNameAndPhone(request.name(), request.phone());
+        boolean isActive = membershipStatus == MembershipStatus.ACTIVE;
+        return new MemberCheckResponse(isActive, membershipStatus, !isActive);
     }
 }

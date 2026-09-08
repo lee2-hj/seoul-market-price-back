@@ -14,6 +14,7 @@ import com.seoul.market.seoulmarketprice.member.exception.DuplicateMemberExcepti
 import com.seoul.market.seoulmarketprice.member.repository.MemberManagementRepository;
 import com.seoul.market.seoulmarketprice.phoneverification.dto.request.PhoneVerificationConfirmRequest;
 import com.seoul.market.seoulmarketprice.phoneverification.dto.response.PhoneVerificationConfirmResponse;
+import com.seoul.market.seoulmarketprice.phoneverification.dto.response.MembershipStatus;
 import com.seoul.market.seoulmarketprice.phoneverification.service.PhoneVerificationService;
 import com.seoul.market.seoulmarketprice.token.service.RefreshTokenService;
 import org.junit.jupiter.api.BeforeEach;
@@ -122,20 +123,22 @@ class MemberServiceTest {
     }
 
     @Test
-    void checkMemberOnlyReportsActiveMembersAsDuplicated() {
+    void checkMemberReturnsWithdrawnStatusWhenOnlyWithdrawnMembersMatch() {
         MemberCheckRequest request = new MemberCheckRequest(
                 "market member",
                 "010-1234-5678"
         );
-        when(memberManagementRepository.existsActiveByNameAndPhone(
+        when(memberManagementRepository.findMembershipStatusByNameAndPhone(
                 request.name(),
                 request.phone()
-        )).thenReturn(false);
+        )).thenReturn(MembershipStatus.WITHDRAWN);
 
         MemberCheckResponse response = memberService.checkMember(request);
 
         assertThat(response.isduplicated()).isFalse();
-        verify(memberManagementRepository).existsActiveByNameAndPhone(
+        assertThat(response.membershipStatus()).isEqualTo(MembershipStatus.WITHDRAWN);
+        assertThat(response.signupAllowed()).isTrue();
+        verify(memberManagementRepository).findMembershipStatusByNameAndPhone(
                 request.name(),
                 request.phone()
         );
@@ -181,10 +184,8 @@ class MemberServiceTest {
         assertThat(member.isDeleted()).isTrue();
         assertThat(member.getDeleted_at()).isNotNull();
         assertThat(member.getUserId()).startsWith("wd:1:");
-        assertThat(member.getCi()).startsWith("wd:1:");
-        assertThat(member.getPhone()).startsWith("wd:1:");
-        assertThat(member.getUserId()).isEqualTo(member.getCi());
-        assertThat(member.getPhone()).isEqualTo(member.getCi());
+        assertThat(member.getCi()).isNull();
+        assertThat(member.getPhone()).isEqualTo("010-1234-5678");
         verify(refreshTokenService).clear(member);
     }
 

@@ -101,7 +101,9 @@ public class PhoneVerificationService {
                 request.identityVerificationId()
         );
 
-        MembershipStatus membershipStatus = resolveMembershipStatus(verifiedCustomer.ci());
+        MembershipStatus membershipStatus = resolveMembershipStatus(
+                verifiedCustomer.name(), verifiedCustomer.phoneNumber()
+        );
 
         return new PhoneVerificationConfirmResponse(
                 true,
@@ -116,12 +118,7 @@ public class PhoneVerificationService {
         );
     }
 
-    private MembershipStatus resolveMembershipStatus(String ci) {
-        if (memberManagementRepository.existsActiveByCi(ci)) {
-            return MembershipStatus.ACTIVE;
-        }
-        return memberManagementRepository.existsAnyByCi(ci)
-                ? MembershipStatus.WITHDRAWN
-                : MembershipStatus.NEW;
+    private MembershipStatus resolveMembershipStatus(String name, String phoneNumber) {
+        return memberManagementRepository.findMembershipStatusByNameAndPhone(name, phoneNumber);
     }
 }
