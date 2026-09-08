@@ -77,9 +77,7 @@ public class MemberDataMigrationRunner implements ApplicationRunner {
         jdbcTemplate.execute("""
                 ALTER TABLE tb_user
                 MODIFY COLUMN active_user_id VARCHAR(512)
-                    GENERATED ALWAYS AS (CASE WHEN deleted_at IS NULL THEN user_id ELSE NULL END) STORED,
-                MODIFY COLUMN active_ci VARCHAR(512)
-                    GENERATED ALWAYS AS (CASE WHEN deleted_at IS NULL THEN ci ELSE NULL END) STORED
+                    GENERATED ALWAYS AS (CASE WHEN deleted_at IS NULL THEN user_id ELSE NULL END) STORED
                 """);
         jdbcTemplate.execute("""
                 ALTER TABLE tb_member

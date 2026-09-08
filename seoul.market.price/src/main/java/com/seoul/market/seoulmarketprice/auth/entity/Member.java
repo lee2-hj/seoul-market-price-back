@@ -199,9 +199,6 @@ public class Member {
     @Column(name = "ci", length = 512, comment = "PASS 본인인증 CI")
     private String ci;
 
-    @Column(name = "ci_hash", length = 43)
-    private String ciHash;
-
     /**
      * 이메일 주소.
      */
@@ -295,7 +292,6 @@ public class Member {
         this.userIdHash = MemberDataCrypto.searchHash("userId", userId);
         this.nameHash = MemberDataCrypto.searchHash("name", name);
         this.phoneHash = MemberDataCrypto.searchHash("phone", phone);
-        this.ciHash = MemberDataCrypto.searchHash("ci", ci);
     }
 
     /**
@@ -338,8 +334,6 @@ public class Member {
                 .substring(0, 16);
 
         this.userId = withdrawnMarker;
-        this.ci = withdrawnMarker;
-        this.phone = withdrawnMarker;
         this.deleted_at = now;
         this.updated_at = now;
     }

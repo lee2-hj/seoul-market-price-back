@@ -80,8 +80,7 @@ public class PasswordResetService {
                     member.getPhone()
             );
             if (!member.getName().trim().equals(verification.name().trim())
-                    || !memberPhone.equals(verifiedPhone)
-                    || memberManagementRepository.existsActiveByCi(verifiedCi)) {
+                    || !memberPhone.equals(verifiedPhone)) {
                 throw new IllegalArgumentException(MEMBER_MISMATCH_MESSAGE);
             }
             member.registerCi(verifiedCi);
