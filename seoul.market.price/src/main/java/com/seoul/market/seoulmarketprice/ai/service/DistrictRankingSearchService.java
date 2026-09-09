@@ -63,7 +63,8 @@ public class DistrictRankingSearchService {
         RankingCriteria criteria = new RankingCriteria("평균 평당 가격", "만원/평",
                 baseDate == null ? "최근 집계 기간" : baseDate + " 기준",
                 MINIMUM_TRADE_COUNT, ascending ? "낮은 순" : "높은 순");
-        return new DistrictRankingResponse("서울 전체", "district_pyeong", baseDate, criteria, items);
+        return new DistrictRankingResponse("서울 전체", "district_pyeong", baseDate, criteria, items,
+                RankingSummaryFactory.district("서울 전체", criteria, items.size()));
     }
 
     private int limit(String question) {

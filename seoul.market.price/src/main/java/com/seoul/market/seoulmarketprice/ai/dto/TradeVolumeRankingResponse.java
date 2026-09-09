@@ -9,8 +9,13 @@ public record TradeVolumeRankingResponse(
         String periodEnd,
         int totalDealCount,
         RankingCriteria criteria,
-        List<Item> items
+        List<Item> items,
+        String summary
 ) {
+    public TradeVolumeRankingResponse(String regionName, String periodStart, String periodEnd, int totalDealCount,
+                                      RankingCriteria criteria, List<Item> items) {
+        this(regionName, periodStart, periodEnd, totalDealCount, criteria, items, null);
+    }
     public record Item(
             int rank,
             String regionName,

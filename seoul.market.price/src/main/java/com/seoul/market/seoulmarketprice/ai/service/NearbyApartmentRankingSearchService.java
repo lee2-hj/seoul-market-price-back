@@ -82,9 +82,11 @@ public class NearbyApartmentRankingSearchService {
                             apartment.averageTradeAmount(), apartment.dealCount());
                 }).toList();
 
-        return new PriceRankingResponse(place.name() + " 주변 " + radiusLabel,
+        String regionName = place.name() + " 주변 " + radiusLabel;
+        RankingCriteria criteria = new RankingCriteria("평균 거래가", "만원", period, MINIMUM_TRADE_COUNT, "높은 순");
+        return new PriceRankingResponse(regionName,
                 "AVERAGE_TRADE_AMOUNT", baseDate,
-                new RankingCriteria("평균 거래가", "만원", period, MINIMUM_TRADE_COUNT, "높은 순"), items);
+                criteria, items, RankingSummaryFactory.apartment(regionName, criteria, items.size()));
     }
 
     private NearbyApartmentResponse searchRankableApartments(PlaceResolutionResponse.PlaceCandidate place, int radius,
