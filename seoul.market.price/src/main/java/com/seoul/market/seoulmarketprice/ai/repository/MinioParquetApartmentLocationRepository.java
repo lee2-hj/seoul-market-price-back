@@ -67,6 +67,16 @@ public class MinioParquetApartmentLocationRepository implements ApartmentLocatio
     }
 
     @Override
+    public synchronized DatasetRefreshResult refresh() {
+        Cache refreshed = loadLatestPartition(System.currentTimeMillis());
+        cache = refreshed;
+        return new DatasetRefreshResult(
+                properties.location() + refreshed.partition() + "/",
+                refreshed.locations().size(),
+                refreshed.qualityWarnings());
+    }
+
+    @Override
     public List<ApartmentLocation> findCandidates(double latitude, double longitude, int radiusMeters) {
         double latitudeDelta = radiusMeters / 111_320.0;
         double longitudeScale = Math.max(0.01, Math.cos(Math.toRadians(latitude)));
