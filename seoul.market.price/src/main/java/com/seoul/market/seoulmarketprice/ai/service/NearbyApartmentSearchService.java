@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Predicate;
 
 @Service
 public class NearbyApartmentSearchService {
@@ -21,6 +22,10 @@ public class NearbyApartmentSearchService {
     }
 
     public NearbyApartmentResponse search(NearbyApartmentRequest request) {
+        return search(request, ignored -> true);
+    }
+
+    NearbyApartmentResponse search(NearbyApartmentRequest request, Predicate<ApartmentLocation> preFilter) {
         validateCoordinates(request.latitude(), request.longitude());
         int limit = request.limit() == null ? DEFAULT_LIMIT : request.limit();
         if (limit < 1 || limit > 50) throw new IllegalArgumentException("조회 개수는 1~50개여야 합니다.");
@@ -36,6 +41,7 @@ public class NearbyApartmentSearchService {
             List<NearbyApartmentResponse.ApartmentCandidate> apartments = repository
                     .findCandidates(request.latitude(), request.longitude(), radius).stream()
                     .filter(this::hasValidCoordinates)
+                    .filter(preFilter)
                     .map(item -> toCandidate(item, request.latitude(), request.longitude()))
                     .filter(item -> item.distanceMeters() <= radius)
                     .sorted(Comparator.comparingLong(NearbyApartmentResponse.ApartmentCandidate::distanceMeters)

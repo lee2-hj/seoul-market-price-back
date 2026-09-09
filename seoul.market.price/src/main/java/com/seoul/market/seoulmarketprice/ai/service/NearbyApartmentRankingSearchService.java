@@ -22,6 +22,8 @@ public class NearbyApartmentRankingSearchService {
     private static final int CANDIDATE_LIMIT = 50;
     private static final int MINIMUM_TRADE_COUNT = 3;
     private static final int DEFAULT_LIMIT = 5;
+    private static final double SUPPLY_AREA_RATIO = 1.3D;
+    private static final double SQUARE_METERS_PER_PYEONG = 3.305785D;
 
     private final PlaceResolver placeResolver;
     private final NearbyApartmentSearchService nearbyApartmentSearchService;
@@ -51,9 +53,9 @@ public class NearbyApartmentRankingSearchService {
         PlaceResolutionResponse.PlaceCandidate place = representativePlace(resolution, reference.name());
         int limit = analysis.limit() == null ? DEFAULT_LIMIT : Math.max(1, Math.min(analysis.limit(), 10));
 
-        NearbyApartmentResponse nearby = searchRankableApartments(place, PRIMARY_RADIUS_METERS);
+        NearbyApartmentResponse nearby = searchRankableApartments(place, PRIMARY_RADIUS_METERS, analysis.filters());
         if (!hasRankableApartment(nearby, analysis.filters())) {
-            nearby = searchRankableApartments(place, FALLBACK_RADIUS_METERS);
+            nearby = searchRankableApartments(place, FALLBACK_RADIUS_METERS, analysis.filters());
         }
         if (!"SUCCESS".equals(nearby.status())) {
             throw new IllegalArgumentException(nearby.message() == null
@@ -85,9 +87,11 @@ public class NearbyApartmentRankingSearchService {
                 new RankingCriteria("평균 거래가", "만원", period, MINIMUM_TRADE_COUNT, "높은 순"), items);
     }
 
-    private NearbyApartmentResponse searchRankableApartments(PlaceResolutionResponse.PlaceCandidate place, int radius) {
+    private NearbyApartmentResponse searchRankableApartments(PlaceResolutionResponse.PlaceCandidate place, int radius,
+                                                              QuestionAnalysisResponse.SearchFilters filters) {
         return nearbyApartmentSearchService.search(new NearbyApartmentRequest(
-                place.latitude(), place.longitude(), radius, CANDIDATE_LIMIT));
+                place.latitude(), place.longitude(), radius, CANDIDATE_LIMIT),
+                apartment -> matchesBeforeLimit(apartment, filters));
     }
 
     private boolean hasRankableApartment(NearbyApartmentResponse response,
@@ -117,7 +121,7 @@ public class NearbyApartmentRankingSearchService {
         String sourceId = apartment.apartmentId() + "|" + apartment.exclusiveAreaM2() + "|"
                 + apartment.averageTradeAmount() + "|" + apartment.latestDealDate();
         candidatesById.put(sourceId, apartment);
-        Double pyeong = apartment.exclusiveAreaM2() == null ? null : apartment.exclusiveAreaM2() / 3.305785D;
+        Double pyeong = supplyPyeong(apartment.exclusiveAreaM2());
         return new MetricRecord(sourceId, null, null, apartment.apartmentName(), apartment.address(),
                 apartment.averageTradeAmount() == null ? null : apartment.averageTradeAmount() * 10_000L,
                 apartment.averagePyeongAmount(), apartment.exclusiveAreaM2(), pyeong,
@@ -127,6 +131,31 @@ public class NearbyApartmentRankingSearchService {
 
     private Long exclusiveUpperBound(Long value) {
         return value == null ? null : value - 1;
+    }
+
+    private boolean matchesBeforeLimit(com.seoul.market.seoulmarketprice.ai.repository.ApartmentLocation apartment,
+                                       QuestionAnalysisResponse.SearchFilters filters) {
+        if (apartment.dealCount() == null || apartment.dealCount() < MINIMUM_TRADE_COUNT) return false;
+        if (filters == null) return true;
+        Double pyeong = supplyPyeong(apartment.exclusiveAreaM2());
+        if (!inRange(pyeong, filters.minPyeong(), filters.maxPyeong())) return false;
+        Long averagePriceWon = apartment.averageTradeAmount() == null
+                ? null : apartment.averageTradeAmount() * 10_000L;
+        return inRange(averagePriceWon, filters.minPriceWon(), exclusiveUpperBound(filters.maxPriceWon()));
+    }
+
+    private Double supplyPyeong(Double exclusiveAreaM2) {
+        return exclusiveAreaM2 == null ? null : exclusiveAreaM2 * SUPPLY_AREA_RATIO / SQUARE_METERS_PER_PYEONG;
+    }
+
+    private boolean inRange(Double value, Double min, Double max) {
+        if (min == null && max == null) return true;
+        return value != null && (min == null || value >= min) && (max == null || value <= max);
+    }
+
+    private boolean inRange(Long value, Long min, Long max) {
+        if (min == null && max == null) return true;
+        return value != null && (min == null || value >= min) && (max == null || value <= max);
     }
 
     private boolean hasRequestedFilters(QuestionAnalysisResponse.SearchFilters filters) {
