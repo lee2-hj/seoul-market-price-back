@@ -8,7 +8,12 @@ public record DistrictRankingResponse(
         String metricType,
         String baseDate,
         RankingCriteria criteria,
-        List<Item> items
+        List<Item> items,
+        String summary
 ) {
+    public DistrictRankingResponse(String regionName, String metricType, String baseDate,
+                                   RankingCriteria criteria, List<Item> items) {
+        this(regionName, metricType, baseDate, criteria, items, null);
+    }
     public record Item(int rank, String districtName, Long averagePyeongAmount, long dealCount) {}
 }

@@ -79,8 +79,9 @@ public class TradeVolumeRankingSearchService {
 
         String periodStart = candidates.isEmpty() ? null : candidates.get(0).periodStart();
         String periodEnd = candidates.isEmpty() ? null : candidates.get(0).periodEnd();
+        RankingCriteria criteria = criteria(periodStart, periodEnd, query.minimumTradeCount());
         return new TradeVolumeRankingResponse("서울 전체", periodStart, periodEnd, totalDealCount,
-                criteria(periodStart, periodEnd, query.minimumTradeCount()), items);
+                criteria, items, RankingSummaryFactory.apartment("서울 전체", criteria, items.size()));
     }
 
     private List<Candidate> candidates(Region region, RttRespopnse response) {
@@ -111,9 +112,10 @@ public class TradeVolumeRankingSearchService {
                 })
                 .toList();
 
+        RankingCriteria criteria = criteria(response.periodStart(), response.periodEnd(), query.minimumTradeCount());
         return new TradeVolumeRankingResponse(regionName, response.periodStart(), response.periodEnd(),
-                response.totalDealCnt() == null ? 0 : response.totalDealCnt(),
-                criteria(response.periodStart(), response.periodEnd(), query.minimumTradeCount()), ranked);
+                response.totalDealCnt() == null ? 0 : response.totalDealCnt(), criteria, ranked,
+                RankingSummaryFactory.apartment(regionName, criteria, ranked.size()));
     }
 
     private RankingCriteria criteria(String periodStart, String periodEnd, int minimumTradeCount) {
