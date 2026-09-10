@@ -135,6 +135,11 @@ public class NaturalLanguageSearchService {
         question = preferenceResolution.question();
         String contextSessionId = normalizedSessionId(sessionId);
         try {
+            if (isSeoulWideAverageQuestion(question)) {
+                Object result = executionRouter.executeLegacy(QuestionIntentClassifier.Intent.CITY_SUMMARY, question);
+                return complete(NaturalSearchResponse.success(QuestionIntentClassifier.Intent.CITY_SUMMARY.name(), result),
+                        contextSessionId, null, List.of());
+            }
             QuestionAnalysisResponse analyzed = analyze(question);
             // The LLM plan remains the primary source of intent. Explicit wording only corrects
             // its filters/direction; it becomes a fallback when the analyser is unavailable.
@@ -212,6 +217,17 @@ public class NaturalLanguageSearchService {
             return NaturalSearchResponse.error("아파트 조회 데이터를 연결하지 못했습니다. 데이터 서버 상태를 확인한 뒤 다시 시도해주세요.",
                     NaturalSearchErrorCode.AI_UNAVAILABLE);
         }
+    }
+
+    private boolean isSeoulWideAverageQuestion(String question) {
+        if (question == null) return false;
+        String compact = question.replaceAll("\\s+", "");
+        boolean allSeoul = compact.contains("서울시") || compact.contains("서울특별시") || compact.contains("서울전체");
+        boolean requestsAverage = compact.contains("평균") || compact.contains("평균가격")
+                || compact.contains("평균거래가") || compact.contains("평균평단가");
+        boolean hasSpecificRegion = RegionQuestionPatterns.DISTRICT.matcher(question).find()
+                || RegionQuestionPatterns.DONG.matcher(question).find();
+        return allSeoul && requestsAverage && !hasSpecificRegion;
     }
 
     private NaturalSearchResponse complete(NaturalSearchResponse response, String sessionId,
