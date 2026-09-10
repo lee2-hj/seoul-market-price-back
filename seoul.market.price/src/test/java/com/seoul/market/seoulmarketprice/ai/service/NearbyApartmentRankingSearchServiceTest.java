@@ -37,6 +37,29 @@ class NearbyApartmentRankingSearchServiceTest {
     }
 
     @Test
+    void ranksNearbyApartmentsInAscendingPriceOrderWhenAnalysisRequestsAscendingOrder() {
+        PlaceResolver placeResolver = mock(PlaceResolver.class);
+        NearbyApartmentSearchService nearbySearch = mock(NearbyApartmentSearchService.class);
+        var place = new PlaceResolutionResponse.PlaceCandidate("1", "구로역", "STATION", null, null,
+                37.5030, 126.8820, "KAKAO");
+        when(placeResolver.resolve("구로역", "STATION")).thenReturn(PlaceResolutionResponse.resolved(place));
+        when(nearbySearch.search(any(), any())).thenReturn(new NearbyApartmentResponse("SUCCESS", null, 1000, "minio",
+                List.of(candidate("비싼 단지", 300_000L, 3), candidate("저렴한 단지", 100_000L, 3),
+                        candidate("중간 단지", 200_000L, 3))));
+        var analysis = new QuestionAnalysisResponse("NEARBY_APARTMENT_RANKING", List.of(),
+                new QuestionAnalysisResponse.AnalyzedPlace("구로역", "STATION"), "APARTMENT",
+                null, "AVERAGE_PRICE", "ASC", 10, null, List.of(), List.of(), List.of(), null, List.of(),
+                new QuestionAnalysisResponse.SearchFilters(null, null, null, null), false);
+
+        var result = new NearbyApartmentRankingSearchService(placeResolver, nearbySearch).search(analysis);
+
+        assertThat(result.criteria().sortDirection()).isEqualTo("낮은 순");
+        assertThat(result.items()).extracting(item -> item.metricValue())
+                .containsExactly(100_000L, 200_000L, 300_000L);
+        assertThat(result.items()).hasSize(3);
+    }
+
+    @Test
     void expandsRadiusWhenPrimaryRadiusHasNoRankableApartment() {
         PlaceResolver placeResolver = mock(PlaceResolver.class);
         NearbyApartmentSearchService nearbySearch = mock(NearbyApartmentSearchService.class);

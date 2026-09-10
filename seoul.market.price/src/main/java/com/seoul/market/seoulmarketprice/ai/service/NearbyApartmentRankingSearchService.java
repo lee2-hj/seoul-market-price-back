@@ -52,6 +52,7 @@ public class NearbyApartmentRankingSearchService {
         PlaceResolutionResponse resolution = placeResolver.resolve(reference.name(), reference.type());
         PlaceResolutionResponse.PlaceCandidate place = representativePlace(resolution, reference.name());
         int limit = analysis.limit() == null ? DEFAULT_LIMIT : Math.max(1, Math.min(analysis.limit(), 10));
+        boolean ascending = "ASC".equalsIgnoreCase(analysis.direction());
 
         NearbyApartmentResponse nearby = searchRankableApartments(place, PRIMARY_RADIUS_METERS, analysis.filters());
         if (!hasRankableApartment(nearby, analysis.filters())) {
@@ -63,7 +64,7 @@ public class NearbyApartmentRankingSearchService {
         }
 
         List<NearbyApartmentResponse.ApartmentCandidate> ranked = matchingApartments(nearby.apartments(),
-                analysis.filters(), limit);
+                analysis.filters(), ascending, limit);
         if (ranked.isEmpty()) {
             if (hasRequestedFilters(analysis.filters())) {
                 throw new IllegalArgumentException("기준 장소 주변에서 요청한 가격·면적 조건을 만족하는 아파트 거래 데이터를 찾을 수 없습니다.");
@@ -83,7 +84,8 @@ public class NearbyApartmentRankingSearchService {
                 }).toList();
 
         String regionName = place.name() + " 주변 " + radiusLabel;
-        RankingCriteria criteria = new RankingCriteria("평균 거래가", "만원", period, MINIMUM_TRADE_COUNT, "높은 순");
+        RankingCriteria criteria = new RankingCriteria("평균 거래가", "만원", period, MINIMUM_TRADE_COUNT,
+                ascending ? "낮은 순" : "높은 순");
         return new PriceRankingResponse(regionName,
                 "AVERAGE_TRADE_AMOUNT", baseDate,
                 criteria, items, RankingSummaryFactory.apartment(regionName, criteria, items.size()));
@@ -99,12 +101,12 @@ public class NearbyApartmentRankingSearchService {
     private boolean hasRankableApartment(NearbyApartmentResponse response,
                                          QuestionAnalysisResponse.SearchFilters filters) {
         return "SUCCESS".equals(response.status()) && response.apartments().stream()
-                .anyMatch(apartment -> !matchingApartments(List.of(apartment), filters, 1).isEmpty());
+                .anyMatch(apartment -> !matchingApartments(List.of(apartment), filters, false, 1).isEmpty());
     }
 
     private List<NearbyApartmentResponse.ApartmentCandidate> matchingApartments(
             List<NearbyApartmentResponse.ApartmentCandidate> apartments,
-            QuestionAnalysisResponse.SearchFilters filters, int limit) {
+            QuestionAnalysisResponse.SearchFilters filters, boolean ascending, int limit) {
         java.util.Map<String, NearbyApartmentResponse.ApartmentCandidate> candidatesById = new java.util.HashMap<>();
         List<MetricRecord> records = apartments.stream().map(apartment -> toMetricRecord(apartment, candidatesById))
                 .toList();
@@ -114,7 +116,7 @@ public class NearbyApartmentRankingSearchService {
                         filters == null ? null : filters.maxPyeong(),
                         filters == null ? null : filters.minPriceWon(),
                         exclusiveUpperBound(filters == null ? null : filters.maxPriceWon()),
-                        QueryRequest.SortField.AVERAGE_PRICE, false, limit));
+                        QueryRequest.SortField.AVERAGE_PRICE, ascending, limit));
         return matched.stream().map(record -> candidatesById.get(record.sourceId())).toList();
     }
 
