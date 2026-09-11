@@ -98,8 +98,8 @@ public class QuestionSearchPlanNormalizer {
     }
 
     private String priceDirection(String question, String sourceDirection) {
-        if (containsAny(question, "싼", "저렴", "낮은", "최저", "가성비")) return "ASC";
         if (containsAny(question, "비싼", "높은", "최고", "고가")) return "DESC";
+        if (containsAny(question, "싼", "저렴", "낮은", "최저", "가성비")) return "ASC";
         return sourceDirection;
     }
 

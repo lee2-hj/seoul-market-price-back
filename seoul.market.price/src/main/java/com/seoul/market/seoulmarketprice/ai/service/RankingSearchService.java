@@ -59,11 +59,11 @@ public class RankingSearchService {
     }
 
     private SortDirection direction(String question, String direction, RankingMetric metric) {
-        if (metric == RankingMetric.PRICE && containsAny(question, "싼", "저렴", "낮은", "최저", "가성비")) {
-            return SortDirection.ASC;
-        }
         if (metric == RankingMetric.PRICE && containsAny(question, "비싼", "높은", "최고", "고가")) {
             return SortDirection.DESC;
+        }
+        if (metric == RankingMetric.PRICE && containsAny(question, "싼", "저렴", "낮은", "최저", "가성비")) {
+            return SortDirection.ASC;
         }
         return "ASC".equals(direction) ? SortDirection.ASC : SortDirection.DESC;
     }
