@@ -20,6 +20,13 @@ class QuestionSearchPlanNormalizerTest {
     }
 
     @Test
+    void treatsExpensiveAsDescendingRatherThanMatchingIts싼Syllable() {
+        var plan = normalizer.normalize("강동구에서 비싼 아파트 순위 알려줘", analysis("APARTMENT_RANKING", "ASC"));
+
+        assertThat(plan.direction()).isEqualTo("DESC");
+    }
+
+    @Test
     void turnsPyeongBandAverageQuestionIntoFilteredRegionalSummary() {
         var plan = normalizer.normalize("강동구에서 30평대 아파트 평균가격 알려줘", analysis("UNSUPPORTED", null));
 
