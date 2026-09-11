@@ -8,6 +8,11 @@ public interface ApartmentLocationRepository {
     String datasetLocation();
     List<ApartmentLocation> findCandidates(double latitude, double longitude, int radiusMeters);
 
+    /** Forces the backing dataset to reload and returns the newly active snapshot. */
+    default DatasetRefreshResult refresh() {
+        return new DatasetRefreshResult(datasetLocation(), 0, dataQualityWarnings());
+    }
+
     /** Quality warnings for the currently loaded dataset partition. */
     default List<String> dataQualityWarnings() {
         return List.of();
@@ -37,4 +42,5 @@ public interface ApartmentLocationRepository {
     }
 
     record RegionLookup(List<ApartmentLocation> locations, String strategy) {}
+    record DatasetRefreshResult(String datasetLocation, int rowCount, List<String> dataQualityWarnings) {}
 }

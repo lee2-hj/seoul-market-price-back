@@ -20,7 +20,7 @@ class NearbyApartmentRankingSearchServiceTest {
         var place = new PlaceResolutionResponse.PlaceCandidate("1", "홍대입구역", "STATION", null, null,
                 37.5572, 126.9236, "KAKAO");
         when(placeResolver.resolve("홍대입구", "STATION")).thenReturn(PlaceResolutionResponse.resolved(place));
-        when(nearbySearch.search(any())).thenReturn(new NearbyApartmentResponse("SUCCESS", null, 1000, "minio",
+        when(nearbySearch.search(any(), any())).thenReturn(new NearbyApartmentResponse("SUCCESS", null, 1000, "minio",
                 List.of(candidate("낮은가격", 100_000L, 10), candidate("거래부족", 500_000L, 2),
                         candidate("가장비��", 300_000L, 3), candidate("중간가격", 200_000L, 4))));
 
@@ -37,13 +37,36 @@ class NearbyApartmentRankingSearchServiceTest {
     }
 
     @Test
+    void ranksNearbyApartmentsInAscendingPriceOrderWhenAnalysisRequestsAscendingOrder() {
+        PlaceResolver placeResolver = mock(PlaceResolver.class);
+        NearbyApartmentSearchService nearbySearch = mock(NearbyApartmentSearchService.class);
+        var place = new PlaceResolutionResponse.PlaceCandidate("1", "구로역", "STATION", null, null,
+                37.5030, 126.8820, "KAKAO");
+        when(placeResolver.resolve("구로역", "STATION")).thenReturn(PlaceResolutionResponse.resolved(place));
+        when(nearbySearch.search(any(), any())).thenReturn(new NearbyApartmentResponse("SUCCESS", null, 1000, "minio",
+                List.of(candidate("비싼 단지", 300_000L, 3), candidate("저렴한 단지", 100_000L, 3),
+                        candidate("중간 단지", 200_000L, 3))));
+        var analysis = new QuestionAnalysisResponse("NEARBY_APARTMENT_RANKING", List.of(),
+                new QuestionAnalysisResponse.AnalyzedPlace("구로역", "STATION"), "APARTMENT",
+                null, "AVERAGE_PRICE", "ASC", 10, null, List.of(), List.of(), List.of(), null, List.of(),
+                new QuestionAnalysisResponse.SearchFilters(null, null, null, null), false);
+
+        var result = new NearbyApartmentRankingSearchService(placeResolver, nearbySearch).search(analysis);
+
+        assertThat(result.criteria().sortDirection()).isEqualTo("낮은 순");
+        assertThat(result.items()).extracting(item -> item.metricValue())
+                .containsExactly(100_000L, 200_000L, 300_000L);
+        assertThat(result.items()).hasSize(3);
+    }
+
+    @Test
     void expandsRadiusWhenPrimaryRadiusHasNoRankableApartment() {
         PlaceResolver placeResolver = mock(PlaceResolver.class);
         NearbyApartmentSearchService nearbySearch = mock(NearbyApartmentSearchService.class);
         var place = new PlaceResolutionResponse.PlaceCandidate("1", "홍대입구역", "STATION", null, null,
                 37.5572, 126.9236, "KAKAO");
         when(placeResolver.resolve("홍대입구", "STATION")).thenReturn(PlaceResolutionResponse.resolved(place));
-        when(nearbySearch.search(any()))
+        when(nearbySearch.search(any(), any()))
                 .thenReturn(new NearbyApartmentResponse("SUCCESS", null, 1000, "minio", List.of(candidate("거래부족", 500_000L, 2))))
                 .thenReturn(new NearbyApartmentResponse("SUCCESS", null, 3000, "minio", List.of(candidate("대상", 250_000L, 3))));
 
@@ -60,7 +83,7 @@ class NearbyApartmentRankingSearchServiceTest {
         var place = new PlaceResolutionResponse.PlaceCandidate("1", "강동역", "STATION", null, null,
                 37.535, 127.133, "KAKAO");
         when(placeResolver.resolve("강동역", "STATION")).thenReturn(PlaceResolutionResponse.resolved(place));
-        when(nearbySearch.search(any())).thenReturn(new NearbyApartmentResponse("SUCCESS", null, 1000, "minio",
+        when(nearbySearch.search(any(), any())).thenReturn(new NearbyApartmentResponse("SUCCESS", null, 1000, "minio",
                 List.of(candidate("four-eok", 41_678L, 3), candidate("twenty-eok", 205_000L, 4),
                         candidate("twenty-one-eok", 210_000L, 5))));
 
@@ -74,6 +97,33 @@ class NearbyApartmentRankingSearchServiceTest {
 
         assertThat(result.items()).extracting(item -> item.apartmentName()).containsExactly("twenty-eok");
         assertThat(result.items()).extracting(item -> item.metricValue()).containsExactly(205_000L);
+    }
+
+    @Test
+    void interpretsPyeongBandAsSupplyArea() {
+        PlaceResolver placeResolver = mock(PlaceResolver.class);
+        NearbyApartmentSearchService nearbySearch = mock(NearbyApartmentSearchService.class);
+        var place = new PlaceResolutionResponse.PlaceCandidate("1", "강남역", "STATION", null, null,
+                37.4979, 127.0276, "KAKAO");
+        when(placeResolver.resolve("강남역", "STATION")).thenReturn(PlaceResolutionResponse.resolved(place));
+        when(nearbySearch.search(any(), any())).thenReturn(new NearbyApartmentResponse("SUCCESS", null, 1000, "minio",
+                List.of(candidateWithArea("공급53평", 300_000L, 3, 135.0),
+                        candidateWithArea("공급67평", 500_000L, 3, 170.0))));
+        var filters = new QuestionAnalysisResponse.SearchFilters(50.0, 59.0, null, null);
+        var analysis = new QuestionAnalysisResponse("NEARBY_APARTMENT_RANKING", List.of(),
+                new QuestionAnalysisResponse.AnalyzedPlace("강남역", "STATION"), "APARTMENT",
+                null, "AVERAGE_PRICE", "DESC", 10, null, List.of(), List.of(), List.of(), null, List.of(),
+                filters, false);
+
+        var result = new NearbyApartmentRankingSearchService(placeResolver, nearbySearch).search(analysis);
+
+        assertThat(result.items()).extracting(item -> item.apartmentName()).containsExactly("공급53평");
+    }
+
+    private NearbyApartmentResponse.ApartmentCandidate candidateWithArea(
+            String name, Long amount, int deals, Double area) {
+        return new NearbyApartmentResponse.ApartmentCandidate(name, name, "강남구", "11680", "11680101",
+                37.50, 127.03, 200, amount, null, area, deals, "2026-09-07", "2026-09-07");
     }
 
     private QuestionAnalysisResponse analysis(int limit) {

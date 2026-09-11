@@ -60,9 +60,11 @@ public class ApartmentDataRagSearchService {
         String baseDate = candidates.stream().map(ApartmentRagCandidate::baseDate).filter(value -> value != null && !value.isBlank())
                 .max(String::compareTo).orElse(null);
         String label = region.allSeoul() ? "서울 전체" : region.name();
-        return new PriceRankingResponse(label + " 아파트 검색 결과", "thing_amt", baseDate,
-                new RankingCriteria("평균 거래가 · 전용면적 · 거래량", "만원 · ㎡ · 건", baseDate == null ? "최신 집계 기간" : baseDate + " 기준", 0, "가격·평수·거래량 높은 순"),
-                items, response.groundedAnswer());
+        String regionName = label + " 아파트 검색 결과";
+        RankingCriteria criteria = new RankingCriteria("평균 거래가 · 전용면적 · 거래량", "만원 · ㎡ · 건",
+                baseDate == null ? "최신 집계 기간" : baseDate + " 기준", 0, "가격·평수·거래량 높은 순");
+        return new PriceRankingResponse(regionName, "thing_amt", baseDate, criteria, items,
+                RankingSummaryFactory.apartment(regionName, criteria, items.size()), response.groundedAnswer());
     }
 
     private record ApartmentRagRequest(String question, String district, String dong,

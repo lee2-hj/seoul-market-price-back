@@ -9,11 +9,17 @@ public record PriceRankingResponse(
         String baseDate,
         RankingCriteria criteria,
         List<Item> items,
-        String summary
+        String summary,
+        String description
 ) {
     public PriceRankingResponse(String regionName, String metricType, String baseDate,
                                 RankingCriteria criteria, List<Item> items) {
-        this(regionName, metricType, baseDate, criteria, items, null);
+        this(regionName, metricType, baseDate, criteria, items, null, null);
+    }
+
+    public PriceRankingResponse(String regionName, String metricType, String baseDate,
+                                RankingCriteria criteria, List<Item> items, String summary) {
+        this(regionName, metricType, baseDate, criteria, items, summary, null);
     }
     public record Item(
             int rank,

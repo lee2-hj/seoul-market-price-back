@@ -248,7 +248,8 @@ public class PriceRankingSearchService {
                 baseDate == null ? "최근 집계 기간" : baseDate + " 기준",
                 0,
                 direction == SortDirection.ASC ? "낮은 순" : "높은 순");
-        return new PriceRankingResponse(regionName, metricType, baseDate, criteria, items);
+        return new PriceRankingResponse(regionName, metricType, baseDate, criteria, items,
+                RankingSummaryFactory.apartment(regionName, criteria, items.size()));
     }
 
     private boolean matchesPriceRange(Long value, String metricType, RankingSearchQuery query) {

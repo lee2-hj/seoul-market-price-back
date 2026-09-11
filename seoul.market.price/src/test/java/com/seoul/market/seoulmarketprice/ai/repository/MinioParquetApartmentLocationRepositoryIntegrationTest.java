@@ -18,6 +18,25 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 class MinioParquetApartmentLocationRepositoryIntegrationTest {
 
     @Test
+    void refreshesLatestPartitionImmediately() {
+        String endpoint = System.getenv("MINIO_ENDPOINT");
+        String accessKey = System.getenv("MINIO_ACCESS_KEY");
+        String secretKey = System.getenv("MINIO_SECRET_KEY");
+        assumeTrue(hasText(endpoint) && hasText(accessKey) && hasText(secretKey));
+
+        MinioClient client = MinioClient.builder().endpoint(endpoint)
+                .credentials(accessKey, secretKey).build();
+        var repository = new MinioParquetApartmentLocationRepository(client,
+                new ApartmentDatasetProperties("minio", "MINIO_PARQUET", "warehouse", "mart/dm_main", 3600L));
+
+        ApartmentLocationRepository.DatasetRefreshResult result = repository.refresh();
+
+        assertThat(result.datasetLocation()).contains("base_date=2026-09-04");
+        assertThat(result.rowCount()).isPositive();
+        assertThat(result.dataQualityWarnings()).isEmpty();
+    }
+
+    @Test
     void readsLatestPartitionAndFindsNearbyApartment() {
         String endpoint = System.getenv("MINIO_ENDPOINT");
         String accessKey = System.getenv("MINIO_ACCESS_KEY");
